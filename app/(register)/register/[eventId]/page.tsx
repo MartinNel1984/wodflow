@@ -1,0 +1,228 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+type Division = {
+  id: string;
+  name: string;
+  team_size: number;
+  price_early: number | null;
+  price_normal: number;
+  price_late: number | null;
+};
+
+type Teammate = { fullName: string; email: string };
+
+export default function RegisterPage() {
+  const { eventId } = useParams<{ eventId: string }>();
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [eventName, setEventName] = useState("");
+  const [waiverText, setWaiverText] = useState("");
+  const [divisions, setDivisions] = useState<Division[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [divisionId, setDivisionId] = useState("");
+  const [teamName, setTeamName] = useState("");
+  const [teammates, setTeammates] = useState<Teammate[]>([{ fullName: "", email: "" }]);
+  const [waiverSignedName, setWaiverSignedName] = useState("");
+  const [waiverAccepted, setWaiverAccepted] = useState(false);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient();
+      const [{ data: event }, { data: divs }] = await Promise.all([
+        supabase.from("events").select("name, waiver_text").eq("id", eventId).single(),
+        supabase
+          .from("divisions")
+          .select("id, name, team_size, price_early, price_normal, price_late")
+          .eq("event_id", eventId)
+          .order("name"),
+      ]);
+      setEventName(event?.name ?? "");
+      setWaiverText(event?.waiver_text ?? "");
+      setDivisions(divs ?? []);
+      setLoading(false);
+    }
+    load();
+  }, [eventId]);
+
+  const selectedDivision = divisions.find((d) => d.id === divisionId);
+
+  function selectDivision(d: Division) {
+    setDivisionId(d.id);
+    setTeammates(Array.from({ length: d.team_size }, () => ({ fullName: "", email: "" })));
+    setStep(2);
+  }
+
+  function updateTeammate(index: number, field: keyof Teammate, value: string) {
+    setTeammates((prev) => prev.map((t, i) => (i === index ? { ...t, [field]: value } : t)));
+  }
+
+  function teammatesValid() {
+    return teammates.every((t) => t.fullName.trim() && t.email.trim().includes("@"));
+  }
+
+  async function submitRegistration() {
+    if (!selectedDivision || !waiverAccepted || !waiverSignedName.trim()) return;
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/registrations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          divisionId: selectedDivision.id,
+          teamName: selectedDivision.team_size > 1 ? teamName : null,
+          teammates: teammates.map((t, i) => ({ ...t, isCaptain: i === 0 })),
+          waiverSignedName,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Registration failed.");
+        setSubmitting(false);
+        return;
+      }
+      window.location.href = data.payUrl;
+    } catch {
+      setError("Network error. Please try again.");
+      setSubmitting(false);
+    }
+  }
+
+  if (loading) return <p className="text-center py-20 text-ink/50">Loading…</p>;
+
+  return (
+    <div className="max-w-xl mx-auto px-4 py-10 space-y-8">
+      <div className="text-center">
+        <h1 className="text-2xl font-semibold">{eventName}</h1>
+        <p className="text-ink/60 text-sm mt-1">Register</p>
+      </div>
+
+      {step === 1 && (
+        <div className="space-y-3">
+          <h2 className="font-semibold">Choose your division</h2>
+          {divisions.map((d) => (
+            <button
+              key={d.id}
+              onClick={() => selectDivision(d)}
+              className="w-full text-left bg-white border border-ink/10 rounded-xl px-4 py-3 hover:bg-ink/5 transition-colors"
+            >
+              <p className="font-semibold">{d.name}</p>
+              <p className="text-ink/60 text-sm">
+                {d.team_size === 1 ? "Individual" : `Team of ${d.team_size}`} · R{d.price_normal}
+              </p>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {step === 2 && selectedDivision && (
+        <div className="space-y-5">
+          <button onClick={() => setStep(1)} className="text-accent text-sm hover:underline">
+            ← Change division
+          </button>
+          <h2 className="font-semibold">{selectedDivision.name}</h2>
+
+          {selectedDivision.team_size > 1 && (
+            <Field label="Team name" value={teamName} onChange={setTeamName} />
+          )}
+
+          {teammates.map((t, i) => (
+            <div key={i} className="grid grid-cols-2 gap-3">
+              <Field
+                label={i === 0 ? "Your full name (captain)" : `Teammate ${i + 1} full name`}
+                value={t.fullName}
+                onChange={(v) => updateTeammate(i, "fullName", v)}
+              />
+              <Field
+                label={i === 0 ? "Your email" : `Teammate ${i + 1} email`}
+                value={t.email}
+                onChange={(v) => updateTeammate(i, "email", v)}
+                type="email"
+              />
+            </div>
+          ))}
+
+          <button
+            onClick={() => teammatesValid() && setStep(3)}
+            disabled={!teammatesValid()}
+            className="w-full bg-accent text-white rounded-lg py-3 text-sm font-semibold disabled:opacity-40"
+          >
+            Continue to waiver
+          </button>
+        </div>
+      )}
+
+      {step === 3 && selectedDivision && (
+        <div className="space-y-5">
+          <button onClick={() => setStep(2)} className="text-accent text-sm hover:underline">
+            ← Back
+          </button>
+          <h2 className="font-semibold">Waiver</h2>
+          <div className="bg-white border border-ink/10 rounded-xl p-4 text-sm text-ink/80 max-h-64 overflow-y-auto whitespace-pre-wrap">
+            {waiverText || "No waiver text has been set for this event yet."}
+          </div>
+
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={waiverAccepted}
+              onChange={(e) => setWaiverAccepted(e.target.checked)}
+              className="mt-1"
+            />
+            I have read and agree to the waiver above.
+          </label>
+
+          <Field
+            label="Type your full name to sign"
+            value={waiverSignedName}
+            onChange={setWaiverSignedName}
+          />
+
+          {error && (
+            <p className="text-center text-red-700 text-sm bg-red-50 rounded-lg px-3 py-2">{error}</p>
+          )}
+
+          <button
+            onClick={submitRegistration}
+            disabled={submitting || !waiverAccepted || !waiverSignedName.trim()}
+            className="w-full bg-accent text-white rounded-lg py-3 text-sm font-semibold disabled:opacity-40"
+          >
+            {submitting ? "Redirecting to payment…" : `Pay R${selectedDivision.price_normal} & register`}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold uppercase tracking-wider mb-2">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+      />
+    </div>
+  );
+}
