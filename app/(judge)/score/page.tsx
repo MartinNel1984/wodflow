@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { enqueueScore, syncPendingScores, getAllPending, type PendingScore } from "@/lib/offline-queue";
 
 type HeatOption = {
   heatId: string;
@@ -16,6 +17,19 @@ type Lane = {
   displayName: string;
 };
 
+async function submitPendingScore(item: PendingScore): Promise<Response> {
+  return fetch("/api/scores", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      heatAssignmentId: item.heatAssignmentId,
+      workoutId: item.workoutId,
+      valueRaw: item.valueRaw,
+      clientSubmissionId: item.clientSubmissionId,
+    }),
+  });
+}
+
 export default function ScorePage() {
   const [heats, setHeats] = useState<HeatOption[]>([]);
   const [selectedHeatId, setSelectedHeatId] = useState("");
@@ -24,6 +38,37 @@ export default function ScorePage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [savedLanes, setSavedLanes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const refreshPendingCount = useCallback(async () => {
+    const pending = await getAllPending();
+    setPendingCount(pending.length);
+  }, []);
+
+  const trySync = useCallback(async () => {
+    await syncPendingScores(submitPendingScore);
+    await refreshPendingCount();
+  }, [refreshPendingCount]);
+
+  // Sync triggers: on mount, on reconnect, on tab refocus, and a flat
+  // 15s poll while there's a nonempty queue — a short, simple interval
+  // is enough for an event-day window, no exponential backoff needed.
+  useEffect(() => {
+    // Kicking off an async sync on mount is the correct pattern here — the
+    // setState calls inside trySync happen after a network round-trip, not
+    // synchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    trySync();
+    const interval = setInterval(trySync, 15_000);
+    window.addEventListener("online", trySync);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") trySync();
+    });
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("online", trySync);
+    };
+  }, [trySync]);
 
   useEffect(() => {
     async function loadHeats() {
@@ -103,19 +148,12 @@ export default function ScorePage() {
     else if (selectedHeat?.scoringType === "reps") valueRaw.reps = Number(rawValue);
     else valueRaw.load_kg = Number(rawValue);
 
-    const res = await fetch("/api/scores", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        heatAssignmentId: lane.heatAssignmentId,
-        workoutId,
-        valueRaw,
-        clientSubmissionId: crypto.randomUUID(),
-      }),
-    });
-    if (res.ok) {
-      setSavedLanes((prev) => new Set(prev).add(lane.heatAssignmentId));
-    }
+    // Write to the local queue first and show "Saved" immediately — the
+    // UI never blocks on network. Sync happens in the background.
+    await enqueueScore({ heatAssignmentId: lane.heatAssignmentId, workoutId, valueRaw });
+    setSavedLanes((prev) => new Set(prev).add(lane.heatAssignmentId));
+    await refreshPendingCount();
+    trySync();
   }
 
   if (loading) return <p className="text-center py-20 text-ink/50">Loading…</p>;
@@ -123,6 +161,12 @@ export default function ScorePage() {
   return (
     <div className="max-w-md mx-auto space-y-6">
       <h1 className="text-xl font-semibold text-center">Score entry</h1>
+
+      {pendingCount > 0 && (
+        <p className="text-center text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+          {pendingCount} score{pendingCount === 1 ? "" : "s"} saved locally, syncing…
+        </p>
+      )}
 
       {heats.length === 0 ? (
         <p className="text-center text-ink/60 text-sm">
