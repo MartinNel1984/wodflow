@@ -184,9 +184,21 @@ create table if not exists public.scores (
 -- ============================================================
 -- Latest-score-wins view — leaderboard and organizer dashboards
 -- read through this, never the raw scores table directly.
+--
+-- security_invoker = true so this view enforces the QUERYING role's
+-- RLS on public.scores, not the view owner's — Supabase's default
+-- (security_invoker = false) would otherwise bypass scores' RLS and,
+-- combined with Postgres's default anon+authenticated SELECT grant on
+-- every new public-schema object, leak all scores to anonymous
+-- callers holding just the public anon key. This view is organizer/
+-- judge-only for now; the public-facing leaderboard is a separate
+-- view added in Milestone 6 that deliberately excludes judge identity.
 -- ============================================================
-create or replace view public.latest_scores as
+create or replace view public.latest_scores
+with (security_invoker = true) as
 select distinct on (heat_assignment_id, workout_id)
   *
 from public.scores
 order by heat_assignment_id, workout_id, submitted_at desc;
+
+revoke select on public.latest_scores from anon;
