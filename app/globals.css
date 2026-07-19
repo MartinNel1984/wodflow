@@ -1,15 +1,85 @@
 @import "tailwindcss";
 
-/* Placeholder tokens for Milestone 0 — real anti-AI visual direction
-   (fluid type, font pairing, accent color, motion) lands in Milestone 7
-   once the functional flows are proven, not before. */
+/* Wodflow visual system — chosen for this app specifically:
+   Anton (display) reads like a scoreboard/event banner, Hanken Grotesk
+   is a clean geometric sans for interface text, Space Mono carries
+   tabular numerals for times/reps/lane numbers. Accent is a flame
+   orange-red — competitive energy without matching the generic
+   gym-red or the amber/gold buttons already used elsewhere in this
+   space. Paper is a cool off-white, deliberately not the cream/beige
+   that reads as an AI-cliché default. */
 @theme inline {
-  --color-ink: #16181c;
-  --color-paper: #fafaf9;
-  --color-accent: #ff5a1f;
+  --color-ink: #16171c;
+  --color-paper: #f7f7f4;
+  --color-accent: #f5470c;
+  --font-display: var(--font-display), sans-serif;
+  --font-sans: var(--font-sans), sans-serif;
+  --font-mono: var(--font-mono), monospace;
 }
 
 body {
   color: var(--color-ink);
   background: var(--color-paper);
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+}
+
+h1 {
+  font-size: clamp(1.75rem, 1.4rem + 1.5vw, 2.75rem);
+}
+
+h2 {
+  font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+}
+
+/* Times, reps, lane numbers, PIN dots — anything read at a glance
+   during a live event gets tabular mono figures. */
+input[type="number"],
+.font-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Purposeful motion only: leaderboard rows and score cards settle in
+   on load, buttons lift slightly on hover. Standardized easing curve,
+   respects prefers-reduced-motion. */
+@keyframes settle-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-settle-in {
+  animation: settle-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+button, a {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+button:hover, .hover-lift:hover {
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-settle-in {
+    animation: none;
+  }
+  button, a {
+    transition: none;
+  }
+  button:hover, .hover-lift:hover {
+    transform: none;
+  }
 }

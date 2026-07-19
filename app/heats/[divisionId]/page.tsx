@@ -37,11 +37,15 @@ export default async function PublicHeatSheetPage({
     <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
       <h1 className="text-2xl font-semibold text-center">{division?.name ?? "Heat sheet"}</h1>
 
-      {heatNumbers.map((heatNumber) => {
+      {heatNumbers.map((heatNumber, i) => {
         const heat = heatMap.get(heatNumber)!;
         return (
-          <div key={heatNumber} className="bg-white border border-ink/10 rounded-xl p-4">
-            <p className="font-semibold mb-2">
+          <div
+            key={heatNumber}
+            className="bg-white border border-ink/10 rounded-xl p-4 animate-settle-in"
+            style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
+          >
+            <p className="font-data font-bold text-accent mb-2">
               Heat {heatNumber} · {new Date(heat.startTime).toLocaleTimeString()}
             </p>
             <div className="space-y-1 text-sm">
@@ -49,7 +53,8 @@ export default async function PublicHeatSheetPage({
                 .sort((a, b) => a.laneNumber - b.laneNumber)
                 .map((lane) => (
                   <p key={lane.laneNumber}>
-                    Lane {lane.laneNumber} — {lane.displayName ?? "Unnamed"}
+                    <span className="font-data text-ink/50">Lane {lane.laneNumber}</span> —{" "}
+                    {lane.displayName ?? "Unnamed"}
                   </p>
                 ))}
             </div>

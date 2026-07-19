@@ -8,5 +8,9 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "workers_dev": true
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "wodflow.co.za", "custom_domain": true },
+    { "pattern": "www.wodflow.co.za", "custom_domain": true }
+  ]
 }

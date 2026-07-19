@@ -198,13 +198,14 @@ export default function ScorePage() {
               />
 
               <div className="space-y-3">
-                {lanes.map((lane) => (
+                {lanes.map((lane, i) => (
                   <div
                     key={lane.heatAssignmentId}
-                    className="bg-white border border-ink/10 rounded-xl p-4 flex items-center justify-between gap-3"
+                    className="bg-white border border-ink/10 rounded-xl p-4 flex items-center justify-between gap-3 animate-settle-in"
+                    style={{ animationDelay: `${i * 40}ms` }}
                   >
                     <div>
-                      <p className="font-semibold text-sm">Lane {lane.laneNumber}</p>
+                      <p className="font-data font-bold text-sm text-accent">Lane {lane.laneNumber}</p>
                       <p className="text-ink/60 text-sm">{lane.displayName}</p>
                     </div>
                     <div className="flex items-center gap-2">

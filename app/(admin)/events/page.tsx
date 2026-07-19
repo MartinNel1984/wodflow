@@ -27,6 +27,9 @@ export default async function EventsPage() {
                 {e.start_date}
                 {e.end_date ? ` – ${e.end_date}` : ""}
               </p>
+              <Link href={`/events/${e.id}/checklist`} className="text-accent text-xs hover:underline">
+                Pre-event checklist
+              </Link>
             </div>
             <form action={updateEventStatus} className="flex items-center gap-2">
               <input type="hidden" name="id" value={e.id} />

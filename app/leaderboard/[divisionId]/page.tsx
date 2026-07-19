@@ -95,10 +95,14 @@ export default async function LeaderboardPage({
           </thead>
           <tbody>
             {standings.map((s, i) => (
-              <tr key={s.registrationId} className="border-t border-ink/10">
-                <td className="px-4 py-2 font-semibold">{i + 1}</td>
+              <tr
+                key={s.registrationId}
+                className="border-t border-ink/10 animate-settle-in"
+                style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
+              >
+                <td className="px-4 py-2 font-data font-bold text-accent">{i + 1}</td>
                 <td className="px-4 py-2">{s.displayName}</td>
-                <td className="px-4 py-2 text-right">{s.total}</td>
+                <td className="px-4 py-2 text-right font-data">{s.total}</td>
               </tr>
             ))}
           </tbody>
