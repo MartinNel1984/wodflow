@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* Placeholder tokens for Milestone 0 — real anti-AI visual direction
+   (fluid type, font pairing, accent color, motion) lands in Milestone 7
+   once the functional flows are proven, not before. */
+@theme inline {
+  --color-ink: #16181c;
+  --color-paper: #fafaf9;
+  --color-accent: #ff5a1f;
+}
+
+body {
+  color: var(--color-ink);
+  background: var(--color-paper);
+}
