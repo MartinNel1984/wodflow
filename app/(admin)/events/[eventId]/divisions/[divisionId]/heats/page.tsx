@@ -26,6 +26,17 @@ export default async function HeatsPage({
 
   const allHeats = heats ?? [];
 
+  // Outstanding-scores dashboard: how many lanes in each heat have at
+  // least one score recorded, vs the total lane count — the product-
+  // level backstop that lets the organizer chase a judge whose device
+  // is still offline before leaderboard time, on top of the client-side
+  // sync queue itself.
+  const allAssignmentIds = allHeats.flatMap((h) => h.heat_assignments.map((a) => a.id));
+  const { data: scoredRows } = allAssignmentIds.length
+    ? await supabase.from("scores").select("heat_assignment_id").in("heat_assignment_id", allAssignmentIds)
+    : { data: [] as { heat_assignment_id: string }[] };
+  const scoredAssignmentIds = new Set((scoredRows ?? []).map((r) => r.heat_assignment_id));
+
   function athleteLabel(reg: {
     team_name: string | null;
     registration_athletes: { full_name: string; is_captain: boolean }[];
@@ -81,14 +92,33 @@ export default async function HeatsPage({
         </button>
       </form>
 
+      <a href={`/leaderboard/${divisionId}`} className="text-accent text-sm hover:underline">
+        View public leaderboard →
+      </a>
+
       <div className="space-y-4">
-        {allHeats.map((heat) => (
+        {allHeats.map((heat) => {
+          const scoredCount = heat.heat_assignments.filter((a) => scoredAssignmentIds.has(a.id)).length;
+          const totalCount = heat.heat_assignments.length;
+          const allScored = totalCount > 0 && scoredCount === totalCount;
+          return (
           <div key={heat.id} className="bg-white border border-ink/10 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="font-semibold">
                 Heat {heat.heat_number} · {new Date(heat.start_time).toLocaleTimeString()}
               </p>
-              <span className="text-xs uppercase tracking-wider text-ink/50">{heat.status}</span>
+              <div className="flex items-center gap-2">
+                {totalCount > 0 && (
+                  <span
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      allScored ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {scoredCount}/{totalCount} scored
+                  </span>
+                )}
+                <span className="text-xs uppercase tracking-wider text-ink/50">{heat.status}</span>
+              </div>
             </div>
             <div className="space-y-2">
               {heat.heat_assignments
@@ -120,7 +150,8 @@ export default async function HeatsPage({
                 })}
             </div>
           </div>
-        ))}
+          );
+        })}
         {allHeats.length === 0 && (
           <p className="text-ink/60 text-sm">No heats generated yet.</p>
         )}
