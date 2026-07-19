@@ -30,10 +30,21 @@ export async function generateHeatsForDivision(formData: FormData) {
   const laneCount = Number(formData.get("laneCount"));
   const heatDurationMinutes = Number(formData.get("heatDurationMinutes"));
   const transitionMinutes = Number(formData.get("transitionMinutes") ?? 0);
-  const startTimeRaw = String(formData.get("startTime") ?? "");
-  if (!eventId || !divisionId || !laneCount || !heatDurationMinutes || !startTimeRaw) return;
+  const startDate = String(formData.get("startDate") ?? "");
+  const startTimeOfDay = String(formData.get("startTimeOfDay") ?? "");
+  if (!eventId || !divisionId || !laneCount || !heatDurationMinutes || !startDate || !startTimeOfDay) {
+    throw new Error("Missing required fields — lane count, heat duration, date, and time are all required.");
+  }
 
-  const startTime = new Date(startTimeRaw);
+  // Split date + time inputs (native type="date"/type="time") are far
+  // less prone to mis-entry than a combined datetime-local field —
+  // fixing a real bug where a garbled datetime-local value would fail
+  // native browser validation silently, making "Generate" appear to do
+  // nothing at all.
+  const startTime = new Date(`${startDate}T${startTimeOfDay}`);
+  if (isNaN(startTime.getTime())) {
+    throw new Error(`Invalid date/time: "${startDate} ${startTimeOfDay}". Please re-enter both fields.`);
+  }
 
   const { data: registrations, error: regError } = await supabase
     .from("registrations")
@@ -42,6 +53,11 @@ export async function generateHeatsForDivision(formData: FormData) {
     .in("payment_status", ["paid", "waived"])
     .order("registration_order", { ascending: true });
   if (regError) throw regError;
+  if (!registrations || registrations.length === 0) {
+    throw new Error(
+      "No paid or waived registrations found for this division — heats can't be generated until athletes have registered and paid."
+    );
+  }
 
   const roster: RosterEntry[] = (registrations ?? []).map((r) => ({
     registrationId: r.id,

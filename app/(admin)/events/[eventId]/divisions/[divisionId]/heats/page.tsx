@@ -86,7 +86,10 @@ export default async function HeatsPage({
             defaultValue={division?.transition_minutes?.toString() ?? "0"}
           />
         </div>
-        <Field label="First heat starts at" name="startTime" type="datetime-local" required />
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="First heat date" name="startDate" type="date" required />
+          <Field label="First heat time" name="startTimeOfDay" type="time" required />
+        </div>
         <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
           Generate
         </button>
