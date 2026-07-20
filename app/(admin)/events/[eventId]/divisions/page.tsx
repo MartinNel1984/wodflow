@@ -36,9 +36,14 @@ export default async function DivisionsPage({
               {d.team_size === 1 ? "Individual" : `Team of ${d.team_size}`} · R{d.price_normal}
               {d.lane_count ? ` · ${d.lane_count} lanes` : ""}
             </p>
-            <Link href={`/events/${eventId}/divisions/${d.id}/heats`} className="text-accent text-xs hover:underline">
-              Manage heats
-            </Link>
+            <div className="flex gap-3">
+              <Link href={`/events/${eventId}/divisions/${d.id}/workouts`} className="text-accent text-xs hover:underline">
+                Manage workouts
+              </Link>
+              <Link href={`/events/${eventId}/divisions/${d.id}/heats`} className="text-accent text-xs hover:underline">
+                Manage heats
+              </Link>
+            </div>
           </div>
         ))}
         {(!divisions || divisions.length === 0) && (
