@@ -32,6 +32,7 @@ export async function createJudge(formData: FormData) {
   const fullName = String(formData.get("fullName") ?? "").trim();
   const pin = String(formData.get("pin") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim() || placeholderEmail(fullName);
+  const role = formData.get("isHeadJudge") === "on" ? "head_judge" : "judge";
   if (!fullName || !/^\d{4}$/.test(pin)) return;
 
   const svc = createServiceClient();
@@ -55,7 +56,7 @@ export async function createJudge(formData: FormData) {
 
   const { error: profileError } = await svc
     .from("profiles")
-    .upsert({ id: created.user.id, full_name: fullName, email, role: "judge" }, { onConflict: "id" });
+    .upsert({ id: created.user.id, full_name: fullName, email, role }, { onConflict: "id" });
   if (profileError) throw profileError;
 
   const { error: pinError } = await svc.rpc("set_user_pin", { p_profile: created.user.id, p_pin: pin });

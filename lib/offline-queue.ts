@@ -11,6 +11,9 @@ export type PendingScore = {
   clientSubmissionId: string;
   heatAssignmentId: string;
   workoutId: string;
+  workoutRefId?: string | null;
+  rxOrScaled?: "rx" | "scaled" | null;
+  tiebreakValue?: Record<string, unknown> | null;
   valueRaw: Record<string, unknown>;
   submittedAt: string;
   syncStatus: "pending" | "syncing" | "synced" | "failed";
@@ -49,12 +52,18 @@ async function withStore<T>(
 export async function enqueueScore(input: {
   heatAssignmentId: string;
   workoutId: string;
+  workoutRefId?: string | null;
+  rxOrScaled?: "rx" | "scaled" | null;
+  tiebreakValue?: Record<string, unknown> | null;
   valueRaw: Record<string, unknown>;
 }): Promise<PendingScore> {
   const item: PendingScore = {
     clientSubmissionId: crypto.randomUUID(),
     heatAssignmentId: input.heatAssignmentId,
     workoutId: input.workoutId,
+    workoutRefId: input.workoutRefId ?? null,
+    rxOrScaled: input.rxOrScaled ?? null,
+    tiebreakValue: input.tiebreakValue ?? null,
     valueRaw: input.valueRaw,
     submittedAt: new Date().toISOString(),
     syncStatus: "pending",

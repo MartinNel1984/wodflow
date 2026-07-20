@@ -7,6 +7,7 @@ import { Logo } from "@/components/Logo";
 type Judge = {
   id: string;
   full_name: string | null;
+  role: string;
 };
 
 export default function JudgeLoginPage() {
@@ -124,6 +125,11 @@ export default function JudgeLoginPage() {
                       className="w-full bg-paper hover:bg-ink/5 border border-ink/10 rounded-xl px-4 py-3 text-left font-semibold text-sm transition-colors"
                     >
                       {j.full_name}
+                      {j.role === "head_judge" && (
+                        <span className="ml-2 text-xs font-semibold uppercase tracking-wider text-accent">
+                          Head Judge
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>

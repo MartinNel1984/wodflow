@@ -13,6 +13,9 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const heatAssignmentId = body?.heatAssignmentId as string | undefined;
   const workoutId = body?.workoutId as string | undefined;
+  const workoutRefId = (body?.workoutRefId as string | null | undefined) ?? null;
+  const rxOrScaled = (body?.rxOrScaled as "rx" | "scaled" | null | undefined) ?? null;
+  const tiebreakValue = (body?.tiebreakValue as Record<string, unknown> | null | undefined) ?? null;
   const valueRaw = body?.valueRaw as Record<string, unknown> | undefined;
   const clientSubmissionId = body?.clientSubmissionId as string | undefined;
 
@@ -32,6 +35,9 @@ export async function POST(request: Request) {
     {
       heat_assignment_id: heatAssignmentId,
       workout_id: workoutId,
+      workout_ref_id: workoutRefId,
+      rx_or_scaled: rxOrScaled,
+      tiebreak_value: tiebreakValue,
       value_raw: valueRaw,
       submitted_by: user.id,
       client_submission_id: clientSubmissionId,

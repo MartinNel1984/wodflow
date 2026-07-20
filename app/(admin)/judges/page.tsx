@@ -5,7 +5,11 @@ export default async function JudgesPage() {
   const supabase = await createClient();
 
   const [{ data: judges }, { data: heats }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name").eq("role", "judge").order("full_name"),
+    supabase
+      .from("profiles")
+      .select("id, full_name, role")
+      .in("role", ["judge", "head_judge"])
+      .order("full_name"),
     supabase
       .from("heats")
       .select("id, heat_number, divisions(name)")
@@ -19,7 +23,14 @@ export default async function JudgesPage() {
       <div className="space-y-3">
         {(judges ?? []).map((j) => (
           <div key={j.id} className="bg-white border border-ink/10 rounded-xl p-4">
-            <p className="font-semibold mb-2">{j.full_name}</p>
+            <p className="font-semibold mb-2">
+              {j.full_name}
+              {j.role === "head_judge" && (
+                <span className="ml-2 text-xs font-semibold uppercase tracking-wider text-accent">
+                  Head Judge
+                </span>
+              )}
+            </p>
             <form action={assignJudgeToHeat} className="flex items-center gap-2">
               <input type="hidden" name="profileId" value={j.id} />
               <select name="heatId" className="flex-1 text-sm border border-ink/10 rounded-lg px-2 py-1">
@@ -69,6 +80,10 @@ export default async function JudgesPage() {
             />
           </div>
         </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="isHeadJudge" className="rounded" />
+          Head Judge (scores every heat centrally, can lock/correct)
+        </label>
         <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
           Create judge
         </button>
