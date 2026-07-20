@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Logo } from "@/components/Logo";
 import type { Standing, WorkoutResult } from "./page";
 
 export default function LeaderboardView({
@@ -17,7 +18,12 @@ export default function LeaderboardView({
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
-      <h1 className="text-2xl font-semibold text-center">{divisionName}</h1>
+      <div className="text-center">
+        <div className="text-lg font-semibold opacity-70">
+          <Logo />
+        </div>
+        <h1 className="text-2xl font-semibold">{divisionName}</h1>
+      </div>
 
       {workouts.length === 0 ? (
         <p className="text-center text-ink/60 text-sm">No scores yet.</p>
