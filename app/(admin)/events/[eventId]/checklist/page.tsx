@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { updateWaiverText } from "./actions";
-
-type CheckItem = { label: string; ok: boolean; detail?: string };
+import { computeEventChecks, computeDivisionChecks, type CheckItem } from "@/lib/checklist";
+import { updateWaiverText, updateJudgingMode } from "./actions";
 
 export default async function ChecklistPage({
   params,
@@ -14,7 +13,9 @@ export default async function ChecklistPage({
   const [{ data: event }, { data: divisions }] = await Promise.all([
     supabase
       .from("events")
-      .select("name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status")
+      .select(
+        "name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status, judging_mode"
+      )
       .eq("id", eventId)
       .single(),
     supabase
@@ -23,21 +24,8 @@ export default async function ChecklistPage({
       .eq("event_id", eventId),
   ]);
 
-  const eventChecks: CheckItem[] = [
-    { label: "Venue name set", ok: !!event?.venue_name },
-    { label: "Venue address set", ok: !!event?.venue_address },
-    { label: "Contact email set", ok: !!event?.contact_email },
-    { label: "Contact phone set", ok: !!event?.contact_phone },
-    { label: "Waiver text set", ok: !!event?.waiver_text },
-    { label: "At least one division exists", ok: (divisions?.length ?? 0) > 0 },
-  ];
-
-  const divisionChecks: (CheckItem & { divisionName: string })[] = (divisions ?? []).flatMap((d) => [
-    { divisionName: d.name, label: "Lane count set", ok: !!d.lane_count },
-    { divisionName: d.name, label: "Heat duration set", ok: !!d.heat_duration_minutes },
-    { divisionName: d.name, label: "Price set", ok: d.price_normal > 0, detail: `R${d.price_normal}` },
-  ]);
-
+  const eventChecks = computeEventChecks(event, divisions ?? []);
+  const divisionChecks = computeDivisionChecks(divisions ?? []);
   const allChecks = [...eventChecks, ...divisionChecks];
   const failCount = allChecks.filter((c) => !c.ok).length;
 
@@ -67,6 +55,41 @@ export default async function ChecklistPage({
         {eventChecks.map((c) => (
           <CheckRow key={c.label} item={c} />
         ))}
+      </div>
+
+      <div className="bg-white border border-ink/10 rounded-xl p-4 flex items-center gap-4">
+        <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50 shrink-0">Reports</h2>
+        <a href={`/api/events/${eventId}/registrations.csv`} className="text-accent text-sm hover:underline">
+          Export registrations CSV
+        </a>
+        <a href={`/events/${eventId}/reports/waivers`} className="text-accent text-sm hover:underline">
+          All signed waivers
+        </a>
+      </div>
+
+      <div className="bg-white border border-ink/10 rounded-xl p-4 space-y-3">
+        <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">Settings</h2>
+        <form action={updateJudgingMode} className="flex items-center justify-between gap-3">
+          <input type="hidden" name="eventId" value={eventId} />
+          <div>
+            <p className="text-sm font-semibold">Scoring model</p>
+            <p className="text-ink/60 text-xs">
+              Centralized: only the head judge enters scores. Distributed: each judge scores their
+              own assigned heats.
+            </p>
+          </div>
+          <select
+            name="judgingMode"
+            defaultValue={event?.judging_mode ?? "centralized"}
+            className="text-sm border border-ink/10 rounded-lg px-2 py-1.5"
+          >
+            <option value="centralized">Centralized</option>
+            <option value="distributed">Distributed</option>
+          </select>
+          <button type="submit" className="text-sm text-accent font-semibold shrink-0">
+            Save
+          </button>
+        </form>
       </div>
 
       <form action={updateWaiverText} className="bg-white border border-ink/10 rounded-xl p-4 space-y-3">

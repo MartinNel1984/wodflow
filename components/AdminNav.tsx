@@ -5,7 +5,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
 
 const links = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/events", label: "Events" },
+  { href: "/athletes", label: "Athletes" },
   { href: "/brand-kits", label: "Brand Kits" },
   { href: "/judges", label: "Judges" },
 ];
