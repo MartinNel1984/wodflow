@@ -32,6 +32,8 @@ export async function createDivision(formData: FormData) {
     return Number.isNaN(n) ? null : n;
   };
 
+  const scoringMethod = String(formData.get("scoringMethod") ?? "rank_sum");
+
   await supabase.from("divisions").insert({
     event_id: eventId,
     name,
@@ -45,6 +47,18 @@ export async function createDivision(formData: FormData) {
     heat_duration_minutes: num("heatDurationMinutes"),
     transition_minutes: num("transitionMinutes"),
     workout_scoring_type: String(formData.get("workoutScoringType") ?? "time"),
+    scoring_config: { method: scoringMethod },
   });
+  revalidatePath(`/events/${eventId}/divisions`);
+}
+
+export async function updateScoringConfig(formData: FormData) {
+  const supabase = await requireOrganizer();
+  const eventId = String(formData.get("eventId") ?? "");
+  const divisionId = String(formData.get("divisionId") ?? "");
+  const scoringMethod = String(formData.get("scoringMethod") ?? "");
+  if (!divisionId || !["rank_sum", "gap_formula"].includes(scoringMethod)) return;
+
+  await supabase.from("divisions").update({ scoring_config: { method: scoringMethod } }).eq("id", divisionId);
   revalidatePath(`/events/${eventId}/divisions`);
 }

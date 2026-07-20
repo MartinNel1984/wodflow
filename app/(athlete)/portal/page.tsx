@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { computeStandings, type LeaderboardRow } from "@/lib/leaderboard";
+import { computeStandings, type LeaderboardRow, type ScoringConfig } from "@/lib/leaderboard";
 import Link from "next/link";
 
 export default async function PortalPage() {
@@ -13,7 +13,7 @@ export default async function PortalPage() {
     supabase
       .from("registration_athletes")
       .select(
-        "id, registration_id, registrations(id, division_id, team_name, payment_status, divisions(id, name, events(id, name, start_date)))"
+        "id, registration_id, registrations(id, division_id, team_name, payment_status, divisions(id, name, scoring_config, events(id, name, start_date)))"
       )
       .eq("profile_id", user.id),
     supabase
@@ -27,6 +27,7 @@ export default async function PortalPage() {
     registrationId: string;
     divisionId: string;
     divisionName: string;
+    scoringConfig: ScoringConfig;
     eventId: string;
     eventName: string;
     eventStartDate: string;
@@ -45,6 +46,7 @@ export default async function PortalPage() {
         registrationId: reg.id,
         divisionId: division.id,
         divisionName: division.name,
+        scoringConfig: (division.scoring_config ?? { method: "rank_sum" }) as ScoringConfig,
         eventId: event.id,
         eventName: event.name,
         eventStartDate: event.start_date,
@@ -56,17 +58,17 @@ export default async function PortalPage() {
     .sort((a, b) => b.eventStartDate.localeCompare(a.eventStartDate));
 
   // Best finishes — for every division the athlete has actually
-  // scored in, compute that division's real standings and pull out
-  // this athlete's own placement. Divisions with no scores yet are
-  // skipped (nothing to rank).
+  // scored in, compute that division's real standings (using its own
+  // scoring formula) and pull out this athlete's own placement.
+  // Divisions with no scores yet are skipped (nothing to rank).
   const bestFinishes: { eventName: string; divisionName: string; position: number; total: number }[] = [];
   for (const reg of myRegistrations) {
     const { data: rows } = await supabase
       .from("public_leaderboard")
-      .select("heat_assignment_id, workout_id, value_raw, registration_id, display_name")
+      .select("heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value")
       .eq("division_id", reg.divisionId);
     if (!rows || rows.length === 0) continue;
-    const { standings } = computeStandings(rows as LeaderboardRow[]);
+    const { standings } = computeStandings(rows as LeaderboardRow[], reg.scoringConfig);
     const idx = standings.findIndex((s) => s.registrationId === reg.registrationId);
     if (idx === -1) continue;
     bestFinishes.push({

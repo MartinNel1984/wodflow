@@ -4,9 +4,12 @@ export type LeaderboardRow = {
   heat_assignment_id: string;
   workout_id: string;
   value_raw: { time_seconds?: number; reps?: number; load_kg?: number; no_rep?: boolean };
+  tiebreak_value: { time_seconds?: number; reps?: number } | null;
   registration_id: string;
   display_name: string;
 };
+
+export type ScoringConfig = { method: "rank_sum" } | { method: "gap_formula"; winner_points?: number };
 
 export type WorkoutResult = {
   registrationId: string;
@@ -23,22 +26,59 @@ export type Standing = {
   totalPoints: number;
 };
 
+// Two point tables, both driven by divisions.scoring_config:
+//   rank_sum    — points = entrants - position + 1 (today's default,
+//                 unchanged behavior for every division that hasn't
+//                 opted into the other one).
+//   gap_formula — Tjokkie's proposed model: winner scores winner_points
+//                 (100 by default), each place down loses a fixed gap
+//                 of round(winner_points / entrants), floored at 0.
+//                 Note: with small fields this doesn't necessarily
+//                 reach exactly 0 at last place (e.g. 12 entrants ->
+//                 gap 8 -> last place lands on 12, not 0) — that's
+//                 the formula as described, not a bug; the exact
+//                 rounding/edge behavior is still an open question to
+//                 confirm with Tjokkie, not something to silently
+//                 "fix" by guessing a different formula.
+function pointsForPosition(position: number, entrants: number, config: ScoringConfig): number {
+  if (config.method === "gap_formula") {
+    const winnerPoints = config.winner_points ?? 100;
+    const gap = Math.round(winnerPoints / entrants);
+    return Math.max(0, winnerPoints - (position - 1) * gap);
+  }
+  return entrants - position + 1;
+}
+
+function tiebreakOf(row: { tiebreak_value: LeaderboardRow["tiebreak_value"] }, key: "time_seconds" | "reps") {
+  return row.tiebreak_value?.[key];
+}
+
 // Competition-standard scoring: within a workout, every athlete who
 // finished (recorded a time) outranks every athlete who was capped out
 // (recorded reps instead) — finishers are ordered by time ascending,
 // capped-out athletes by reps descending as a tiebreak among
-// themselves. A missing score ranks worse than everyone. Points for
-// that workout are (entrants - position + 1), so 1st place scores the
-// most — the conventional bigger-is-better competition points table.
-// Overall total is the sum of a registration's per-workout points,
-// highest total wins.
-export function computeWorkoutResults(rows: LeaderboardRow[], registrationIds: string[]): WorkoutResult[] {
+// themselves. When two athletes land on the exact same primary score,
+// tiebreak_value (same shape as the main score, entered alongside it —
+// see Milestone 12) breaks the tie the same direction as the primary
+// metric; if neither or only one has a tiebreak recorded, the tie is
+// left as-is (stable order) rather than guessed. A missing score ranks
+// worse than everyone. Overall total is the sum of a registration's
+// per-workout points, highest total wins.
+export function computeWorkoutResults(
+  rows: LeaderboardRow[],
+  registrationIds: string[],
+  scoringConfig: ScoringConfig = { method: "rank_sum" }
+): WorkoutResult[] {
   const nameByRegistration = new Map(rows.map((r) => [r.registration_id, r.display_name]));
 
   const finishers = rows
     .filter((r) => !r.value_raw.no_rep && r.value_raw.time_seconds != null)
-    .map((r) => ({ registrationId: r.registration_id, time: r.value_raw.time_seconds! }))
-    .sort((a, b) => a.time - b.time);
+    .map((r) => ({
+      registrationId: r.registration_id,
+      time: r.value_raw.time_seconds!,
+      tiebreak: tiebreakOf(r, "time_seconds"),
+    }))
+    .sort((a, b) => a.time - b.time || (a.tiebreak ?? Infinity) - (b.tiebreak ?? Infinity));
 
   // Reps or load — whichever secondary metric was recorded (either a
   // capped-out time-workout entry, or the primary metric for a pure
@@ -50,8 +90,9 @@ export function computeWorkoutResults(rows: LeaderboardRow[], registrationIds: s
       registrationId: r.registration_id,
       value: (r.value_raw.reps ?? r.value_raw.load_kg)!,
       unit: r.value_raw.reps != null ? "reps" : "kg",
+      tiebreak: tiebreakOf(r, "reps"),
     }))
-    .sort((a, b) => b.value - a.value);
+    .sort((a, b) => b.value - a.value || (b.tiebreak ?? -Infinity) - (a.tiebreak ?? -Infinity));
 
   const ordered = [
     ...finishers.map((f) => ({ registrationId: f.registrationId, display: formatTime(f.time), capped: false })),
@@ -65,13 +106,16 @@ export function computeWorkoutResults(rows: LeaderboardRow[], registrationIds: s
     display: entry.display,
     capped: entry.capped,
     position: i + 1,
-    points: entrants - i,
+    points: pointsForPosition(i + 1, entrants, scoringConfig),
   }));
 }
 
 // Full-division standings — one workout's results feed into an overall
 // points total per registration, ranked highest-total-wins.
-export function computeStandings(rows: LeaderboardRow[]): {
+export function computeStandings(
+  rows: LeaderboardRow[],
+  scoringConfig: ScoringConfig = { method: "rank_sum" }
+): {
   standings: Standing[];
   workouts: { id: string; results: WorkoutResult[] }[];
 } {
@@ -85,7 +129,8 @@ export function computeStandings(rows: LeaderboardRow[]): {
       workoutId,
       computeWorkoutResults(
         rows.filter((r) => r.workout_id === workoutId),
-        registrationIds
+        registrationIds,
+        scoringConfig
       )
     );
   }

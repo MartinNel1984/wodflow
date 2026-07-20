@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { createDivision } from "./actions";
+import { createDivision, updateScoringConfig } from "./actions";
+import type { ScoringConfig } from "@/lib/leaderboard";
 import Link from "next/link";
 
 export default async function DivisionsPage({
@@ -14,7 +15,7 @@ export default async function DivisionsPage({
     supabase.from("events").select("name, default_price").eq("id", eventId).single(),
     supabase
       .from("divisions")
-      .select("id, name, team_size, price_normal, lane_count")
+      .select("id, name, team_size, price_normal, lane_count, scoring_config")
       .eq("event_id", eventId)
       .order("created_at", { ascending: true }),
   ]);
@@ -36,7 +37,7 @@ export default async function DivisionsPage({
               {d.team_size === 1 ? "Individual" : `Team of ${d.team_size}`} · R{d.price_normal}
               {d.lane_count ? ` · ${d.lane_count} lanes` : ""}
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-3 mb-3">
               <Link href={`/events/${eventId}/divisions/${d.id}/athletes`} className="text-accent text-xs hover:underline">
                 Athletes
               </Link>
@@ -47,6 +48,22 @@ export default async function DivisionsPage({
                 Manage heats
               </Link>
             </div>
+            <form action={updateScoringConfig} className="flex items-center gap-2">
+              <input type="hidden" name="eventId" value={eventId} />
+              <input type="hidden" name="divisionId" value={d.id} />
+              <span className="text-xs text-ink/50">Scoring:</span>
+              <select
+                name="scoringMethod"
+                defaultValue={(d.scoring_config as ScoringConfig | null)?.method ?? "rank_sum"}
+                className="text-xs border border-ink/10 rounded-lg px-2 py-1"
+              >
+                <option value="rank_sum">Rank sum (entrants − position + 1)</option>
+                <option value="gap_formula">Gap formula (100, decreasing gap)</option>
+              </select>
+              <button type="submit" className="text-xs text-accent font-semibold">
+                Save
+              </button>
+            </form>
           </div>
         ))}
         {(!divisions || divisions.length === 0) && (
@@ -58,7 +75,7 @@ export default async function DivisionsPage({
         <input type="hidden" name="eventId" value={eventId} />
         <h2 className="font-semibold">New division</h2>
         <Field label="Name" name="name" required />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <Field label="Team size (1 = individual)" name="teamSize" type="number" defaultValue="1" />
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
@@ -72,6 +89,19 @@ export default async function DivisionsPage({
               <option value="time">Time</option>
               <option value="reps">Reps</option>
               <option value="load">Load</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+              Points formula
+            </label>
+            <select
+              name="scoringMethod"
+              defaultValue="rank_sum"
+              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10"
+            >
+              <option value="rank_sum">Rank sum</option>
+              <option value="gap_formula">Gap formula</option>
             </select>
           </div>
         </div>
