@@ -1,12 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 
 export default function AthleteLoginPage() {
+  return (
+    <Suspense>
+      <AthleteLoginForm />
+    </Suspense>
+  );
+}
+
+function AthleteLoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/portal";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -23,7 +33,7 @@ export default function AthleteLoginPage() {
       setLoading(false);
       return;
     }
-    router.push("/portal");
+    router.push(next);
     router.refresh();
   }
 
@@ -73,7 +83,7 @@ export default function AthleteLoginPage() {
         </form>
         <p className="mt-4 text-center text-ink/40 text-xs">
           New here?{" "}
-          <a href="/athlete-signup" className="text-accent hover:underline">
+          <a href={`/athlete-signup?next=${encodeURIComponent(next)}`} className="text-accent hover:underline">
             Create an account
           </a>
         </p>

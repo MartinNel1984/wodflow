@@ -1,11 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/Logo";
 
 export default function AthleteSignupPage() {
+  return (
+    <Suspense>
+      <AthleteSignupForm />
+    </Suspense>
+  );
+}
+
+function AthleteSignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/portal";
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -30,7 +40,7 @@ export default function AthleteSignupPage() {
         setLoading(false);
         return;
       }
-      router.push("/portal");
+      router.push(next);
       router.refresh();
     } catch {
       setError("Network error. Please try again.");
@@ -67,7 +77,7 @@ export default function AthleteSignupPage() {
         </form>
         <p className="mt-4 text-center text-ink/40 text-xs">
           Already have an account?{" "}
-          <a href="/athlete-login" className="text-accent hover:underline">
+          <a href={`/athlete-login?next=${encodeURIComponent(next)}`} className="text-accent hover:underline">
             Sign in
           </a>
         </p>

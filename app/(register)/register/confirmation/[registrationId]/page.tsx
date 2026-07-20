@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
+type TeamInvite = { token: string; email_or_phone: string; status: string };
+
 type Registration = {
   id: string;
   payment_status: string;
   team_name: string | null;
   price_paid: number;
   divisions: { name: string } | { name: string }[] | null;
+  team_invites: TeamInvite[] | null;
 };
 
 export default function ConfirmationPage() {
@@ -61,6 +64,23 @@ export default function ConfirmationPage() {
           <p className="text-ink/50 text-sm">
             Your heat time and lane will be published closer to the event.
           </p>
+          {registration.team_invites && registration.team_invites.length > 0 && (
+            <div className="text-left bg-white border border-ink/10 rounded-xl p-4 space-y-3 mt-6">
+              <h2 className="font-semibold text-sm">Send your teammates their sign-up link</h2>
+              <p className="text-ink/60 text-xs">
+                Each teammate should sign in or create their own account and confirm their own
+                details and waiver.
+              </p>
+              {registration.team_invites.map((inv) => (
+                <div key={inv.token} className="text-xs bg-paper rounded-lg px-3 py-2 break-all">
+                  <p className="text-ink/50 mb-1">{inv.email_or_phone}</p>
+                  <p className="font-data">
+                    {typeof window !== "undefined" ? window.location.origin : ""}/invite/{inv.token}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       ) : (
         <>

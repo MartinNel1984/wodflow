@@ -12,7 +12,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { data, error } = await supabase
     .from("registrations")
-    .select("id, payment_status, pay_url, team_name, price_paid, divisions(name)")
+    .select(
+      "id, payment_status, pay_url, team_name, price_paid, divisions(name), team_invites(token, email_or_phone, status)"
+    )
     .eq("id", id)
     .single();
 

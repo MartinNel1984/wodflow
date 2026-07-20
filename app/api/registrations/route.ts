@@ -121,11 +121,36 @@ export async function POST(request: Request) {
     waiver_text_snapshot: event?.waiver_text ?? null,
   }));
 
-  const { error: athletesError } = await supabase.from("registration_athletes").insert(athleteRows);
-  if (athletesError) {
+  const { data: insertedAthletes, error: athletesError } = await supabase
+    .from("registration_athletes")
+    .insert(athleteRows)
+    .select("id, email, is_captain");
+  if (athletesError || !insertedAthletes) {
     // Roll back the registration so we don't leave an orphaned, unpayable row.
     await supabase.from("registrations").delete().eq("id", registration.id);
     return NextResponse.json({ error: "Could not save athlete details." }, { status: 500 });
+  }
+
+  // Team divisions: give every non-captain teammate their own claim
+  // link so they can sign in/up, link their own account to this
+  // registration, and independently re-sign their own waiver — the
+  // captain's entry above is a placeholder signature, not a substitute
+  // for each teammate's own indemnity (per the design doc's team-invite
+  // decision).
+  const nonCaptainRows = insertedAthletes.filter((a) => !a.is_captain);
+  if (nonCaptainRows.length > 0) {
+    const { error: inviteError } = await supabase.from("team_invites").insert(
+      nonCaptainRows.map((a) => ({
+        registration_id: registration.id,
+        registration_athlete_id: a.id,
+        email_or_phone: a.email,
+        invited_by: sessionUser?.id ?? null,
+      }))
+    );
+    // Not fatal to the registration — the captain already has each
+    // teammate's details, and payment/roster still work without a
+    // claim link. Log so it's visible if invites are silently failing.
+    if (inviteError) console.error("Could not create team invites", inviteError);
   }
 
   const captain = teammates.find((t) => t.isCaptain) ?? teammates[0];
