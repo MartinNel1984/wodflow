@@ -53,6 +53,12 @@ export default async function Home() {
 
       <div className="w-full max-w-sm flex flex-col gap-2">
         <a
+          href="/athlete-login"
+          className="bg-accent text-white rounded-lg py-3 text-sm font-semibold hover-lift text-center"
+        >
+          Athlete sign-in
+        </a>
+        <a
           href="/judge-login"
           className="bg-white border border-ink/10 rounded-lg py-3 text-sm font-semibold hover-lift text-center"
         >

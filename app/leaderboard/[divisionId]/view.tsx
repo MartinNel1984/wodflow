@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { BrandKitLogo } from "@/components/BrandKitLogo";
 import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
-import type { Standing, WorkoutResult } from "./page";
+import type { Standing, WorkoutResult } from "@/lib/leaderboard";
 
 export default function LeaderboardView({
   divisionName,

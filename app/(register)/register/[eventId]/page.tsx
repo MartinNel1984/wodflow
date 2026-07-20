@@ -42,9 +42,32 @@ export default function RegisterPage() {
   const [teammates, setTeammates] = useState<Teammate[]>([emptyTeammate()]);
   const [waiverSignedName, setWaiverSignedName] = useState("");
   const [waiverAccepted, setWaiverAccepted] = useState(false);
+  const [athleteProfile, setAthleteProfile] = useState<Partial<Teammate> | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadAthleteProfile() {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role, full_name, email, id_number")
+        .eq("id", user.id)
+        .single();
+      if (profile?.role !== "athlete") return;
+      setAthleteProfile({
+        fullName: profile.full_name ?? "",
+        email: profile.email ?? "",
+        idNumber: profile.id_number ?? "",
+      });
+    }
+    loadAthleteProfile();
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -77,7 +100,11 @@ export default function RegisterPage() {
 
   function selectDivision(d: Division) {
     setDivisionId(d.id);
-    setTeammates(Array.from({ length: d.team_size }, () => emptyTeammate()));
+    setTeammates(
+      Array.from({ length: d.team_size }, (_, i) =>
+        i === 0 && athleteProfile ? { ...emptyTeammate(), ...athleteProfile } : emptyTeammate()
+      )
+    );
     setStep(2);
   }
 
@@ -132,6 +159,16 @@ export default function RegisterPage() {
         {brandKit?.logo_url && <BrandKitLogo kit={brandKit} className="h-12 mx-auto mb-3" />}
         <h1 className="text-2xl font-semibold">{eventName}</h1>
         <p className="text-ink/60 text-sm mt-1">Register</p>
+        {athleteProfile ? (
+          <p className="text-accent text-xs mt-2">Signed in as {athleteProfile.fullName} — details pre-filled</p>
+        ) : (
+          <p className="text-ink/40 text-xs mt-2">
+            <a href="/athlete-login" className="hover:underline">
+              Sign in
+            </a>{" "}
+            to pre-fill your details and track your registrations
+          </p>
+        )}
       </div>
 
       {step === 1 && (

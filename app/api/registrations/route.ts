@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createYocoCheckout } from "@/lib/yoco";
 import { NextResponse } from "next/server";
 
@@ -53,6 +54,14 @@ export async function POST(request: Request) {
     }
   }
 
+  // Derived from the real session, never trusted from the request body —
+  // a client could otherwise claim any profile as the registering athlete.
+  // Anonymous registration still works fine; this is just null then.
+  const sessionClient = await createServerClient();
+  const {
+    data: { user: sessionUser },
+  } = await sessionClient.auth.getUser();
+
   const supabase = createServiceClient();
 
   const { data: division, error: divError } = await supabase
@@ -84,6 +93,7 @@ export async function POST(request: Request) {
       division_id: division.id,
       team_name: teamName,
       price_paid: price,
+      captain_profile_id: sessionUser?.id ?? null,
     })
     .select("id")
     .single();
@@ -94,6 +104,7 @@ export async function POST(request: Request) {
 
   const athleteRows = teammates.map((t) => ({
     registration_id: registration.id,
+    profile_id: t.isCaptain ? (sessionUser?.id ?? null) : null,
     full_name: t.fullName.trim(),
     email: t.email.trim().toLowerCase(),
     is_captain: t.isCaptain,
