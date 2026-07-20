@@ -32,6 +32,8 @@ export async function createEvent(formData: FormData) {
   const startDate = String(formData.get("startDate") ?? "").trim();
   if (!name || !startDate) return;
 
+  const defaultPrice = Number(formData.get("defaultPrice"));
+
   await supabase.from("events").insert({
     name,
     slug: slugify(name),
@@ -42,6 +44,7 @@ export async function createEvent(formData: FormData) {
     contact_email: String(formData.get("contactEmail") ?? "").trim() || null,
     contact_phone: String(formData.get("contactPhone") ?? "").trim() || null,
     waiver_text: String(formData.get("waiverText") ?? "").trim() || null,
+    default_price: Number.isNaN(defaultPrice) ? 500 : defaultPrice,
   });
   revalidatePath("/events");
 }

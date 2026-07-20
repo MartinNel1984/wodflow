@@ -11,7 +11,7 @@ export default async function DivisionsPage({
   const supabase = await createClient();
 
   const [{ data: event }, { data: divisions }] = await Promise.all([
-    supabase.from("events").select("name").eq("id", eventId).single(),
+    supabase.from("events").select("name, default_price").eq("id", eventId).single(),
     supabase
       .from("divisions")
       .select("id, name, team_size, price_normal, lane_count")
@@ -69,7 +69,13 @@ export default async function DivisionsPage({
         </div>
         <div className="grid grid-cols-3 gap-4">
           <Field label="Early-bird price" name="priceEarly" type="number" />
-          <Field label="Normal price" name="priceNormal" type="number" required />
+          <Field
+            label="Normal price"
+            name="priceNormal"
+            type="number"
+            required
+            defaultValue={event?.default_price != null ? String(event.default_price) : "500"}
+          />
           <Field label="Late price" name="priceLate" type="number" />
         </div>
         <div className="grid grid-cols-2 gap-4">

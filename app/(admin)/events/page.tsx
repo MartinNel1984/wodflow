@@ -63,6 +63,7 @@ export default async function EventsPage() {
         </div>
         <Field label="Venue name" name="venueName" />
         <Field label="Venue address" name="venueAddress" />
+        <Field label="Default division cost (R)" name="defaultPrice" type="number" defaultValue="500" />
         <div className="grid grid-cols-2 gap-4">
           <Field label="Contact email" name="contactEmail" type="email" />
           <Field label="Contact phone" name="contactPhone" />
@@ -90,11 +91,13 @@ function Field({
   name,
   type = "text",
   required = false,
+  defaultValue,
 }: {
   label: string;
   name: string;
   type?: string;
   required?: boolean;
+  defaultValue?: string;
 }) {
   return (
     <div>
@@ -103,6 +106,7 @@ function Field({
         type={type}
         name={name}
         required={required}
+        defaultValue={defaultValue}
         className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
       />
     </div>
