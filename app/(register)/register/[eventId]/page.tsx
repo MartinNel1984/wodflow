@@ -15,7 +15,18 @@ type Division = {
   price_late: number | null;
 };
 
-type Teammate = { fullName: string; email: string };
+type Teammate = {
+  fullName: string;
+  email: string;
+  idNumber: string;
+  isMinor: boolean;
+  guardianName: string;
+  guardianIdNumber: string;
+};
+
+function emptyTeammate(): Teammate {
+  return { fullName: "", email: "", idNumber: "", isMinor: false, guardianName: "", guardianIdNumber: "" };
+}
 
 export default function RegisterPage() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -28,7 +39,7 @@ export default function RegisterPage() {
 
   const [divisionId, setDivisionId] = useState("");
   const [teamName, setTeamName] = useState("");
-  const [teammates, setTeammates] = useState<Teammate[]>([{ fullName: "", email: "" }]);
+  const [teammates, setTeammates] = useState<Teammate[]>([emptyTeammate()]);
   const [waiverSignedName, setWaiverSignedName] = useState("");
   const [waiverAccepted, setWaiverAccepted] = useState(false);
 
@@ -66,16 +77,22 @@ export default function RegisterPage() {
 
   function selectDivision(d: Division) {
     setDivisionId(d.id);
-    setTeammates(Array.from({ length: d.team_size }, () => ({ fullName: "", email: "" })));
+    setTeammates(Array.from({ length: d.team_size }, () => emptyTeammate()));
     setStep(2);
   }
 
-  function updateTeammate(index: number, field: keyof Teammate, value: string) {
+  function updateTeammate(index: number, field: keyof Teammate, value: string | boolean) {
     setTeammates((prev) => prev.map((t, i) => (i === index ? { ...t, [field]: value } : t)));
   }
 
   function teammatesValid() {
-    return teammates.every((t) => t.fullName.trim() && t.email.trim().includes("@"));
+    return teammates.every(
+      (t) =>
+        t.fullName.trim() &&
+        t.email.trim().includes("@") &&
+        t.idNumber.trim() &&
+        (!t.isMinor || (t.guardianName.trim() && t.guardianIdNumber.trim()))
+    );
   }
 
   async function submitRegistration() {
@@ -147,18 +164,47 @@ export default function RegisterPage() {
           )}
 
           {teammates.map((t, i) => (
-            <div key={i} className="grid grid-cols-2 gap-3">
+            <div key={i} className="space-y-3 border-b border-ink/10 pb-4 last:border-0">
+              <div className="grid grid-cols-2 gap-3">
+                <Field
+                  label={i === 0 ? "Your full name (captain)" : `Teammate ${i + 1} full name`}
+                  value={t.fullName}
+                  onChange={(v) => updateTeammate(i, "fullName", v)}
+                />
+                <Field
+                  label={i === 0 ? "Your email" : `Teammate ${i + 1} email`}
+                  value={t.email}
+                  onChange={(v) => updateTeammate(i, "email", v)}
+                  type="email"
+                />
+              </div>
               <Field
-                label={i === 0 ? "Your full name (captain)" : `Teammate ${i + 1} full name`}
-                value={t.fullName}
-                onChange={(v) => updateTeammate(i, "fullName", v)}
+                label="ID number"
+                value={t.idNumber}
+                onChange={(v) => updateTeammate(i, "idNumber", v)}
               />
-              <Field
-                label={i === 0 ? "Your email" : `Teammate ${i + 1} email`}
-                value={t.email}
-                onChange={(v) => updateTeammate(i, "email", v)}
-                type="email"
-              />
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={t.isMinor}
+                  onChange={(e) => updateTeammate(i, "isMinor", e.target.checked)}
+                />
+                Under 18 — a parent/guardian must sign
+              </label>
+              {t.isMinor && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field
+                    label="Parent/guardian full name"
+                    value={t.guardianName}
+                    onChange={(v) => updateTeammate(i, "guardianName", v)}
+                  />
+                  <Field
+                    label="Parent/guardian ID number"
+                    value={t.guardianIdNumber}
+                    onChange={(v) => updateTeammate(i, "guardianIdNumber", v)}
+                  />
+                </div>
+              )}
             </div>
           ))}
 

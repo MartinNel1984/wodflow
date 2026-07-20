@@ -4,7 +4,15 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-type Teammate = { fullName: string; email: string; isCaptain: boolean };
+type Teammate = {
+  fullName: string;
+  email: string;
+  isCaptain: boolean;
+  idNumber: string;
+  isMinor: boolean;
+  guardianName: string;
+  guardianIdNumber: string;
+};
 
 function currentPrice(division: {
   price_early: number | null;
@@ -33,6 +41,17 @@ export async function POST(request: Request) {
   if (!divisionId || teammates.length === 0 || !waiverSignedName) {
     return NextResponse.json({ error: "Missing required registration fields." }, { status: 400 });
   }
+  for (const t of teammates) {
+    if (!t.idNumber?.trim()) {
+      return NextResponse.json({ error: "Every athlete needs an ID number." }, { status: 400 });
+    }
+    if (t.isMinor && (!t.guardianName?.trim() || !t.guardianIdNumber?.trim())) {
+      return NextResponse.json(
+        { error: "A parent/guardian name and ID number are required for minors." },
+        { status: 400 }
+      );
+    }
+  }
 
   const supabase = createServiceClient();
 
@@ -51,6 +70,8 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+
+  const { data: event } = await supabase.from("events").select("waiver_text").eq("id", division.event_id).single();
 
   const price = currentPrice(division);
   const waiverTimestamp = new Date().toISOString();
@@ -76,9 +97,17 @@ export async function POST(request: Request) {
     full_name: t.fullName.trim(),
     email: t.email.trim().toLowerCase(),
     is_captain: t.isCaptain,
+    id_number: t.idNumber.trim(),
+    is_minor: t.isMinor,
+    guardian_name: t.isMinor ? t.guardianName.trim() : null,
+    guardian_id_number: t.isMinor ? t.guardianIdNumber.trim() : null,
     waiver_signed_name: waiverSignedName,
     waiver_signed_at: waiverTimestamp,
     waiver_ip: clientIp,
+    // Snapshot the exact text agreed to right now — events.waiver_text
+    // may be edited later, but this athlete's record must keep showing
+    // what they actually signed (see migration-010's rationale).
+    waiver_text_snapshot: event?.waiver_text ?? null,
   }));
 
   const { error: athletesError } = await supabase.from("registration_athletes").insert(athleteRows);

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { updateWaiverText } from "./actions";
 
 type CheckItem = { label: string; ok: boolean; detail?: string };
 
@@ -67,6 +68,26 @@ export default async function ChecklistPage({
           <CheckRow key={c.label} item={c} />
         ))}
       </div>
+
+      <form action={updateWaiverText} className="bg-white border border-ink/10 rounded-xl p-4 space-y-3">
+        <input type="hidden" name="eventId" value={eventId} />
+        <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">
+          Waiver / indemnity text
+        </h2>
+        <p className="text-ink/60 text-xs">
+          Shown to every athlete at registration, and snapshotted onto their record when they sign —
+          editing this later doesn&apos;t change what past registrants agreed to.
+        </p>
+        <textarea
+          name="waiverText"
+          rows={10}
+          defaultValue={event?.waiver_text ?? ""}
+          className="w-full bg-paper rounded-lg px-4 py-3 text-xs border border-ink/10 focus:outline-none focus:border-accent whitespace-pre-wrap"
+        />
+        <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
+          Save waiver text
+        </button>
+      </form>
 
       {(divisions ?? []).map((d) => (
         <div key={d.id} className="bg-white border border-ink/10 rounded-xl p-4 space-y-2">

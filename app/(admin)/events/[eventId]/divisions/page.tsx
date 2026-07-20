@@ -37,6 +37,9 @@ export default async function DivisionsPage({
               {d.lane_count ? ` · ${d.lane_count} lanes` : ""}
             </p>
             <div className="flex gap-3">
+              <Link href={`/events/${eventId}/divisions/${d.id}/athletes`} className="text-accent text-xs hover:underline">
+                Athletes
+              </Link>
               <Link href={`/events/${eventId}/divisions/${d.id}/workouts`} className="text-accent text-xs hover:underline">
                 Manage workouts
               </Link>

@@ -83,3 +83,14 @@ button:hover, .hover-lift:hover {
     transform: none;
   }
 }
+
+/* Waiver print/export view — hide the admin chrome, keep just the
+   signed document, so "Print > Save as PDF" produces a clean record. */
+@media print {
+  nav {
+    display: none;
+  }
+  .no-print {
+    display: none;
+  }
+}
