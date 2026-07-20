@@ -1,9 +1,11 @@
+import { Logo } from "@/components/Logo";
+
 export default function Home() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
       <div className="text-center max-w-sm space-y-6">
         <div>
-          <h1 className="text-3xl font-semibold">Wodflow</h1>
+          <h1 className="text-3xl font-semibold"><Logo /></h1>
           <p className="mt-2 text-ink/60 text-sm">Competition management for CrossFit events.</p>
         </div>
         <p className="text-ink/60 text-sm">

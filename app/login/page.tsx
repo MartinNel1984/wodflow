@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Logo } from "@/components/Logo";
 
 // Organizer login. Athletes don't use this page — they sign up as
 // part of the registration wizard instead.
@@ -32,7 +33,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-paper">
       <div className="w-full max-w-sm px-4">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold">Wodflow</h1>
+          <h1 className="text-2xl font-semibold"><Logo /></h1>
           <p className="mt-1 text-ink/60 text-sm">Organizer sign-in</p>
         </div>
         <form
