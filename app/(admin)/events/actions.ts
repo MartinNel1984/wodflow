@@ -45,6 +45,7 @@ export async function createEvent(formData: FormData) {
     contact_phone: String(formData.get("contactPhone") ?? "").trim() || null,
     waiver_text: String(formData.get("waiverText") ?? "").trim() || null,
     default_price: Number.isNaN(defaultPrice) ? 500 : defaultPrice,
+    brand_kit_id: String(formData.get("brandKitId") ?? "").trim() || null,
   });
   revalidatePath("/events");
 }
@@ -56,5 +57,15 @@ export async function updateEventStatus(formData: FormData) {
   if (!id || !["draft", "published", "live", "archived"].includes(status)) return;
 
   await supabase.from("events").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
+  revalidatePath("/events");
+}
+
+export async function updateEventBrandKit(formData: FormData) {
+  const supabase = await requireOrganizer();
+  const id = String(formData.get("id") ?? "");
+  const brandKitId = String(formData.get("brandKitId") ?? "").trim() || null;
+  if (!id) return;
+
+  await supabase.from("events").update({ brand_kit_id: brandKitId, updated_at: new Date().toISOString() }).eq("id", id);
   revalidatePath("/events");
 }

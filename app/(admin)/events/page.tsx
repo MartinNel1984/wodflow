@@ -1,13 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
-import { createEvent, updateEventStatus } from "./actions";
+import { createEvent, updateEventStatus, updateEventBrandKit } from "./actions";
 import Link from "next/link";
 
 export default async function EventsPage() {
   const supabase = await createClient();
-  const { data: events } = await supabase
-    .from("events")
-    .select("id, name, slug, start_date, end_date, status")
-    .order("start_date", { ascending: true });
+  const [{ data: events }, { data: brandKits }] = await Promise.all([
+    supabase
+      .from("events")
+      .select("id, name, slug, start_date, end_date, status, brand_kit_id")
+      .order("start_date", { ascending: true }),
+    supabase.from("brand_kits").select("id, name").order("name"),
+  ]);
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -31,22 +34,42 @@ export default async function EventsPage() {
                 Pre-event checklist
               </Link>
             </div>
-            <form action={updateEventStatus} className="flex items-center gap-2">
-              <input type="hidden" name="id" value={e.id} />
-              <select
-                name="status"
-                defaultValue={e.status}
-                className="text-sm border border-ink/10 rounded-lg px-2 py-1"
-              >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="live">Live</option>
-                <option value="archived">Archived</option>
-              </select>
-              <button type="submit" className="text-sm text-accent font-semibold">
-                Save
-              </button>
-            </form>
+            <div className="flex flex-col items-end gap-2">
+              <form action={updateEventStatus} className="flex items-center gap-2">
+                <input type="hidden" name="id" value={e.id} />
+                <select
+                  name="status"
+                  defaultValue={e.status}
+                  className="text-sm border border-ink/10 rounded-lg px-2 py-1"
+                >
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                  <option value="live">Live</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <button type="submit" className="text-sm text-accent font-semibold">
+                  Save
+                </button>
+              </form>
+              <form action={updateEventBrandKit} className="flex items-center gap-2">
+                <input type="hidden" name="id" value={e.id} />
+                <select
+                  name="brandKitId"
+                  defaultValue={e.brand_kit_id ?? ""}
+                  className="text-sm border border-ink/10 rounded-lg px-2 py-1"
+                >
+                  <option value="">No brand kit</option>
+                  {(brandKits ?? []).map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {k.name}
+                    </option>
+                  ))}
+                </select>
+                <button type="submit" className="text-sm text-accent font-semibold">
+                  Save
+                </button>
+              </form>
+            </div>
           </div>
         ))}
         {(!events || events.length === 0) && (
@@ -67,6 +90,21 @@ export default async function EventsPage() {
         <div className="grid grid-cols-2 gap-4">
           <Field label="Contact email" name="contactEmail" type="email" />
           <Field label="Contact phone" name="contactPhone" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Brand kit</label>
+          <select
+            name="brandKitId"
+            defaultValue=""
+            className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+          >
+            <option value="">No brand kit</option>
+            {(brandKits ?? []).map((k) => (
+              <option key={k.id} value={k.id}>
+                {k.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider mb-2">

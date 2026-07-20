@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { BrandKitLogo } from "@/components/BrandKitLogo";
+import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 
 type Division = {
   id: string;
@@ -19,6 +21,7 @@ export default function RegisterPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [eventName, setEventName] = useState("");
+  const [brandKit, setBrandKit] = useState<BrandKit | null>(null);
   const [waiverText, setWaiverText] = useState("");
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +39,13 @@ export default function RegisterPage() {
     async function load() {
       const supabase = createClient();
       const [{ data: event }, { data: divs }] = await Promise.all([
-        supabase.from("events").select("name, waiver_text").eq("id", eventId).single(),
+        supabase
+          .from("events")
+          .select(
+            "name, waiver_text, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline)"
+          )
+          .eq("id", eventId)
+          .single(),
         supabase
           .from("divisions")
           .select("id, name, team_size, price_early, price_normal, price_late")
@@ -44,6 +53,8 @@ export default function RegisterPage() {
           .order("name"),
       ]);
       setEventName(event?.name ?? "");
+      const kit = Array.isArray(event?.brand_kits) ? event.brand_kits[0] : event?.brand_kits;
+      setBrandKit(kit ?? null);
       setWaiverText(event?.waiver_text ?? "");
       setDivisions(divs ?? []);
       setLoading(false);
@@ -99,8 +110,9 @@ export default function RegisterPage() {
   if (loading) return <p className="text-center py-20 text-ink/50">Loading…</p>;
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-10 space-y-8">
+    <div className="max-w-xl mx-auto px-4 py-10 space-y-8" style={brandKitStyle(brandKit)}>
       <div className="text-center">
+        {brandKit?.logo_url && <BrandKitLogo kit={brandKit} className="h-12 mx-auto mb-3" />}
         <h1 className="text-2xl font-semibold">{eventName}</h1>
         <p className="text-ink/60 text-sm mt-1">Register</p>
       </div>

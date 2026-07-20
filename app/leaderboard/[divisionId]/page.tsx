@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatTime } from "@/lib/scoring";
+import type { BrandKit } from "@/lib/brandKit";
 import LeaderboardView from "./view";
 
 type Row = {
@@ -80,7 +81,13 @@ export default async function LeaderboardPage({
   const supabase = await createClient();
 
   const [{ data: division }, { data: rows }] = await Promise.all([
-    supabase.from("divisions").select("name, workout_scoring_type").eq("id", divisionId).single(),
+    supabase
+      .from("divisions")
+      .select(
+        "name, workout_scoring_type, events(brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline))"
+      )
+      .eq("id", divisionId)
+      .single(),
     supabase
       .from("public_leaderboard")
       .select("heat_assignment_id, workout_id, value_raw, registration_id, display_name")
@@ -120,11 +127,18 @@ export default async function LeaderboardPage({
 
   const workouts = workoutIds.map((id) => ({ id, results: resultsByWorkout.get(id)! }));
 
+  const event = Array.isArray(division?.events) ? division.events[0] : division?.events;
+  const brandKit = (Array.isArray(event?.brand_kits) ? event.brand_kits[0] : event?.brand_kits) as
+    | BrandKit
+    | null
+    | undefined;
+
   return (
     <LeaderboardView
       divisionName={division?.name ?? "Leaderboard"}
       standings={standings}
       workouts={workouts}
+      brandKit={brandKit ?? null}
     />
   );
 }

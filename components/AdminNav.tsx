@@ -6,6 +6,7 @@ import { Logo } from "@/components/Logo";
 
 const links = [
   { href: "/events", label: "Events" },
+  { href: "/brand-kits", label: "Brand Kits" },
   { href: "/judges", label: "Judges" },
 ];
 

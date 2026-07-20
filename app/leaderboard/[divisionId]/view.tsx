@@ -1,26 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Logo } from "@/components/Logo";
+import { BrandKitLogo } from "@/components/BrandKitLogo";
+import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 import type { Standing, WorkoutResult } from "./page";
 
 export default function LeaderboardView({
   divisionName,
   standings,
   workouts,
+  brandKit,
 }: {
   divisionName: string;
   standings: Standing[];
   workouts: { id: string; results: WorkoutResult[] }[];
+  brandKit?: BrandKit | null;
 }) {
   const [view, setView] = useState<string>("overall");
   const selectedWorkout = workouts.find((w) => w.id === view);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 py-10 space-y-6" style={brandKitStyle(brandKit)}>
       <div className="text-center">
         <div className="text-lg font-semibold opacity-70">
-          <Logo />
+          <BrandKitLogo kit={brandKit} />
         </div>
         <h1 className="text-2xl font-semibold">{divisionName}</h1>
       </div>
