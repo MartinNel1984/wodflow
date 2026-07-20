@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { formatTime } from "@/lib/scoring";
+import LeaderboardView from "./view";
 
 type Row = {
   heat_assignment_id: string;
@@ -8,56 +10,65 @@ type Row = {
   display_name: string;
 };
 
-// Standard aggregate-rank scoring: each workout is ranked independently
-// (best performance = rank 1), then a registration's total is the sum
-// of its per-workout ranks — lower total wins. A registration with no
-// score for a given workout gets a worst-case penalty rank (one worse
-// than last place), matching how most CrossFit-style comps handle a
-// missed/DNF workout. No tiebreak rules yet — a documented Phase 1
-// simplification, revisit if ties turn out to matter in practice.
-function computeStandings(rows: Row[], scoringType: "time" | "reps" | "load") {
-  const workoutIds = [...new Set(rows.map((r) => r.workout_id))];
-  const registrationIds = [...new Set(rows.map((r) => r.registration_id))];
+export type WorkoutResult = {
+  registrationId: string;
+  displayName: string;
+  display: string; // formatted time or "N reps"
+  capped: boolean; // true when this entry recorded reps instead of a finish time
+  position: number;
+  points: number;
+};
+
+export type Standing = {
+  registrationId: string;
+  displayName: string;
+  totalPoints: number;
+};
+
+// Competition-standard scoring: within a workout, every athlete who
+// finished (recorded a time) outranks every athlete who was capped out
+// (recorded reps instead) — finishers are ordered by time ascending,
+// capped-out athletes by reps descending as a tiebreak among
+// themselves. A missing score ranks worse than everyone. Points for
+// that workout are (entrants - position + 1), so 1st place scores the
+// most — the conventional bigger-is-better competition points table.
+// Overall total is the sum of a registration's per-workout points,
+// highest total wins.
+function computeWorkoutResults(rows: Row[], registrationIds: string[]): WorkoutResult[] {
   const nameByRegistration = new Map(rows.map((r) => [r.registration_id, r.display_name]));
 
-  const rankByRegistrationAndWorkout = new Map<string, number>();
+  const finishers = rows
+    .filter((r) => !r.value_raw.no_rep && r.value_raw.time_seconds != null)
+    .map((r) => ({ registrationId: r.registration_id, time: r.value_raw.time_seconds! }))
+    .sort((a, b) => a.time - b.time);
 
-  for (const workoutId of workoutIds) {
-    const entries = rows
-      .filter((r) => r.workout_id === workoutId)
-      .map((r) => {
-        const v = r.value_raw;
-        const value = v.no_rep ? null : (v.time_seconds ?? v.reps ?? v.load_kg ?? null);
-        return { registrationId: r.registration_id, value };
-      })
-      .filter((e) => e.value != null) as { registrationId: string; value: number }[];
+  // Reps or load — whichever secondary metric was recorded (either a
+  // capped-out time-workout entry, or the primary metric for a pure
+  // reps/load division that has no finish-time concept at all).
+  const finishedIds = new Set(finishers.map((f) => f.registrationId));
+  const secondary = rows
+    .filter((r) => !r.value_raw.no_rep && (r.value_raw.reps != null || r.value_raw.load_kg != null) && !finishedIds.has(r.registration_id))
+    .map((r) => ({
+      registrationId: r.registration_id,
+      value: (r.value_raw.reps ?? r.value_raw.load_kg)!,
+      unit: r.value_raw.reps != null ? "reps" : "kg",
+    }))
+    .sort((a, b) => b.value - a.value);
 
-    // time: lower is better. reps/load: higher is better.
-    entries.sort((a, b) => (scoringType === "time" ? a.value - b.value : b.value - a.value));
+  const ordered = [
+    ...finishers.map((f) => ({ registrationId: f.registrationId, display: formatTime(f.time), capped: false })),
+    ...secondary.map((s) => ({ registrationId: s.registrationId, display: `${s.value} ${s.unit}`, capped: true })),
+  ];
 
-    entries.forEach((e, i) => {
-      rankByRegistrationAndWorkout.set(`${e.registrationId}:${workoutId}`, i + 1);
-    });
-
-    const worstRank = entries.length + 1;
-    for (const regId of registrationIds) {
-      const key = `${regId}:${workoutId}`;
-      if (!rankByRegistrationAndWorkout.has(key)) {
-        rankByRegistrationAndWorkout.set(key, worstRank);
-      }
-    }
-  }
-
-  const standings = registrationIds.map((regId) => {
-    const total = workoutIds.reduce(
-      (sum, w) => sum + (rankByRegistrationAndWorkout.get(`${regId}:${w}`) ?? 0),
-      0
-    );
-    return { registrationId: regId, displayName: nameByRegistration.get(regId) ?? "Unnamed", total };
-  });
-
-  standings.sort((a, b) => a.total - b.total);
-  return { standings, workoutIds };
+  const entrants = registrationIds.length;
+  return ordered.map((entry, i) => ({
+    registrationId: entry.registrationId,
+    displayName: nameByRegistration.get(entry.registrationId) ?? "Unnamed",
+    display: entry.display,
+    capped: entry.capped,
+    position: i + 1,
+    points: entrants - i,
+  }));
 }
 
 export default async function LeaderboardPage({
@@ -76,38 +87,44 @@ export default async function LeaderboardPage({
       .eq("division_id", divisionId),
   ]);
 
-  const scoringType = (division?.workout_scoring_type ?? "time") as "time" | "reps" | "load";
-  const { standings, workoutIds } = computeStandings((rows ?? []) as Row[], scoringType);
+  const allRows = (rows ?? []) as Row[];
+  const workoutIds = [...new Set(allRows.map((r) => r.workout_id))].sort();
+  const registrationIds = [...new Set(allRows.map((r) => r.registration_id))];
+  const nameByRegistration = new Map(allRows.map((r) => [r.registration_id, r.display_name]));
+
+  const resultsByWorkout = new Map<string, WorkoutResult[]>();
+  for (const workoutId of workoutIds) {
+    resultsByWorkout.set(
+      workoutId,
+      computeWorkoutResults(
+        allRows.filter((r) => r.workout_id === workoutId),
+        registrationIds
+      )
+    );
+  }
+
+  const pointsByRegistration = new Map<string, number>();
+  for (const results of resultsByWorkout.values()) {
+    for (const r of results) {
+      pointsByRegistration.set(r.registrationId, (pointsByRegistration.get(r.registrationId) ?? 0) + r.points);
+    }
+  }
+
+  const standings: Standing[] = registrationIds
+    .map((registrationId) => ({
+      registrationId,
+      displayName: nameByRegistration.get(registrationId) ?? "Unnamed",
+      totalPoints: pointsByRegistration.get(registrationId) ?? 0,
+    }))
+    .sort((a, b) => b.totalPoints - a.totalPoints);
+
+  const workouts = workoutIds.map((id) => ({ id, results: resultsByWorkout.get(id)! }));
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
-      <h1 className="text-2xl font-semibold text-center">{division?.name ?? "Leaderboard"}</h1>
-      {workoutIds.length === 0 ? (
-        <p className="text-center text-ink/60 text-sm">No scores yet.</p>
-      ) : (
-        <table className="w-full bg-white border border-ink/10 rounded-xl overflow-hidden text-sm">
-          <thead>
-            <tr className="bg-ink/5 text-left">
-              <th className="px-4 py-2">#</th>
-              <th className="px-4 py-2">Name</th>
-              <th className="px-4 py-2 text-right">Points</th>
-            </tr>
-          </thead>
-          <tbody>
-            {standings.map((s, i) => (
-              <tr
-                key={s.registrationId}
-                className="border-t border-ink/10 animate-settle-in"
-                style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
-              >
-                <td className="px-4 py-2 font-data font-bold text-accent">{i + 1}</td>
-                <td className="px-4 py-2">{s.displayName}</td>
-                <td className="px-4 py-2 text-right font-data">{s.total}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
+    <LeaderboardView
+      divisionName={division?.name ?? "Leaderboard"}
+      standings={standings}
+      workouts={workouts}
+    />
   );
 }

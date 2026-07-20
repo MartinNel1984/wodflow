@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { enqueueScore, syncPendingScores, getAllPending, type PendingScore } from "@/lib/offline-queue";
+import { parseTime } from "@/lib/scoring";
 
 type HeatOption = {
   heatId: string;
@@ -36,6 +37,9 @@ export default function ScorePage() {
   const [lanes, setLanes] = useState<Lane[]>([]);
   const [workoutId, setWorkoutId] = useState("WOD1");
   const [values, setValues] = useState<Record<string, string>>({});
+  // For time-scored divisions: whether the judge is recording a finish
+  // time or a rep count for an athlete who was capped out before finishing.
+  const [modeByLane, setModeByLane] = useState<Record<string, "finished" | "capped">>({});
   const [savedLanes, setSavedLanes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -144,8 +148,16 @@ export default function ScorePage() {
     if (!rawValue) return;
 
     const valueRaw: Record<string, unknown> = {};
-    if (selectedHeat?.scoringType === "time") valueRaw.time_seconds = Number(rawValue);
-    else if (selectedHeat?.scoringType === "reps") valueRaw.reps = Number(rawValue);
+    if (selectedHeat?.scoringType === "time") {
+      const mode = modeByLane[lane.heatAssignmentId] ?? "finished";
+      if (mode === "capped") {
+        valueRaw.reps = Number(rawValue);
+      } else {
+        const seconds = parseTime(rawValue);
+        if (seconds == null) return;
+        valueRaw.time_seconds = seconds;
+      }
+    } else if (selectedHeat?.scoringType === "reps") valueRaw.reps = Number(rawValue);
     else valueRaw.load_kg = Number(rawValue);
 
     // Write to the local queue first and show "Saved" immediately — the
@@ -208,28 +220,52 @@ export default function ScorePage() {
                       <p className="font-data font-bold text-sm text-accent">Lane {lane.laneNumber}</p>
                       <p className="text-ink/60 text-sm">{lane.displayName}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        placeholder={
-                          selectedHeat?.scoringType === "time"
-                            ? "seconds"
-                            : selectedHeat?.scoringType === "reps"
-                              ? "reps"
-                              : "kg"
-                        }
-                        value={values[lane.heatAssignmentId] ?? ""}
-                        onChange={(e) =>
-                          setValues((prev) => ({ ...prev, [lane.heatAssignmentId]: e.target.value }))
-                        }
-                        className="w-24 border border-ink/10 rounded-lg px-2 py-2 text-sm"
-                      />
-                      <button
-                        onClick={() => submitLane(lane)}
-                        className="bg-accent text-white rounded-lg px-3 py-2 text-xs font-semibold"
-                      >
-                        {savedLanes.has(lane.heatAssignmentId) ? "Saved ✓" : "Save"}
-                      </button>
+                    <div className="flex flex-col items-end gap-2">
+                      {selectedHeat?.scoringType === "time" && (
+                        <div className="flex text-xs border border-ink/10 rounded-lg overflow-hidden">
+                          {(["finished", "capped"] as const).map((mode) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              onClick={() =>
+                                setModeByLane((prev) => ({ ...prev, [lane.heatAssignmentId]: mode }))
+                              }
+                              className={`px-2 py-1 ${
+                                (modeByLane[lane.heatAssignmentId] ?? "finished") === mode
+                                  ? "bg-accent text-white"
+                                  : "bg-white text-ink/60"
+                              }`}
+                            >
+                              {mode === "finished" ? "Finished" : "Capped"}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type={selectedHeat?.scoringType === "time" && (modeByLane[lane.heatAssignmentId] ?? "finished") === "finished" ? "text" : "number"}
+                          placeholder={
+                            selectedHeat?.scoringType === "time"
+                              ? (modeByLane[lane.heatAssignmentId] ?? "finished") === "finished"
+                                ? "mm:ss"
+                                : "reps"
+                              : selectedHeat?.scoringType === "reps"
+                                ? "reps"
+                                : "kg"
+                          }
+                          value={values[lane.heatAssignmentId] ?? ""}
+                          onChange={(e) =>
+                            setValues((prev) => ({ ...prev, [lane.heatAssignmentId]: e.target.value }))
+                          }
+                          className="w-24 border border-ink/10 rounded-lg px-2 py-2 text-sm"
+                        />
+                        <button
+                          onClick={() => submitLane(lane)}
+                          className="bg-accent text-white rounded-lg px-3 py-2 text-xs font-semibold"
+                        >
+                          {savedLanes.has(lane.heatAssignmentId) ? "Saved ✓" : "Save"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
