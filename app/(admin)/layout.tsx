@@ -18,6 +18,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .single();
   const role = profile?.role ?? "athlete";
 
+  // Enforce the role server-side, not just via the client route guard —
+  // so admin pages are never server-rendered to a non-organizer.
+  if (role !== "organizer") redirect("/login");
+
   return (
     <div className="min-h-screen bg-paper">
       <AdminRouteGuard role={role} />

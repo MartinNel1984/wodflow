@@ -14,6 +14,10 @@ export default async function AthleteLayout({ children }: { children: React.Reac
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const role = profile?.role ?? "athlete";
 
+  // Enforce the role server-side (matches AthleteRouteGuard) so the portal
+  // is never server-rendered to a non-athlete.
+  if (role !== "athlete") redirect("/athlete-login");
+
   return (
     <div className="min-h-screen bg-paper">
       <AthleteRouteGuard role={role} />

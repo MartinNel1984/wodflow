@@ -17,6 +17,10 @@ export default async function JudgeLayout({ children }: { children: React.ReactN
     .single();
   const role = profile?.role ?? "athlete";
 
+  // Enforce the role server-side (matches JudgeRouteGuard) so the score
+  // screen is never server-rendered to a non-judge.
+  if (role !== "judge" && role !== "head_judge") redirect("/judge-login");
+
   return (
     <div className="min-h-screen bg-paper">
       <JudgeRouteGuard role={role} />

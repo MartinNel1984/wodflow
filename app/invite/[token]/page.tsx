@@ -94,7 +94,10 @@ export default function InvitePage() {
   }
 
   if (loading || checkingAuth) return <p className="text-center py-20 text-ink/50">Loading…</p>;
-  if (!invite || !invite.athlete) {
+  // `athlete` is only present once signed in (its PII is auth-gated server-
+  // side), so validity is checked via `status` instead — present for any
+  // real invite, absent on a 404.
+  if (!invite || !invite.status) {
     return <p className="text-center py-20 text-red-700">Invite not found.</p>;
   }
 

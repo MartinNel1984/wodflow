@@ -4,10 +4,16 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 function csvEscape(value: string) {
-  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-    return `"${value.replace(/"/g, '""')}"`;
+  let v = value;
+  // Neutralize spreadsheet formula injection: a cell starting with = + - @
+  // (or tab/CR) can be executed as a formula when the organizer opens the
+  // CSV in Excel/Sheets, and athlete-supplied fields (name, email) are
+  // untrusted. Prefixing a single quote forces it to be treated as text.
+  if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
+  if (v.includes(",") || v.includes('"') || v.includes("\n") || v.includes("\r")) {
+    return `"${v.replace(/"/g, '""')}"`;
   }
-  return value;
+  return v;
 }
 
 // Organizer-only — auth enforced here, not just RLS, since the response
