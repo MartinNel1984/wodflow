@@ -40,7 +40,10 @@ export type Standing = {
 //                 rounding/edge behavior is still an open question to
 //                 confirm with Tjokkie, not something to silently
 //                 "fix" by guessing a different formula.
-function pointsForPosition(position: number, entrants: number, config: ScoringConfig): number {
+// Exported for reuse by lib/series.ts — season points (Milestone 18)
+// are the same pluggable formula applied to an athlete's OVERALL
+// event placement instead of a per-workout one.
+export function pointsForPosition(position: number, entrants: number, config: ScoringConfig): number {
   if (config.method === "gap_formula") {
     const winnerPoints = config.winner_points ?? 100;
     const gap = Math.round(winnerPoints / entrants);
