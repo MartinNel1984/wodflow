@@ -7,7 +7,7 @@ import type { NextRequest } from "next/server";
 // live Supabase queries.
 const CACHEABLE_PREFIXES = ["/leaderboard/", "/heats/"];
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   if (CACHEABLE_PREFIXES.some((prefix) => request.nextUrl.pathname.startsWith(prefix))) {
