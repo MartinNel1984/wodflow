@@ -32,42 +32,41 @@ export default async function SeriesLeaderboardPage({
       .select("id, scoring_config")
       .in("event_id", eventIds);
 
-    for (const division of divisions ?? []) {
-      const { data: rows } = await supabase
-        .from("public_leaderboard")
-        .select("heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value")
-        .eq("division_id", division.id);
-      if (!rows || rows.length === 0) continue;
+    // Each division's leaderboard read runs in parallel rather than
+    // sequentially per division. Season points are attributed to the
+    // athlete's persistent account (registrations.captain_profile_id),
+    // not the per-event registration — a registration made without a
+    // signed-in account (still fully supported for one-off events) simply
+    // can't be attributed to a season identity and is excluded here.
+    const perDivision = await Promise.all(
+      (divisions ?? []).map(async (division) => {
+        const { data: rows } = await supabase
+          .from("public_leaderboard")
+          .select("heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value")
+          .eq("division_id", division.id);
+        if (!rows || rows.length === 0) return [];
 
-      const divisionScoringConfig = (division.scoring_config ?? { method: "rank_sum" }) as ScoringConfig;
-      const { standings } = computeStandings(rows as LeaderboardRow[], divisionScoringConfig);
-      if (standings.length === 0) continue;
+        const divisionScoringConfig = (division.scoring_config ?? { method: "rank_sum" }) as ScoringConfig;
+        const { standings } = computeStandings(rows as LeaderboardRow[], divisionScoringConfig);
+        if (standings.length === 0) return [];
 
-      // Season points are attributed to the athlete's persistent account
-      // (registrations.captain_profile_id), not the per-event
-      // registration — a registration made without a signed-in account
-      // (still fully supported for one-off events) simply can't be
-      // attributed to a season identity and is excluded here.
-      const { data: registrations } = await supabase
-        .from("registrations")
-        .select("id, captain_profile_id")
-        .in(
-          "id",
-          standings.map((s) => s.registrationId)
-        );
-      const profileByRegistration = new Map((registrations ?? []).map((r) => [r.id, r.captain_profile_id]));
+        const { data: registrations } = await supabase
+          .from("registrations")
+          .select("id, captain_profile_id")
+          .in(
+            "id",
+            standings.map((s) => s.registrationId)
+          );
+        const profileByRegistration = new Map((registrations ?? []).map((r) => [r.id, r.captain_profile_id]));
 
-      standings.forEach((s, i) => {
-        const profileId = profileByRegistration.get(s.registrationId);
-        if (!profileId) return;
-        placements.push({
-          profileId,
-          displayName: s.displayName,
-          position: i + 1,
-          entrants: standings.length,
+        return standings.flatMap((s, i) => {
+          const profileId = profileByRegistration.get(s.registrationId);
+          if (!profileId) return [];
+          return [{ profileId, displayName: s.displayName, position: i + 1, entrants: standings.length }];
         });
-      });
-    }
+      })
+    );
+    for (const chunk of perDivision) placements.push(...chunk);
   }
 
   const seriesStandings = computeSeriesStandings(placements, pointsConfig);

@@ -1,23 +1,9 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireOrganizer } from "@/lib/auth";
+
 import { revalidatePath } from "next/cache";
 import { generateHeats, type RosterEntry } from "@/lib/heats";
-
-async function requireOrganizer() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in");
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (profile?.role !== "organizer") throw new Error("Not authorised");
-  return supabase;
-}
 
 // Whole-division regeneration. Only ever touches heats/assignments in
 // 'scheduled' status — heats already 'in_progress' or 'completed' are

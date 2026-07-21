@@ -1,23 +1,10 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireOrganizer } from "@/lib/auth";
+
 import { createServiceClient } from "@/lib/supabase/service";
 import { deriveJudgePassword } from "@/lib/judges";
 import { revalidatePath } from "next/cache";
-
-async function requireOrganizer() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in");
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (profile?.role !== "organizer") throw new Error("Not authorised");
-}
 
 // Judges don't need a real email — they only ever sign in via PIN —
 // but Supabase auth requires one, so we mint a stable placeholder from

@@ -28,6 +28,24 @@ export default async function AthletesPage({
     }))
   );
 
+  // Team-completeness rollup: a paid team can start the event with a member
+  // who never signed their own waiver (captain pays, teammates sign later
+  // via their invite). Surface those so they can be chased before check-in.
+  const incompleteTeams = (registrations ?? [])
+    .filter((r) => (r.registration_athletes ?? []).length > 1)
+    .map((r) => {
+      const roster = r.registration_athletes ?? [];
+      const signed = roster.filter((a) => a.waiver_signed_at).length;
+      return {
+        id: r.id,
+        teamName: r.team_name ?? "Unnamed team",
+        paymentStatus: r.payment_status,
+        signed,
+        total: roster.length,
+      };
+    })
+    .filter((t) => t.signed < t.total);
+
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <div>
@@ -36,6 +54,18 @@ export default async function AthletesPage({
         </a>
         <h1 className="text-2xl font-semibold mt-1">{division?.name ?? "Division"} — Athletes</h1>
       </div>
+
+      {incompleteTeams.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-1">
+          <p className="font-semibold text-sm text-amber-800">Teams with unsigned waivers</p>
+          {incompleteTeams.map((t) => (
+            <p key={t.id} className="text-sm text-amber-700">
+              {t.teamName} — {t.signed}/{t.total} signed
+              {t.paymentStatus === "paid" ? " · paid" : ` · ${t.paymentStatus}`}
+            </p>
+          ))}
+        </div>
+      )}
 
       <div className="bg-white border border-ink/10 rounded-xl overflow-hidden">
         <table className="w-full text-sm">

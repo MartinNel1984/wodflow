@@ -57,28 +57,33 @@ export default async function PortalPage() {
     .filter((r): r is MyRegistration => r !== null)
     .sort((a, b) => b.eventStartDate.localeCompare(a.eventStartDate));
 
-  // Best finishes — for every division the athlete has actually
-  // scored in, compute that division's real standings (using its own
-  // scoring formula) and pull out this athlete's own placement.
-  // Divisions with no scores yet are skipped (nothing to rank).
-  const bestFinishes: { eventName: string; divisionName: string; position: number; total: number }[] = [];
-  for (const reg of myRegistrations) {
-    const { data: rows } = await supabase
-      .from("public_leaderboard")
-      .select("heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value")
-      .eq("division_id", reg.divisionId);
-    if (!rows || rows.length === 0) continue;
-    const { standings } = computeStandings(rows as LeaderboardRow[], reg.scoringConfig);
-    const idx = standings.findIndex((s) => s.registrationId === reg.registrationId);
-    if (idx === -1) continue;
-    bestFinishes.push({
-      eventName: reg.eventName,
-      divisionName: reg.divisionName,
-      position: idx + 1,
-      total: standings.length,
-    });
-  }
-  bestFinishes.sort((a, b) => a.position - b.position);
+  // Best finishes — for every division the athlete has actually scored in,
+  // compute that division's real standings (using its own scoring formula)
+  // and pull out this athlete's own placement. One leaderboard read per
+  // division, fired in parallel rather than sequentially. Divisions with no
+  // scores yet (or where the athlete isn't ranked) are skipped.
+  const bestFinishes = (
+    await Promise.all(
+      myRegistrations.map(async (reg) => {
+        const { data: rows } = await supabase
+          .from("public_leaderboard")
+          .select("heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value")
+          .eq("division_id", reg.divisionId);
+        if (!rows || rows.length === 0) return null;
+        const { standings } = computeStandings(rows as LeaderboardRow[], reg.scoringConfig);
+        const idx = standings.findIndex((s) => s.registrationId === reg.registrationId);
+        if (idx === -1) return null;
+        return {
+          eventName: reg.eventName,
+          divisionName: reg.divisionName,
+          position: idx + 1,
+          total: standings.length,
+        };
+      })
+    )
+  )
+    .filter((f): f is { eventName: string; divisionName: string; position: number; total: number } => f !== null)
+    .sort((a, b) => a.position - b.position);
 
   const registeredEventIds = new Set(myRegistrations.map((r) => r.eventId));
   const registerableEvents = (upcomingEvents ?? []).filter((e) => !registeredEventIds.has(e.id));

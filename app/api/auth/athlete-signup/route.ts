@@ -29,6 +29,27 @@ export async function POST(request: Request) {
 
   const svc = createServiceClient();
 
+  // Per-IP throttle: no shared in-memory state on Workers, so recent
+  // attempts are counted from a backing table (migration-020). Best-effort
+  // — if the check itself errors we don't block a legitimate signup.
+  const ip =
+    request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for") ?? "unknown";
+  const WINDOW_MINUTES = 10;
+  const MAX_ATTEMPTS = 5;
+  const windowStart = new Date(Date.now() - WINDOW_MINUTES * 60_000).toISOString();
+  const { count } = await svc
+    .from("signup_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("created_at", windowStart);
+  if ((count ?? 0) >= MAX_ATTEMPTS) {
+    return NextResponse.json(
+      { error: "Too many signups from this connection. Please try again in a few minutes." },
+      { status: 429 }
+    );
+  }
+  await svc.from("signup_attempts").insert({ ip });
+
   const { data: created, error: createError } = await svc.auth.admin.createUser({
     email,
     password,

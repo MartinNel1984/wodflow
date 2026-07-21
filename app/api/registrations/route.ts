@@ -80,7 +80,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: event } = await supabase.from("events").select("waiver_text").eq("id", division.event_id).single();
+  const { data: event } = await supabase
+    .from("events")
+    .select("waiver_text, status")
+    .eq("id", division.event_id)
+    .single();
+
+  // Registration is only open once the organizer has published the event.
+  // Blocks registering (and paying) for a draft/archived event by guessing
+  // a division UUID before it's meant to be live.
+  if (!event || !["published", "live"].includes(event.status)) {
+    return NextResponse.json({ error: "Registration for this event isn't open." }, { status: 403 });
+  }
 
   const price = currentPrice(division);
   const waiverTimestamp = new Date().toISOString();
