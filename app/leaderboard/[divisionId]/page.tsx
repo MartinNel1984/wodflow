@@ -1,7 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { computeStandings, type LeaderboardRow, type ScoringConfig } from "@/lib/leaderboard";
 import type { BrandKit } from "@/lib/brandKit";
 import LeaderboardView from "./view";
+
+export const revalidate = 8;
 
 export default async function LeaderboardPage({
   params,
@@ -9,7 +11,7 @@ export default async function LeaderboardPage({
   params: Promise<{ divisionId: string }>;
 }) {
   const { divisionId } = await params;
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const [{ data: division }, { data: rows }] = await Promise.all([
     supabase

@@ -1,4 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
+
+export const revalidate = 8;
 
 export default async function PublicHeatSheetPage({
   params,
@@ -6,7 +8,7 @@ export default async function PublicHeatSheetPage({
   params: Promise<{ divisionId: string }>;
 }) {
   const { divisionId } = await params;
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const [{ data: division }, { data: rows }] = await Promise.all([
     supabase.from("divisions").select("name").eq("id", divisionId).single(),
