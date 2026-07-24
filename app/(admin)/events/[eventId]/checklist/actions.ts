@@ -23,3 +23,13 @@ export async function updateJudgingMode(formData: FormData) {
   await supabase.from("events").update({ judging_mode: judgingMode }).eq("id", eventId);
   revalidatePath(`/events/${eventId}/checklist`);
 }
+
+export async function updatePaymentProvider(formData: FormData) {
+  const supabase = await requireOrganizer();
+  const eventId = String(formData.get("eventId") ?? "");
+  const paymentProvider = String(formData.get("paymentProvider") ?? "");
+  if (!eventId || !["yoco", "payfast"].includes(paymentProvider)) return;
+
+  await supabase.from("events").update({ payment_provider: paymentProvider }).eq("id", eventId);
+  revalidatePath(`/events/${eventId}/checklist`);
+}

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeEventChecks, computeDivisionChecks, type CheckItem } from "@/lib/checklist";
-import { updateWaiverText, updateJudgingMode } from "./actions";
+import { updateWaiverText, updateJudgingMode, updatePaymentProvider } from "./actions";
 
 export default async function ChecklistPage({
   params,
@@ -14,7 +14,7 @@ export default async function ChecklistPage({
     supabase
       .from("events")
       .select(
-        "name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status, judging_mode"
+        "name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status, judging_mode, payment_provider"
       )
       .eq("id", eventId)
       .single(),
@@ -85,6 +85,24 @@ export default async function ChecklistPage({
           >
             <option value="centralized">Centralized</option>
             <option value="distributed">Distributed</option>
+          </select>
+          <button type="submit" className="text-sm text-accent font-semibold shrink-0">
+            Save
+          </button>
+        </form>
+        <form action={updatePaymentProvider} className="flex items-center justify-between gap-3">
+          <input type="hidden" name="eventId" value={eventId} />
+          <div>
+            <p className="text-sm font-semibold">Payment provider</p>
+            <p className="text-ink/60 text-xs">Which checkout athletes are sent to when they register and pay.</p>
+          </div>
+          <select
+            name="paymentProvider"
+            defaultValue={event?.payment_provider ?? "yoco"}
+            className="text-sm border border-ink/10 rounded-lg px-2 py-1.5"
+          >
+            <option value="yoco">Yoco</option>
+            <option value="payfast">PayFast</option>
           </select>
           <button type="submit" className="text-sm text-accent font-semibold shrink-0">
             Save

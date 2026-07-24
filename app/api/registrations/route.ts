@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createYocoCheckout } from "@/lib/yoco";
+import { createPayfastCheckout } from "@/lib/payfast";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
 
   const { data: event } = await supabase
     .from("events")
-    .select("waiver_text, status")
+    .select("waiver_text, status, payment_provider")
     .eq("id", division.event_id)
     .single();
 
@@ -167,6 +168,21 @@ export async function POST(request: Request) {
   const captain = teammates.find((t) => t.isCaptain) ?? teammates[0];
 
   try {
+    if (event.payment_provider === "payfast") {
+      const { payUrl } = createPayfastCheckout({
+        amountRands: price,
+        registrationId: registration.id,
+        divisionName: division.name,
+        teamOrAthleteName: teamName ?? captain.fullName,
+        athleteEmail: captain.email,
+        siteOrigin: new URL(request.url).origin,
+      });
+
+      await supabase.from("registrations").update({ pay_url: payUrl }).eq("id", registration.id);
+
+      return NextResponse.json({ registrationId: registration.id, payUrl });
+    }
+
     const { checkoutId, payUrl } = await createYocoCheckout({
       amountRands: price,
       registrationId: registration.id,
@@ -181,7 +197,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ registrationId: registration.id, payUrl });
   } catch (err) {
-    console.error("Yoco checkout creation failed", err);
+    console.error("Checkout creation failed", err);
     return NextResponse.json(
       { error: "Registration saved, but payment setup failed. Please contact the organizer." },
       { status: 502 }
