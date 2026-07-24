@@ -11,6 +11,7 @@ const links = [
   { href: "/series", label: "Series" },
   { href: "/brand-kits", label: "Brand Kits" },
   { href: "/judges", label: "Judges" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export default function AdminNav() {
