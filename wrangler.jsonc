@@ -11,6 +11,7 @@
   "kv_namespaces": [
     { "binding": "NEXT_INC_CACHE_KV", "id": "bf85feb756d741189e45ebc14b1991ff" }
   ],
+  "send_email": [{ "name": "EMAIL" }],
   "workers_dev": true,
   "routes": [
     { "pattern": "wodflow.co.za", "custom_domain": true },

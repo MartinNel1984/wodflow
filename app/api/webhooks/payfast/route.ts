@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { verifyPayfastSignature, validatePayfastItn } from "@/lib/payfast-webhook";
+import { sendRegistrationEmails } from "@/lib/email";
 
 export async function POST(request: Request) {
   // Must read the raw body before parsing — signature is computed over the
@@ -75,6 +76,10 @@ export async function POST(request: Request) {
     console.error("PayFast webhook: failed to mark registration paid", updateError);
     return new Response("Update failed", { status: 500 });
   }
+
+  await sendRegistrationEmails(registrationId).catch((err) =>
+    console.error("PayFast webhook: sendRegistrationEmails failed", err)
+  );
 
   return new Response("OK", { status: 200 });
 }

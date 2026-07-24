@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { verifyYocoWebhookSignature } from "@/lib/yoco-webhook";
+import { sendRegistrationEmails } from "@/lib/email";
 
 export async function POST(request: Request) {
   const secret = process.env.YOCO_WEBHOOK_SECRET;
@@ -75,6 +76,10 @@ export async function POST(request: Request) {
     console.error("Yoco webhook: failed to mark registration paid", updateError);
     return new Response("Update failed", { status: 500 });
   }
+
+  await sendRegistrationEmails(registration.id).catch((err) =>
+    console.error("Yoco webhook: sendRegistrationEmails failed", err)
+  );
 
   return new Response("OK", { status: 200 });
 }
