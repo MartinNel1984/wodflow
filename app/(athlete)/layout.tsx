@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AthleteRouteGuard from "@/components/AthleteRouteGuard";
 import AthleteNav from "@/components/AthleteNav";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function AthleteLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();

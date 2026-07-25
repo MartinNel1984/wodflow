@@ -1,6 +1,29 @@
+import type { Metadata } from "next";
 import { createPublicClient } from "@/lib/supabase/public";
 
 export const revalidate = 8;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ divisionId: string }>;
+}): Promise<Metadata> {
+  const { divisionId } = await params;
+  const supabase = createPublicClient();
+  const { data: division } = await supabase
+    .from("divisions")
+    .select("name, events(name)")
+    .eq("id", divisionId)
+    .single();
+  if (!division) return {};
+
+  const event = Array.isArray(division.events) ? division.events[0] : division.events;
+  const title = event?.name ? `${division.name} Heats — ${event.name}` : `${division.name} Heats`;
+  return {
+    title,
+    description: `Heat sheet for ${division.name}${event?.name ? ` at ${event.name}` : ""} on Wodflow.`,
+  };
+}
 
 export default async function PublicHeatSheetPage({
   params,

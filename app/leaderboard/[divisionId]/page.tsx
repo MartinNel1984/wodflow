@@ -1,9 +1,32 @@
+import type { Metadata } from "next";
 import { createPublicClient } from "@/lib/supabase/public";
 import { computeStandings, type LeaderboardRow, type ScoringConfig } from "@/lib/leaderboard";
 import type { BrandKit } from "@/lib/brandKit";
 import LeaderboardView from "./view";
 
 export const revalidate = 8;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ divisionId: string }>;
+}): Promise<Metadata> {
+  const { divisionId } = await params;
+  const supabase = createPublicClient();
+  const { data: division } = await supabase
+    .from("divisions")
+    .select("name, events(name)")
+    .eq("id", divisionId)
+    .single();
+  if (!division) return {};
+
+  const event = Array.isArray(division.events) ? division.events[0] : division.events;
+  const title = event?.name ? `${division.name} — ${event.name} Leaderboard` : `${division.name} Leaderboard`;
+  return {
+    title,
+    description: `Live leaderboard for ${division.name}${event?.name ? ` at ${event.name}` : ""} on Wodflow.`,
+  };
+}
 
 export default async function LeaderboardPage({
   params,
