@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BrandKitLogo } from "@/components/BrandKitLogo";
 import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
+import { currentPrice } from "@/lib/pricing";
 
 type Division = {
   id: string;
@@ -13,6 +14,8 @@ type Division = {
   price_early: number | null;
   price_normal: number;
   price_late: number | null;
+  early_bird_ends: string | null;
+  late_starts: string | null;
 };
 
 type Teammate = {
@@ -43,6 +46,9 @@ export default function RegisterContent() {
   const [waiverSignedName, setWaiverSignedName] = useState("");
   const [waiverAccepted, setWaiverAccepted] = useState(false);
   const [athleteProfile, setAthleteProfile] = useState<Partial<Teammate> | null>(null);
+  const [password, setPassword] = useState("");
+  const [creatingAccount, setCreatingAccount] = useState(false);
+  const [accountError, setAccountError] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -82,7 +88,7 @@ export default function RegisterContent() {
           .single(),
         supabase
           .from("divisions")
-          .select("id, name, team_size, price_early, price_normal, price_late")
+          .select("id, name, team_size, price_early, price_normal, price_late, early_bird_ends, late_starts")
           .eq("event_id", eventId)
           .order("name"),
       ]);
@@ -120,6 +126,51 @@ export default function RegisterContent() {
         t.idNumber.trim() &&
         (!t.isMinor || (t.guardianName.trim() && t.guardianIdNumber.trim()))
     );
+  }
+
+  async function continueToWaiver() {
+    if (!teammatesValid()) return;
+
+    // The captain needs an account before registering — teammates get
+    // their own via the invite link sent after registration. Skip
+    // account creation entirely if they're already signed in.
+    if (athleteProfile) {
+      setStep(3);
+      return;
+    }
+
+    if (password.length < 8) {
+      setAccountError("Please choose a password of at least 8 characters.");
+      return;
+    }
+
+    setCreatingAccount(true);
+    setAccountError("");
+    try {
+      const captain = teammates[0];
+      const res = await fetch("/api/auth/athlete-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: captain.fullName,
+          email: captain.email,
+          password,
+          idNumber: captain.idNumber,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAccountError(data.error ?? "Could not create your account.");
+        setCreatingAccount(false);
+        return;
+      }
+      setAthleteProfile({ fullName: captain.fullName, email: captain.email, idNumber: captain.idNumber });
+      setStep(3);
+    } catch {
+      setAccountError("Network error. Please try again.");
+    } finally {
+      setCreatingAccount(false);
+    }
   }
 
   async function submitRegistration() {
@@ -182,7 +233,7 @@ export default function RegisterContent() {
             >
               <p className="font-semibold">{d.name}</p>
               <p className="text-ink/60 text-sm">
-                {d.team_size === 1 ? "Individual" : `Team of ${d.team_size}`} · R{d.price_normal}
+                {d.team_size === 1 ? "Individual" : `Team of ${d.team_size}`} · R{currentPrice(d)}
               </p>
             </button>
           ))}
@@ -245,12 +296,29 @@ export default function RegisterContent() {
             </div>
           ))}
 
+          {!athleteProfile && (
+            <div className="space-y-2 border-t border-ink/10 pt-4">
+              <p className="text-sm font-semibold">Create your account</p>
+              <p className="text-ink/60 text-xs">
+                Used to track your registrations and see your heat times once published.{" "}
+                <a href="/athlete-login" className="text-accent hover:underline">
+                  Already have an account? Sign in.
+                </a>
+              </p>
+              <Field label="Password (8+ characters)" value={password} onChange={setPassword} type="password" />
+            </div>
+          )}
+
+          {accountError && (
+            <p className="text-center text-red-700 text-sm bg-red-50 rounded-lg px-3 py-2">{accountError}</p>
+          )}
+
           <button
-            onClick={() => teammatesValid() && setStep(3)}
-            disabled={!teammatesValid()}
+            onClick={continueToWaiver}
+            disabled={!teammatesValid() || creatingAccount || (!athleteProfile && password.length < 8)}
             className="w-full bg-accent text-white rounded-lg py-3 text-sm font-semibold disabled:opacity-40"
           >
-            Continue to waiver
+            {creatingAccount ? "Creating account…" : "Continue to waiver"}
           </button>
         </div>
       )}
@@ -290,7 +358,7 @@ export default function RegisterContent() {
             disabled={submitting || !waiverAccepted || !waiverSignedName.trim()}
             className="w-full bg-accent text-white rounded-lg py-3 text-sm font-semibold disabled:opacity-40"
           >
-            {submitting ? "Redirecting to payment…" : `Pay R${selectedDivision.price_normal} & register`}
+            {submitting ? "Redirecting to payment…" : `Pay R${currentPrice(selectedDivision)} & register`}
           </button>
         </div>
       )}

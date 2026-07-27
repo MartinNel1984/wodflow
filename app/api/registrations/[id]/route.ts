@@ -19,7 +19,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { data, error } = await svc
     .from("registrations")
     .select(
-      "id, payment_status, pay_url, team_name, price_paid, captain_profile_id, divisions(name), team_invites(token, email_or_phone, status)"
+      "id, payment_status, pay_url, team_name, price_paid, captain_profile_id, divisions(name, events(brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline))), team_invites(token, email_or_phone, status)"
     )
     .eq("id", id)
     .single();

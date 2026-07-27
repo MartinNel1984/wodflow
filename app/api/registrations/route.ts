@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createYocoCheckout } from "@/lib/yoco";
 import { createPayfastCheckout } from "@/lib/payfast";
+import { currentPrice } from "@/lib/pricing";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -15,23 +16,6 @@ type Teammate = {
   guardianName: string;
   guardianIdNumber: string;
 };
-
-function currentPrice(division: {
-  price_early: number | null;
-  price_normal: number;
-  price_late: number | null;
-  early_bird_ends: string | null;
-  late_starts: string | null;
-}) {
-  const today = new Date().toISOString().slice(0, 10);
-  if (division.price_early != null && division.early_bird_ends && today <= division.early_bird_ends) {
-    return division.price_early;
-  }
-  if (division.price_late != null && division.late_starts && today >= division.late_starts) {
-    return division.price_late;
-  }
-  return division.price_normal;
-}
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);

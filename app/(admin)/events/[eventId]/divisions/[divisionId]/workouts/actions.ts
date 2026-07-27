@@ -18,6 +18,13 @@ export async function createWorkout(formData: FormData) {
   const capMinutes = Number(formData.get("capMinutes"));
   const sequence = Number(formData.get("sequence"));
 
+  const num = (key: string) => {
+    const v = formData.get(key);
+    if (!v || v === "") return null;
+    const n = Number(v);
+    return Number.isNaN(n) ? null : n;
+  };
+
   await supabase.from("workouts").insert({
     division_id: divisionId,
     name,
@@ -25,6 +32,9 @@ export async function createWorkout(formData: FormData) {
     cap_seconds: Number.isNaN(capMinutes) ? null : Math.round(capMinutes * 60),
     scoring_type: String(formData.get("scoringType") ?? "time"),
     tiebreak_enabled: formData.get("tiebreakEnabled") === "on",
+    lane_count: num("laneCount"),
+    heat_duration_minutes: num("heatDurationMinutes"),
+    transition_minutes: num("transitionMinutes"),
   });
   revalidatePath(path(eventId, divisionId));
 }

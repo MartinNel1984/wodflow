@@ -17,7 +17,7 @@ export default async function DashboardPage() {
       const [{ data: divisions }, { data: registrations }] = await Promise.all([
         supabase
           .from("divisions")
-          .select("id, name, lane_count, heat_duration_minutes, price_normal")
+          .select("id, name, price_normal, workouts(id, name, lane_count, heat_duration_minutes)")
           .eq("event_id", event.id),
         supabase.from("registrations").select("payment_status, price_paid").eq("event_id", event.id),
       ]);

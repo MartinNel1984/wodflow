@@ -15,7 +15,7 @@ export default async function DivisionsPage({
     supabase.from("events").select("name, default_price").eq("id", eventId).single(),
     supabase
       .from("divisions")
-      .select("id, name, team_size, price_normal, lane_count, scoring_config")
+      .select("id, name, team_size, price_normal, scoring_config")
       .eq("event_id", eventId)
       .order("created_at", { ascending: true }),
   ]);
@@ -35,7 +35,6 @@ export default async function DivisionsPage({
             <p className="font-semibold">{d.name}</p>
             <p className="text-ink/60 text-sm">
               {d.team_size === 1 ? "Individual" : `Team of ${d.team_size}`} · R{d.price_normal}
-              {d.lane_count ? ` · ${d.lane_count} lanes` : ""}
             </p>
             <div className="flex gap-3 mb-3">
               <Link href={`/events/${eventId}/divisions/${d.id}/athletes`} className="text-accent text-xs hover:underline">
@@ -119,11 +118,6 @@ export default async function DivisionsPage({
         <div className="grid grid-cols-2 gap-4">
           <Field label="Early-bird ends" name="earlyBirdEnds" type="date" />
           <Field label="Late pricing starts" name="lateStarts" type="date" />
-        </div>
-        <div className="grid grid-cols-3 gap-4">
-          <Field label="Lane count" name="laneCount" type="number" />
-          <Field label="Heat duration (min)" name="heatDurationMinutes" type="number" />
-          <Field label="Transition (min)" name="transitionMinutes" type="number" />
         </div>
         <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
           Create division

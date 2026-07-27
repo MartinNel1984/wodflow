@@ -2,17 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { BrandKitLogo } from "@/components/BrandKitLogo";
+import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 
 type TeamInvite = { token: string; email_or_phone: string; status: string };
+
+type DivisionWithEvent = {
+  name: string;
+  events: { brand_kits: BrandKit | BrandKit[] | null } | { brand_kits: BrandKit | BrandKit[] | null }[] | null;
+};
 
 type Registration = {
   id: string;
   payment_status: string;
   team_name: string | null;
   price_paid: number;
-  divisions: { name: string } | { name: string }[] | null;
+  divisions: DivisionWithEvent | DivisionWithEvent[] | null;
   team_invites: TeamInvite[] | null;
 };
+
+function extractBrandKit(division: DivisionWithEvent | null | undefined): BrandKit | null {
+  const event = Array.isArray(division?.events) ? division?.events[0] : division?.events;
+  const kit = Array.isArray(event?.brand_kits) ? event?.brand_kits[0] : event?.brand_kits;
+  return kit ?? null;
+}
 
 export default function ConfirmationPage() {
   const { registrationId } = useParams<{ registrationId: string }>();
@@ -44,12 +57,15 @@ export default function ConfirmationPage() {
     };
   }, [registrationId]);
 
-  const divisionName = Array.isArray(registration?.divisions)
-    ? registration?.divisions[0]?.name
-    : registration?.divisions?.name;
+  const division = Array.isArray(registration?.divisions)
+    ? registration?.divisions[0]
+    : registration?.divisions;
+  const divisionName = division?.name;
+  const brandKit = extractBrandKit(division);
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16 text-center space-y-4">
+    <div className="max-w-md mx-auto px-4 py-16 text-center space-y-4" style={brandKitStyle(brandKit)}>
+      {brandKit?.logo_url && <BrandKitLogo kit={brandKit} className="h-12 mx-auto mb-3" />}
       {loading ? (
         <p className="text-ink/50">Checking your registration…</p>
       ) : !registration ? (

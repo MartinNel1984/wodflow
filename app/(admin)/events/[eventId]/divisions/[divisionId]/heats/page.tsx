@@ -3,26 +3,35 @@ import { generateHeatsForDivision, moveAssignment } from "./actions";
 
 export default async function HeatsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ eventId: string; divisionId: string }>;
+  searchParams: Promise<{ workoutId?: string }>;
 }) {
   const { eventId, divisionId } = await params;
+  const { workoutId: workoutIdParam } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: division }, { data: heats }] = await Promise.all([
+  const [{ data: division }, { data: workouts }] = await Promise.all([
+    supabase.from("divisions").select("name").eq("id", divisionId).single(),
     supabase
-      .from("divisions")
-      .select("name, lane_count, heat_duration_minutes, transition_minutes")
-      .eq("id", divisionId)
-      .single(),
-    supabase
-      .from("heats")
-      .select(
-        "id, heat_number, start_time, end_time, status, heat_assignments(id, lane_number, registrations(id, team_name, registration_athletes(full_name, is_captain)))"
-      )
+      .from("workouts")
+      .select("id, name, sequence, lane_count, heat_duration_minutes, transition_minutes")
       .eq("division_id", divisionId)
-      .order("heat_number", { ascending: true }),
+      .order("sequence", { ascending: true }),
   ]);
+
+  const activeWorkout = (workouts ?? []).find((w) => w.id === workoutIdParam) ?? (workouts ?? [])[0] ?? null;
+
+  const { data: heats } = activeWorkout
+    ? await supabase
+        .from("heats")
+        .select(
+          "id, heat_number, start_time, end_time, status, heat_assignments(id, lane_number, registrations(id, team_name, registration_athletes(full_name, is_captain)))"
+        )
+        .eq("workout_id", activeWorkout.id)
+        .order("heat_number", { ascending: true })
+    : { data: [] as never[] };
 
   const allHeats = heats ?? [];
 
@@ -55,13 +64,43 @@ export default async function HeatsPage({
         <h1 className="text-2xl font-semibold mt-1">{division?.name ?? "Division"} — Heats</h1>
       </div>
 
+      {(workouts ?? []).length > 1 && (
+        <div className="flex gap-2">
+          {(workouts ?? []).map((w) => (
+            <a
+              key={w.id}
+              href={`?workoutId=${w.id}`}
+              className={`text-sm px-3 py-1.5 rounded-lg border ${
+                activeWorkout?.id === w.id
+                  ? "bg-accent text-white border-accent"
+                  : "border-ink/10 text-ink/60 hover:border-accent/50"
+              }`}
+            >
+              {w.sequence}. {w.name}
+            </a>
+          ))}
+        </div>
+      )}
+
+      {!activeWorkout && (
+        <p className="text-ink/60 text-sm">
+          No workouts yet —{" "}
+          <a href={`/events/${eventId}/divisions/${divisionId}/workouts`} className="text-accent hover:underline">
+            create one first
+          </a>{" "}
+          before generating heats.
+        </p>
+      )}
+
+      {activeWorkout && (
       <form
         action={generateHeatsForDivision}
         className="bg-white border border-ink/10 rounded-xl p-6 space-y-4"
       >
         <input type="hidden" name="eventId" value={eventId} />
         <input type="hidden" name="divisionId" value={divisionId} />
-        <h2 className="font-semibold">Generate heats</h2>
+        <input type="hidden" name="workoutId" value={activeWorkout.id} />
+        <h2 className="font-semibold">Generate heats for &ldquo;{activeWorkout.name}&rdquo;</h2>
         <p className="text-ink/60 text-sm">
           Only regenerates heats that haven&apos;t started — in-progress or completed heats are
           never touched.
@@ -71,19 +110,19 @@ export default async function HeatsPage({
             label="Lane count"
             name="laneCount"
             type="number"
-            defaultValue={division?.lane_count?.toString()}
+            defaultValue={activeWorkout.lane_count?.toString()}
           />
           <Field
             label="Heat duration (min)"
             name="heatDurationMinutes"
             type="number"
-            defaultValue={division?.heat_duration_minutes?.toString()}
+            defaultValue={activeWorkout.heat_duration_minutes?.toString()}
           />
           <Field
             label="Transition (min)"
             name="transitionMinutes"
             type="number"
-            defaultValue={division?.transition_minutes?.toString() ?? "0"}
+            defaultValue={activeWorkout.transition_minutes?.toString() ?? "0"}
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -94,6 +133,7 @@ export default async function HeatsPage({
           Generate
         </button>
       </form>
+      )}
 
       <a href={`/leaderboard/${divisionId}`} className="text-accent text-sm hover:underline">
         View public leaderboard →

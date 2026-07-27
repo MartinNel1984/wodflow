@@ -29,9 +29,6 @@ export async function createDivision(formData: FormData) {
     price_late: num("priceLate"),
     early_bird_ends: String(formData.get("earlyBirdEnds") ?? "").trim() || null,
     late_starts: String(formData.get("lateStarts") ?? "").trim() || null,
-    lane_count: num("laneCount"),
-    heat_duration_minutes: num("heatDurationMinutes"),
-    transition_minutes: num("transitionMinutes"),
     workout_scoring_type: String(formData.get("workoutScoringType") ?? "time"),
     scoring_config: { method: scoringMethod },
   });

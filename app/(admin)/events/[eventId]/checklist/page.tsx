@@ -20,7 +20,7 @@ export default async function ChecklistPage({
       .single(),
     supabase
       .from("divisions")
-      .select("id, name, lane_count, heat_duration_minutes, price_normal")
+      .select("id, name, price_normal, workouts(id, name, lane_count, heat_duration_minutes)")
       .eq("event_id", eventId),
   ]);
 

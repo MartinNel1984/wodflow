@@ -14,7 +14,7 @@ export default async function WorkoutsPage({
     supabase.from("divisions").select("name").eq("id", divisionId).single(),
     supabase
       .from("workouts")
-      .select("id, name, sequence, cap_seconds, scoring_type, tiebreak_enabled, workout_movements(id, sequence, name, reps_rx, reps_scaled, load_rx, load_scaled, rounds)")
+      .select("id, name, sequence, cap_seconds, scoring_type, tiebreak_enabled, lane_count, heat_duration_minutes, transition_minutes, workout_movements(id, sequence, name, reps_rx, reps_scaled, load_rx, load_scaled, rounds)")
       .eq("division_id", divisionId)
       .order("sequence", { ascending: true }),
   ]);
@@ -53,6 +53,8 @@ export default async function WorkoutsPage({
                     {w.scoring_type === "time" ? "For time" : "Max reps"}
                     {w.cap_seconds ? ` · ${Math.round(w.cap_seconds / 60)} min cap` : ""}
                     {w.tiebreak_enabled ? " · tiebreak on" : ""}
+                    {w.lane_count ? ` · ${w.lane_count} lanes` : ""}
+                    {w.heat_duration_minutes ? ` · ${w.heat_duration_minutes} min heats` : ""}
                   </p>
                 </div>
                 <form action={deleteWorkout}>
@@ -187,6 +189,11 @@ export default async function WorkoutsPage({
           <input type="checkbox" name="tiebreakEnabled" className="rounded" />
           Tiebreak enabled for this workout
         </label>
+        <div className="grid grid-cols-3 gap-4">
+          <Field label="Lane count" name="laneCount" type="number" />
+          <Field label="Heat duration (min)" name="heatDurationMinutes" type="number" />
+          <Field label="Transition (min)" name="transitionMinutes" type="number" />
+        </div>
         <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
           Create workout
         </button>

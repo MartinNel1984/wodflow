@@ -8,12 +8,18 @@ export type ChecklistEvent = {
   waiver_text: string | null;
 };
 
-export type ChecklistDivision = {
+export type ChecklistWorkout = {
   id: string;
   name: string;
   lane_count: number | null;
   heat_duration_minutes: number | null;
+};
+
+export type ChecklistDivision = {
+  id: string;
+  name: string;
   price_normal: number;
+  workouts: ChecklistWorkout[];
 };
 
 // Pulled out of the checklist page so the dashboard's health rollup
@@ -34,9 +40,12 @@ export function computeDivisionChecks(
   divisions: ChecklistDivision[]
 ): (CheckItem & { divisionName: string })[] {
   return divisions.flatMap((d) => [
-    { divisionName: d.name, label: "Lane count set", ok: !!d.lane_count },
-    { divisionName: d.name, label: "Heat duration set", ok: !!d.heat_duration_minutes },
     { divisionName: d.name, label: "Price set", ok: d.price_normal > 0, detail: `R${d.price_normal}` },
+    { divisionName: d.name, label: "At least one workout exists", ok: d.workouts.length > 0 },
+    ...d.workouts.flatMap((w) => [
+      { divisionName: d.name, label: `${w.name}: lane count set`, ok: !!w.lane_count },
+      { divisionName: d.name, label: `${w.name}: heat duration set`, ok: !!w.heat_duration_minutes },
+    ]),
   ]);
 }
 

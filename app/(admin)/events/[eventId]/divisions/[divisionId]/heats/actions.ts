@@ -5,21 +5,26 @@ import { requireOrganizer } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { generateHeats, type RosterEntry } from "@/lib/heats";
 
-// Whole-division regeneration. Only ever touches heats/assignments in
+// Whole-workout regeneration. Only ever touches heats/assignments in
 // 'scheduled' status — heats already 'in_progress' or 'completed' are
-// left untouched, so re-running this mid-event can't wipe a division
-// that's already underway.
+// left untouched, so re-running this mid-event can't wipe a workout
+// that's already underway. Heats belong to a specific workout (not
+// just the division) since lane count and heat duration change
+// workout to workout.
 export async function generateHeatsForDivision(formData: FormData) {
   const supabase = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
+  const workoutId = String(formData.get("workoutId") ?? "");
   const laneCount = Number(formData.get("laneCount"));
   const heatDurationMinutes = Number(formData.get("heatDurationMinutes"));
   const transitionMinutes = Number(formData.get("transitionMinutes") ?? 0);
   const startDate = String(formData.get("startDate") ?? "");
   const startTimeOfDay = String(formData.get("startTimeOfDay") ?? "");
-  if (!eventId || !divisionId || !laneCount || !heatDurationMinutes || !startDate || !startTimeOfDay) {
-    throw new Error("Missing required fields — lane count, heat duration, date, and time are all required.");
+  if (!eventId || !divisionId || !workoutId || !laneCount || !heatDurationMinutes || !startDate || !startTimeOfDay) {
+    throw new Error(
+      "Missing required fields — workout, lane count, heat duration, date, and time are all required."
+    );
   }
 
   // Split date + time inputs (native type="date"/type="time") are far
@@ -60,10 +65,12 @@ export async function generateHeatsForDivision(formData: FormData) {
   });
 
   // Only remove heats that haven't started — never touch in-progress/completed.
+  // Scoped to this workout so regenerating one WOD's heats can't wipe
+  // another workout's already-scheduled heats in the same division.
   const { data: scheduledHeats } = await supabase
     .from("heats")
     .select("id")
-    .eq("division_id", divisionId)
+    .eq("workout_id", workoutId)
     .eq("status", "scheduled");
   const scheduledHeatIds = (scheduledHeats ?? []).map((h) => h.id);
   if (scheduledHeatIds.length > 0) {
@@ -77,6 +84,7 @@ export async function generateHeatsForDivision(formData: FormData) {
       heats.map((h) => ({
         event_id: eventId,
         division_id: divisionId,
+        workout_id: workoutId,
         heat_number: h.heatNumber,
         start_time: h.startTime.toISOString(),
         end_time: h.endTime.toISOString(),
