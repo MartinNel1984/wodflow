@@ -160,7 +160,14 @@ export default function RegisterContent() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setAccountError(data.error ?? "Could not create your account.");
+        // Most likely a returning athlete who already has an account but
+        // isn't signed in — point them at sign-in instead of a dead end.
+        const alreadyExists = (data.error ?? "").toLowerCase().includes("already");
+        setAccountError(
+          alreadyExists
+            ? "You already have a Wodflow account with this email — please sign in above instead."
+            : data.error ?? "Could not create your account."
+        );
         setCreatingAccount(false);
         return;
       }
@@ -214,7 +221,7 @@ export default function RegisterContent() {
           <p className="text-accent text-xs mt-2">Signed in as {athleteProfile.fullName} — details pre-filled</p>
         ) : (
           <p className="text-ink/40 text-xs mt-2">
-            <a href="/athlete-login" className="hover:underline">
+            <a href={`/athlete-login?next=/register/${eventId}`} className="hover:underline">
               Sign in
             </a>{" "}
             to pre-fill your details and track your registrations
@@ -301,7 +308,7 @@ export default function RegisterContent() {
               <p className="text-sm font-semibold">Create your account</p>
               <p className="text-ink/60 text-xs">
                 Used to track your registrations and see your heat times once published.{" "}
-                <a href="/athlete-login" className="text-accent hover:underline">
+                <a href={`/athlete-login?next=/register/${eventId}`} className="text-accent hover:underline">
                   Already have an account? Sign in.
                 </a>
               </p>

@@ -12,7 +12,7 @@ export default async function JudgesPage() {
       .order("full_name"),
     supabase
       .from("heats")
-      .select("id, heat_number, divisions(name)")
+      .select("id, heat_number, divisions(name), workouts(name)")
       .order("heat_number", { ascending: true }),
   ]);
 
@@ -36,9 +36,11 @@ export default async function JudgesPage() {
               <select name="heatId" className="flex-1 text-sm border border-ink/10 rounded-lg px-2 py-1">
                 {(heats ?? []).map((h) => {
                   const div = Array.isArray(h.divisions) ? h.divisions[0] : h.divisions;
+                  const workout = Array.isArray(h.workouts) ? h.workouts[0] : h.workouts;
                   return (
                     <option key={h.id} value={h.id}>
-                      {div?.name ?? "Division"} — Heat {h.heat_number}
+                      {div?.name ?? "Division"}
+                      {workout?.name ? ` — ${workout.name}` : ""} — Heat {h.heat_number}
                     </option>
                   );
                 })}

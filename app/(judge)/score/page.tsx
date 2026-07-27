@@ -9,6 +9,7 @@ import { setHeatStatus } from "./actions";
 type HeatOption = {
   heatId: string;
   heatNumber: number;
+  workoutName: string | null;
   divisionId: string;
   divisionName: string;
   scoringType: "time" | "reps" | "load";
@@ -113,7 +114,7 @@ export default function ScorePage() {
       if (userRole === "head_judge" || userRole === "organizer") {
         const { data: heatRows } = await supabase
           .from("heats")
-          .select("id, heat_number, status, division_id, divisions(name, workout_scoring_type)")
+          .select("id, heat_number, status, division_id, workouts(name), divisions(name, workout_scoring_type)")
           .order("heat_number", { ascending: true });
         setHeats(mapHeatRows(heatRows ?? []));
         setLoading(false);
@@ -132,7 +133,7 @@ export default function ScorePage() {
 
       const { data: heatRows } = await supabase
         .from("heats")
-        .select("id, heat_number, status, division_id, divisions(name, workout_scoring_type)")
+        .select("id, heat_number, status, division_id, workouts(name), divisions(name, workout_scoring_type)")
         .in("id", heatIds);
       setHeats(mapHeatRows(heatRows ?? []));
       setLoading(false);
@@ -143,15 +144,18 @@ export default function ScorePage() {
       heat_number: number;
       status: HeatOption["status"];
       division_id: string;
+      workouts: { name: string } | { name: string }[] | null;
       divisions: { name: string; workout_scoring_type: string } | { name: string; workout_scoring_type: string }[] | null;
     };
 
     function mapHeatRows(rows: HeatRow[]): HeatOption[] {
       return rows.map((h) => {
         const div = Array.isArray(h.divisions) ? h.divisions[0] : h.divisions;
+        const workout = Array.isArray(h.workouts) ? h.workouts[0] : h.workouts;
         return {
           heatId: h.id,
           heatNumber: h.heat_number,
+          workoutName: workout?.name ?? null,
           divisionId: h.division_id,
           divisionName: div?.name ?? "Division",
           scoringType: (div?.workout_scoring_type ?? "time") as HeatOption["scoringType"],
@@ -316,7 +320,9 @@ export default function ScorePage() {
             <option value="">Choose a heat…</option>
             {heats.map((h) => (
               <option key={h.heatId} value={h.heatId}>
-                {h.divisionName} — Heat {h.heatNumber} {h.status === "completed" ? "(locked)" : ""}
+                {h.divisionName}
+                {h.workoutName ? ` — ${h.workoutName}` : ""} — Heat {h.heatNumber}{" "}
+                {h.status === "completed" ? "(locked)" : ""}
               </option>
             ))}
           </select>
