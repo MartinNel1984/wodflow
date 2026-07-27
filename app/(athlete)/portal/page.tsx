@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeStandings, type LeaderboardRow, type ScoringConfig } from "@/lib/leaderboard";
+import { computeSeriesStandingsForEvents } from "@/lib/seriesStandings";
 import Link from "next/link";
 
 export default async function PortalPage() {
@@ -88,11 +89,47 @@ export default async function PortalPage() {
   const registeredEventIds = new Set(myRegistrations.map((r) => r.eventId));
   const registerableEvents = (upcomingEvents ?? []).filter((e) => !registeredEventIds.has(e.id));
 
+  // Season/BIG leaderboard rank — the current season is just "whichever
+  // series has the latest year", since there's no explicit "active"
+  // flag yet (one series per season is the only setup this app has).
+  const { data: currentSeries } = await supabase
+    .from("series")
+    .select("points_config, series_events(event_id)")
+    .order("year", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let seasonRank: { position: number; total: number } | null = null;
+  if (currentSeries) {
+    const seriesEventIds = (currentSeries.series_events ?? []).map((se) => se.event_id);
+    const pointsConfig = (currentSeries.points_config ?? { method: "gap_formula", winner_points: 100 }) as ScoringConfig;
+    const seriesStandings = await computeSeriesStandingsForEvents(supabase, seriesEventIds, pointsConfig);
+    const idx = seriesStandings.findIndex((s) => s.profileId === user.id);
+    if (idx !== -1) seasonRank = { position: idx + 1, total: seriesStandings.length };
+  }
+
+  const eventsEntered = new Set(myRegistrations.map((r) => r.eventId)).size;
+  const bestOverall = bestFinishes[0] ?? null;
+
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <div className="py-2">
         <h1 className="text-2xl font-semibold">My Wodflow</h1>
         <p className="text-script text-xl mt-1 text-accent">Feel the flow. Chase the clock.</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <StatBubble label="Events entered" value={String(eventsEntered)} />
+        <StatBubble
+          label="Best finish"
+          value={bestOverall ? String(bestOverall.position) : "—"}
+          sub={bestOverall ? `of ${bestOverall.total}` : undefined}
+        />
+        <StatBubble
+          label="Season rank"
+          value={seasonRank ? String(seasonRank.position) : "—"}
+          sub={seasonRank ? `of ${seasonRank.total}` : undefined}
+        />
       </div>
 
       {bestFinishes.length > 0 && (
@@ -157,6 +194,16 @@ export default async function PortalPage() {
           </a>
         ))}
       </div>
+    </div>
+  );
+}
+
+function StatBubble({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="bg-white text-ink border-2 border-ink rounded-2xl px-2 py-4 text-center">
+      <p className="font-data font-bold text-2xl text-accent">{value}</p>
+      {sub && <p className="text-ink/40 text-xs">{sub}</p>}
+      <p className="text-ink/60 text-[11px] font-semibold uppercase tracking-wider mt-1">{label}</p>
     </div>
   );
 }
