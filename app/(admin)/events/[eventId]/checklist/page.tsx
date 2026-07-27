@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeEventChecks, computeDivisionChecks, type CheckItem } from "@/lib/checklist";
 import { updateWaiverText, updateJudgingMode, updatePaymentProvider } from "./actions";
+import { EventDetailsForm } from "./EventDetailsForm";
 
 export default async function ChecklistPage({
   params,
@@ -14,7 +15,7 @@ export default async function ChecklistPage({
     supabase
       .from("events")
       .select(
-        "name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status, judging_mode, payment_provider"
+        "name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status, judging_mode, payment_provider, description, poster_url"
       )
       .eq("id", eventId)
       .single(),
@@ -109,6 +110,12 @@ export default async function ChecklistPage({
           </button>
         </form>
       </div>
+
+      <EventDetailsForm
+        eventId={eventId}
+        initialDescription={event?.description ?? ""}
+        initialPosterUrl={event?.poster_url ?? ""}
+      />
 
       <form action={updateWaiverText} className="bg-white border border-ink/10 rounded-xl p-4 space-y-3">
         <input type="hidden" name="eventId" value={eventId} />

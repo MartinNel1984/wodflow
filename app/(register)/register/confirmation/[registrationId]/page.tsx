@@ -7,9 +7,11 @@ import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 
 type TeamInvite = { token: string; email_or_phone: string; status: string };
 
+type EventInfo = { poster_url: string | null; brand_kits: BrandKit | BrandKit[] | null };
+
 type DivisionWithEvent = {
   name: string;
-  events: { brand_kits: BrandKit | BrandKit[] | null } | { brand_kits: BrandKit | BrandKit[] | null }[] | null;
+  events: EventInfo | EventInfo[] | null;
 };
 
 type Registration = {
@@ -21,8 +23,12 @@ type Registration = {
   team_invites: TeamInvite[] | null;
 };
 
-function extractBrandKit(division: DivisionWithEvent | null | undefined): BrandKit | null {
+function extractEvent(division: DivisionWithEvent | null | undefined): EventInfo | null {
   const event = Array.isArray(division?.events) ? division?.events[0] : division?.events;
+  return event ?? null;
+}
+
+function extractBrandKit(event: EventInfo | null): BrandKit | null {
   const kit = Array.isArray(event?.brand_kits) ? event?.brand_kits[0] : event?.brand_kits;
   return kit ?? null;
 }
@@ -61,11 +67,21 @@ export default function ConfirmationPage() {
     ? registration?.divisions[0]
     : registration?.divisions;
   const divisionName = division?.name;
-  const brandKit = extractBrandKit(division);
+  const event = extractEvent(division);
+  const brandKit = extractBrandKit(event);
 
   return (
     <div className="max-w-md mx-auto px-4 py-16 text-center space-y-4" style={brandKitStyle(brandKit)}>
-      {brandKit?.logo_url && <BrandKitLogo kit={brandKit} className="h-12 mx-auto mb-3" />}
+      {event?.poster_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={event.poster_url}
+          alt=""
+          className="w-full aspect-video object-cover rounded-xl mb-2"
+        />
+      ) : (
+        brandKit?.logo_url && <BrandKitLogo kit={brandKit} className="h-12 mx-auto mb-3" />
+      )}
       {loading ? (
         <p className="text-ink/50">Checking your registration…</p>
       ) : !registration ? (

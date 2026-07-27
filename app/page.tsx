@@ -8,7 +8,7 @@ export default async function Home() {
   const { data: events } = await supabase
     .from("events")
     .select(
-      "id, name, start_date, end_date, venue_name, brand_kits(name, logo_url, color_primary, tagline)"
+      "id, name, start_date, end_date, venue_name, description, poster_url, brand_kits(name, logo_url, color_primary, tagline)"
     )
     .in("status", ["published", "live"])
     .order("start_date", { ascending: true });
@@ -29,22 +29,47 @@ export default async function Home() {
         )}
         {(events ?? []).map((e) => {
           const kit = Array.isArray(e.brand_kits) ? e.brand_kits[0] : e.brand_kits;
+
+          if (!e.poster_url) {
+            return (
+              <a
+                key={e.id}
+                href={`/register/${e.id}`}
+                style={brandKitStyle(kit)}
+                className="flex items-center gap-3 bg-white border border-ink/10 rounded-xl px-4 py-3 hover-lift"
+              >
+                {kit?.logo_url && <BrandKitLogo kit={kit} className="h-8 shrink-0" />}
+                <div>
+                  <p className="font-semibold">{e.name}</p>
+                  <p className="text-ink/60 text-sm">
+                    {e.start_date}
+                    {e.end_date ? ` – ${e.end_date}` : ""}
+                    {e.venue_name ? ` · ${e.venue_name}` : ""}
+                  </p>
+                  {kit?.tagline && <p className="text-accent text-xs font-semibold mt-0.5">{kit.tagline}</p>}
+                </div>
+              </a>
+            );
+          }
+
           return (
             <a
               key={e.id}
               href={`/register/${e.id}`}
               style={brandKitStyle(kit)}
-              className="flex items-center gap-3 bg-white border border-ink/10 rounded-xl px-4 py-3 hover-lift"
+              className="block bg-white border border-ink/10 rounded-xl overflow-hidden hover-lift animate-settle-in"
             >
-              {kit?.logo_url && <BrandKitLogo kit={kit} className="h-8 shrink-0" />}
-              <div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={e.poster_url} alt={e.name} className="w-full aspect-video object-cover" />
+              <div className="px-4 py-3">
                 <p className="font-semibold">{e.name}</p>
-                <p className="text-ink/60 text-sm">
+                <p className="text-ink/60 text-sm font-data">
                   {e.start_date}
                   {e.end_date ? ` – ${e.end_date}` : ""}
                   {e.venue_name ? ` · ${e.venue_name}` : ""}
                 </p>
                 {kit?.tagline && <p className="text-accent text-xs font-semibold mt-0.5">{kit.tagline}</p>}
+                {e.description && <p className="text-ink/70 text-sm mt-2 line-clamp-3">{e.description}</p>}
               </div>
             </a>
           );

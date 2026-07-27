@@ -35,6 +35,8 @@ export default function RegisterContent() {
   const { eventId } = useParams<{ eventId: string }>();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [eventName, setEventName] = useState("");
+  const [eventDescription, setEventDescription] = useState("");
+  const [posterUrl, setPosterUrl] = useState("");
   const [brandKit, setBrandKit] = useState<BrandKit | null>(null);
   const [waiverText, setWaiverText] = useState("");
   const [divisions, setDivisions] = useState<Division[]>([]);
@@ -82,7 +84,7 @@ export default function RegisterContent() {
         supabase
           .from("events")
           .select(
-            "name, waiver_text, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline)"
+            "name, waiver_text, description, poster_url, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline)"
           )
           .eq("id", eventId)
           .single(),
@@ -93,6 +95,8 @@ export default function RegisterContent() {
           .order("name"),
       ]);
       setEventName(event?.name ?? "");
+      setEventDescription(event?.description ?? "");
+      setPosterUrl(event?.poster_url ?? "");
       const kit = Array.isArray(event?.brand_kits) ? event.brand_kits[0] : event?.brand_kits;
       setBrandKit(kit ?? null);
       setWaiverText(event?.waiver_text ?? "");
@@ -213,10 +217,21 @@ export default function RegisterContent() {
 
   return (
     <div className="max-w-xl mx-auto px-4 py-10 space-y-8" style={brandKitStyle(brandKit)}>
+      {posterUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={posterUrl}
+          alt={eventName}
+          className="w-full aspect-video object-cover rounded-xl animate-settle-in"
+        />
+      )}
       <div className="text-center">
-        {brandKit?.logo_url && <BrandKitLogo kit={brandKit} className="h-12 mx-auto mb-3" />}
+        {!posterUrl && brandKit?.logo_url && <BrandKitLogo kit={brandKit} className="h-12 mx-auto mb-3" />}
         <h1 className="text-2xl font-semibold">{eventName}</h1>
         <p className="text-ink/60 text-sm mt-1">Register</p>
+        {eventDescription && (
+          <p className="text-ink/70 text-sm mt-3 max-w-md mx-auto">{eventDescription}</p>
+        )}
         {athleteProfile ? (
           <p className="text-accent text-xs mt-2">Signed in as {athleteProfile.fullName} — details pre-filled</p>
         ) : (
