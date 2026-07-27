@@ -87,14 +87,23 @@ export default function JudgeLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-paper">
+    <div className="graffiti-page min-h-screen flex items-center justify-center">
+      <div className="graffiti-photos" aria-hidden="true">
+        {/* eslint-disable @next/next/no-img-element */}
+        {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
+          <img key={n} src={`/mural/action-${n}.jpg`} alt="" />
+        ))}
+        {/* eslint-enable @next/next/no-img-element */}
+      </div>
+      <div className="graffiti-hex" aria-hidden="true" />
       <div className="w-full max-w-sm px-4">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-semibold"><Logo /></h1>
-          <p className="mt-1 text-ink/60 text-sm">Judge sign-in</p>
+          <p className="text-script text-lg mt-2 text-cobalt">Feel the flow. Chase the clock.</p>
+          <p className="mt-1 text-paper/60 text-sm">Judge sign-in</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-xl border border-ink/10">
+        <div className="bg-white text-ink rounded-2xl p-6 shadow-xl border-2 border-ink">
           {!selected ? (
             <div className="space-y-3">
               <h2 className="text-center font-semibold">Who&apos;s judging?</h2>

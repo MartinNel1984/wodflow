@@ -14,18 +14,25 @@ export default async function Home() {
     .order("start_date", { ascending: true });
 
   return (
-    <main className="min-h-screen flex flex-col items-center px-4 py-12">
-      <div className="text-center max-w-sm mb-10">
+    <main className="graffiti-page min-h-screen flex flex-col items-center px-4 py-12">
+      <div className="graffiti-photos" aria-hidden="true">
+        {/* eslint-disable @next/next/no-img-element */}
+        {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
+          <img key={n} src={`/mural/action-${n}.jpg`} alt="" />
+        ))}
+        {/* eslint-enable @next/next/no-img-element */}
+      </div>
+      <div className="graffiti-hex" aria-hidden="true" />
+      <div className="text-center max-w-sm mb-10 py-6">
         <h1 className="text-3xl font-semibold"><Logo /></h1>
-        <p className="mt-2 text-ink/60 text-sm">Competition management for CrossFit events.</p>
+        <p className="text-script text-2xl mt-3 text-accent">Feel the flow. Chase the clock.</p>
+        <p className="mt-2 text-paper/60 text-sm font-semibold">Competition management for CrossFit events.</p>
       </div>
 
       <div className="w-full max-w-sm space-y-3 mb-10">
-        <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/60">
-          Upcoming events
-        </h2>
+        <h2 className="sticker text-sm">Upcoming events</h2>
         {(events ?? []).length === 0 && (
-          <p className="text-ink/60 text-sm">No events open for registration right now.</p>
+          <p className="text-paper/70 text-sm">No events open for registration right now.</p>
         )}
         {(events ?? []).map((e) => {
           const kit = Array.isArray(e.brand_kits) ? e.brand_kits[0] : e.brand_kits;
@@ -36,7 +43,7 @@ export default async function Home() {
                 key={e.id}
                 href={`/register/${e.id}`}
                 style={brandKitStyle(kit)}
-                className="flex items-center gap-3 bg-white border border-ink/10 rounded-xl px-4 py-3 hover-lift"
+                className="flex items-center gap-3 bg-white text-ink border-2 border-ink rounded-xl px-4 py-3 hover-lift"
               >
                 {kit?.logo_url && <BrandKitLogo kit={kit} className="h-8 shrink-0" />}
                 <div>
@@ -46,7 +53,7 @@ export default async function Home() {
                     {e.end_date ? ` – ${e.end_date}` : ""}
                     {e.venue_name ? ` · ${e.venue_name}` : ""}
                   </p>
-                  {kit?.tagline && <p className="text-accent text-xs font-semibold mt-0.5">{kit.tagline}</p>}
+                  {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
                 </div>
               </a>
             );
@@ -57,7 +64,7 @@ export default async function Home() {
               key={e.id}
               href={`/register/${e.id}`}
               style={brandKitStyle(kit)}
-              className="block bg-white border border-ink/10 rounded-xl overflow-hidden hover-lift animate-settle-in"
+              className="block bg-white text-ink border-2 border-ink rounded-xl overflow-hidden hover-lift animate-settle-in"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={e.poster_url} alt={e.name} className="w-full aspect-video object-cover" />
@@ -68,7 +75,7 @@ export default async function Home() {
                   {e.end_date ? ` – ${e.end_date}` : ""}
                   {e.venue_name ? ` · ${e.venue_name}` : ""}
                 </p>
-                {kit?.tagline && <p className="text-accent text-xs font-semibold mt-0.5">{kit.tagline}</p>}
+                {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
                 {e.description && <p className="text-ink/70 text-sm mt-2 line-clamp-3">{e.description}</p>}
               </div>
             </a>
@@ -79,19 +86,19 @@ export default async function Home() {
       <div className="w-full max-w-sm flex flex-col gap-2">
         <a
           href="/athlete-login"
-          className="bg-accent text-white rounded-lg py-3 text-sm font-semibold hover-lift text-center"
+          className="bg-accent text-white rounded-lg py-3 text-sm font-semibold hover-lift text-center border-2 border-paper"
         >
           Athlete sign-in
         </a>
         <a
           href="/judge-login"
-          className="bg-white border border-ink/10 rounded-lg py-3 text-sm font-semibold hover-lift text-center"
+          className="bg-cobalt text-white rounded-lg py-3 text-sm font-semibold hover-lift text-center border-2 border-paper"
         >
           Judge sign-in
         </a>
         <a
           href="/login"
-          className="bg-white border border-ink/10 rounded-lg py-3 text-sm font-semibold hover-lift text-center"
+          className="bg-white text-ink border-2 border-paper rounded-lg py-3 text-sm font-semibold hover-lift text-center"
         >
           Organizer sign-in
         </a>

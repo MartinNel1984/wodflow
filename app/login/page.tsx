@@ -30,15 +30,24 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-paper">
+    <div className="graffiti-page min-h-screen flex items-center justify-center">
+      <div className="graffiti-photos" aria-hidden="true">
+        {/* eslint-disable @next/next/no-img-element */}
+        {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
+          <img key={n} src={`/mural/action-${n}.jpg`} alt="" />
+        ))}
+        {/* eslint-enable @next/next/no-img-element */}
+      </div>
+      <div className="graffiti-hex" aria-hidden="true" />
       <div className="w-full max-w-sm px-4">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-semibold"><Logo /></h1>
-          <p className="mt-1 text-ink/60 text-sm">Organizer sign-in</p>
+          <p className="text-script text-lg mt-2 text-paper">Feel the flow. Chase the clock.</p>
+          <p className="mt-1 text-paper/60 text-sm">Organizer sign-in</p>
         </div>
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-2xl p-6 shadow-xl border border-ink/10 space-y-5"
+          className="bg-white text-ink rounded-2xl p-6 shadow-xl border-2 border-ink space-y-5"
         >
           {error && (
             <p className="text-center text-red-700 text-sm bg-red-50 rounded-lg px-3 py-2">
@@ -79,7 +88,7 @@ export default function LoginPage() {
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
-        <p className="mt-4 text-center text-ink/40 text-xs">
+        <p className="mt-4 text-center text-paper/50 text-xs">
           Judge?{" "}
           <a href="/judge-login" className="text-accent hover:underline">
             Sign in here

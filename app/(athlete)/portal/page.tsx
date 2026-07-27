@@ -90,12 +90,15 @@ export default async function PortalPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
-      <h1 className="text-2xl font-semibold">My Wodflow</h1>
+      <div className="py-2">
+        <h1 className="text-2xl font-semibold">My Wodflow</h1>
+        <p className="text-script text-xl mt-1 text-accent">Feel the flow. Chase the clock.</p>
+      </div>
 
       {bestFinishes.length > 0 && (
         <div className="space-y-3">
-          <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">Best Finishes</h2>
-          <div className="bg-white border border-ink/10 rounded-xl divide-y divide-ink/5">
+          <h2 className="font-semibold text-sm uppercase tracking-wider text-paper/50">Best Finishes</h2>
+          <div className="bg-white text-ink border-2 border-ink rounded-xl divide-y divide-ink/5">
             {bestFinishes.map((f, i) => (
               <div key={i} className="flex items-center justify-between px-4 py-3 text-sm">
                 <div>
@@ -113,12 +116,12 @@ export default async function PortalPage() {
       )}
 
       <div className="space-y-3">
-        <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">My registrations</h2>
+        <h2 className="font-semibold text-sm uppercase tracking-wider text-paper/50">My registrations</h2>
         {myRegistrations.length === 0 && (
-          <p className="text-ink/60 text-sm">No registrations yet — see events below.</p>
+          <p className="text-paper/60 text-sm">No registrations yet — see events below.</p>
         )}
         {myRegistrations.map((r) => (
-          <div key={r.registrationId} className="bg-white border border-ink/10 rounded-xl px-4 py-3">
+          <div key={r.registrationId} className="bg-white text-ink border-2 border-ink rounded-xl px-4 py-3">
             <p className="font-semibold">{r.eventName}</p>
             <p className="text-ink/60 text-sm">
               {r.divisionName}
@@ -135,15 +138,15 @@ export default async function PortalPage() {
       </div>
 
       <div className="space-y-3">
-        <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">Register for an event</h2>
+        <h2 className="font-semibold text-sm uppercase tracking-wider text-paper/50">Register for an event</h2>
         {registerableEvents.length === 0 && (
-          <p className="text-ink/60 text-sm">No new events open for registration right now.</p>
+          <p className="text-paper/60 text-sm">No new events open for registration right now.</p>
         )}
         {registerableEvents.map((e) => (
           <a
             key={e.id}
             href={`/register/${e.id}`}
-            className="block bg-white border border-ink/10 rounded-xl px-4 py-3 hover-lift"
+            className="block bg-white text-ink border-2 border-ink rounded-xl px-4 py-3 hover-lift"
           >
             <p className="font-semibold">{e.name}</p>
             <p className="text-ink/60 text-sm">

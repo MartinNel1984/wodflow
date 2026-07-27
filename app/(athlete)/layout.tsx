@@ -24,7 +24,15 @@ export default async function AthleteLayout({ children }: { children: React.Reac
   if (role !== "athlete") redirect("/athlete-login");
 
   return (
-    <div className="min-h-screen bg-paper">
+    <div className="graffiti-page min-h-screen">
+      <div className="graffiti-photos" aria-hidden="true">
+        {/* eslint-disable @next/next/no-img-element */}
+        {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
+          <img key={n} src={`/mural/action-${n}.jpg`} alt="" />
+        ))}
+        {/* eslint-enable @next/next/no-img-element */}
+      </div>
+      <div className="graffiti-hex" aria-hidden="true" />
       <AthleteRouteGuard role={role} />
       <AthleteNav />
       <main className="p-4 sm:p-6 lg:p-8">{children}</main>

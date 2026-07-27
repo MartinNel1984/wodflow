@@ -12,11 +12,11 @@ export default function AthleteNav() {
   }
 
   return (
-    <nav className="flex items-center justify-between border-b border-ink/10 px-4 sm:px-6 lg:px-8 py-4 mb-4">
+    <nav className="relative flex items-center justify-between border-b border-paper/10 px-4 sm:px-6 lg:px-8 py-4 mb-4">
       <div className="text-lg font-semibold">
         <Logo />
       </div>
-      <button onClick={signOut} className="text-sm text-ink/60 hover:text-ink">
+      <button onClick={signOut} className="text-sm text-paper/60 hover:text-paper">
         Sign out
       </button>
     </nav>
