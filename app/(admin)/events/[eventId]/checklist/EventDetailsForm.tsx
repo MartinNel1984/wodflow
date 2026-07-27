@@ -75,12 +75,21 @@ export function EventDetailsForm({
           Poster image
         </label>
         {posterUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={posterUrl}
-            alt="Event poster"
-            className="w-full max-w-xs aspect-video object-cover rounded-lg border border-ink/10 mb-2"
-          />
+          <div className="mb-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={posterUrl}
+              alt="Event poster"
+              className="w-full max-w-xs aspect-video object-cover rounded-lg border border-ink/10"
+            />
+            <button
+              type="button"
+              onClick={() => setPosterUrl("")}
+              className="text-xs text-ink/50 hover:text-red-700 mt-1"
+            >
+              Remove poster
+            </button>
+          </div>
         )}
         <input
           type="file"
