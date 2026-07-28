@@ -35,7 +35,6 @@ jobs:
           check_page "/"
           check_page "/login"
           check_page "/judge-login"
-          check_page "/this-path-does-not-exist-TEMP-alert-test"
 
           # Row-count check on public, RLS-permissive tables via the anon
           # key — catches "site loads but DB is disconnected/empty"
