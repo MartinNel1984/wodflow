@@ -63,6 +63,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   const clientIp = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for") ?? null;
 
+  // Claim the invite first, scoped to status = "pending" and checking what
+  // actually changed, rather than trusting the read above — two concurrent
+  // accepts on the same token can both pass that check before either
+  // commits. Whoever's conditional update actually flips the row wins; the
+  // loser gets a clean 409 instead of silently overwriting the winner's
+  // name/ID number/waiver signature on registration_athletes below.
+  const { data: claimed, error: claimError } = await svc
+    .from("team_invites")
+    .update({ status: "accepted", accepted_at: new Date().toISOString(), accepted_profile_id: user.id })
+    .eq("id", invite.id)
+    .eq("status", "pending")
+    .select("id");
+  if (claimError) {
+    return NextResponse.json({ error: "Could not save your details." }, { status: 500 });
+  }
+  if (!claimed || claimed.length === 0) {
+    return NextResponse.json({ error: "This invite has already been claimed." }, { status: 409 });
+  }
+
   const { error: updateError } = await svc
     .from("registration_athletes")
     .update({
@@ -81,11 +100,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   if (updateError) {
     return NextResponse.json({ error: "Could not save your details." }, { status: 500 });
   }
-
-  await svc
-    .from("team_invites")
-    .update({ status: "accepted", accepted_at: new Date().toISOString(), accepted_profile_id: user.id })
-    .eq("id", invite.id);
 
   return NextResponse.json({ ok: true });
 }
