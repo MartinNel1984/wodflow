@@ -1,0 +1,107 @@
+name: Supabase Backup
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Backup all tables via PostgREST
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 <<'PYEOF'
+          import json
+          import os
+          import urllib.request
+          import urllib.error
+
+          SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
+          SERVICE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+
+          TABLES = [
+              "organizations",
+              "profiles",
+              "events",
+              "brand_kits",
+              "series",
+              "series_events",
+              "divisions",
+              "workouts",
+              "workout_movements",
+              "registrations",
+              "registration_athletes",
+              "heats",
+              "heat_assignments",
+              "judge_assignments",
+              "scores",
+              "team_invites",
+              "org_invites",
+              "signup_attempts",
+          ]
+
+          HEADERS = {
+              "apikey": SERVICE_KEY,
+              "Authorization": f"Bearer {SERVICE_KEY}",
+          }
+
+          def fetch_page(table, order_col, offset, limit=1000):
+              url = f"{SUPABASE_URL}/rest/v1/{table}?select=*&order={order_col}&limit={limit}&offset={offset}"
+              req = urllib.request.Request(url, headers=HEADERS)
+              with urllib.request.urlopen(req) as resp:
+                  return json.loads(resp.read())
+
+          def fetch_all(table):
+              rows = []
+              offset = 0
+              order_col = "id"
+              # Some tables don't have an `id` PK (e.g. signup_attempts uses its
+              # own uuid pk named id too, but keep the fallback for safety) —
+              # retry unordered once on a 400 at offset 0.
+              while True:
+                  try:
+                      page = fetch_page(table, order_col, offset)
+                  except urllib.error.HTTPError as e:
+                      if e.code == 400 and offset == 0 and order_col == "id":
+                          order_col = None
+                          url = f"{SUPABASE_URL}/rest/v1/{table}?select=*&limit=1000&offset=0"
+                          req = urllib.request.Request(url, headers=HEADERS)
+                          with urllib.request.urlopen(req) as resp:
+                              page = json.loads(resp.read())
+                      else:
+                          raise
+                  rows.extend(page)
+                  if len(page) < 1000:
+                      break
+                  offset += 1000
+              return rows
+
+          backup = {}
+          skipped_tables = []
+          for table in TABLES:
+              try:
+                  backup[table] = fetch_all(table)
+                  print(f"{table}: {len(backup[table])} rows")
+              except urllib.error.HTTPError as e:
+                  if e.code == 404:
+                      print(f"{table}: SKIPPED (404 — table not found)")
+                      skipped_tables.append(table)
+                  else:
+                      raise
+
+          backup["_skipped_tables"] = skipped_tables
+
+          with open("wodflow-backup.json", "w") as f:
+              json.dump(backup, f)
+          PYEOF
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wodflow-backup-${{ github.run_id }}
+          path: wodflow-backup.json
+          retention-days: 90
