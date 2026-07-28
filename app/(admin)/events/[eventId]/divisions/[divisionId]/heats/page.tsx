@@ -68,12 +68,18 @@ export default async function HeatsPage({
   // retyping blind. Scoped in JS (not the query) against the active
   // workout so free-text legacy entries (workout_ref_id null, matched
   // by name) still show up alongside workout-builder entries.
-  const { data: latestScoreRows } = allAssignmentIds.length
+  const { data: latestScoreRows, error: latestScoreError } = allAssignmentIds.length
     ? await supabase
         .from("latest_scores")
         .select("id, heat_assignment_id, workout_id, workout_ref_id, value_raw, rx_or_scaled, submitted_at")
         .in("heat_assignment_id", allAssignmentIds)
-    : { data: [] as never[] };
+    : { data: [] as never[], error: null };
+  const DEBUG_SCORES = {
+    activeWorkoutId: activeWorkout?.id,
+    activeWorkoutName: activeWorkout?.name,
+    latestScoreError,
+    latestScoreRows,
+  };
   const scoreByAssignment = new Map(
     (latestScoreRows ?? [])
       .filter((s) => (activeWorkout ? s.workout_ref_id === activeWorkout.id || (!s.workout_ref_id && s.workout_id === activeWorkout.name) : false))
@@ -97,6 +103,10 @@ export default async function HeatsPage({
         </a>
         <h1 className="text-2xl font-semibold mt-1">{division?.name ?? "Division"} — Heats</h1>
       </div>
+
+      <pre className="text-[10px] bg-black text-green-400 p-3 rounded overflow-auto max-h-64">
+        {JSON.stringify(DEBUG_SCORES, null, 2)}
+      </pre>
 
       {(workouts ?? []).length > 1 && (
         <div className="flex gap-2">
