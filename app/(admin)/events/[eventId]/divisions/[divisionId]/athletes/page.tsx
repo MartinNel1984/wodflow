@@ -29,6 +29,16 @@ export default async function AthletesPage({
     }))
   );
 
+  // A spot is only reserved once payment has actually gone through (or been
+  // waived by an organizer for a manual entry). "pending"/"refunded" never
+  // completed payment, so they don't hold a spot — park them in the archive.
+  const confirmedAthletes = athletes.filter(
+    (a) => a.paymentStatus === "paid" || a.paymentStatus === "waived"
+  );
+  const archivedAthletes = athletes.filter(
+    (a) => a.paymentStatus !== "paid" && a.paymentStatus !== "waived"
+  );
+
   // Team-completeness rollup: a paid team can start the event with a member
   // who never signed their own waiver (captain pays, teammates sign later
   // via their invite). Surface those so they can be chased before check-in.
@@ -68,71 +78,31 @@ export default async function AthletesPage({
         </div>
       )}
 
-      <div className="bg-white border border-ink/10 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-ink/5 text-left">
-              <th className="px-4 py-2">Name</th>
-              <th className="px-4 py-2">ID number</th>
-              <th className="px-4 py-2">Waiver</th>
-              <th className="px-4 py-2">Payment</th>
-              <th className="px-4 py-2" />
-              <th className="px-4 py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {athletes.map((a) => (
-              <tr key={a.id} className="border-t border-ink/10">
-                <td className="px-4 py-2">
-                  {a.full_name}
-                  {a.is_minor && (
-                    <span className="ml-2 text-xs font-semibold uppercase tracking-wider text-accent">
-                      Minor
-                    </span>
-                  )}
-                  {a.teamName && <span className="ml-2 text-ink/40 text-xs">({a.teamName})</span>}
-                </td>
-                <td className="px-4 py-2 font-data">{a.id_number || "—"}</td>
-                <td className="px-4 py-2">
-                  {a.waiver_signed_at ? (
-                    <span className="text-green-700">✓ Signed</span>
-                  ) : (
-                    <span className="text-amber-700 font-semibold">Not signed</span>
-                  )}
-                </td>
-                <td className="px-4 py-2 capitalize">{a.paymentStatus}</td>
-                <td className="px-4 py-2 text-right">
-                  {a.waiver_signed_at && (
-                    <Link
-                      href={`/events/${eventId}/divisions/${divisionId}/athletes/${a.id}/waiver`}
-                      className="text-accent text-xs font-semibold hover:underline"
-                    >
-                      View waiver
-                    </Link>
-                  )}
-                </td>
-                <td className="px-4 py-2 text-right">
-                  <form action={removeAthlete}>
-                    <input type="hidden" name="eventId" value={eventId} />
-                    <input type="hidden" name="divisionId" value={divisionId} />
-                    <input type="hidden" name="athleteId" value={a.id} />
-                    <button type="submit" className="text-xs text-ink/40 hover:text-ink/70">
-                      Remove
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            ))}
-            {athletes.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-ink/60 text-sm">
-                  No registrations yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div>
+        <h2 className="font-semibold mb-3">Confirmed — spot reserved ({confirmedAthletes.length})</h2>
+        <AthleteTable
+          athletes={confirmedAthletes}
+          eventId={eventId}
+          divisionId={divisionId}
+          emptyMessage="No confirmed athletes yet."
+        />
       </div>
+
+      {archivedAthletes.length > 0 && (
+        <details className="bg-white border border-ink/10 rounded-xl">
+          <summary className="px-4 py-3 font-semibold cursor-pointer text-ink/70">
+            Archive — never completed payment ({archivedAthletes.length})
+          </summary>
+          <div className="border-t border-ink/10">
+            <AthleteTable
+              athletes={archivedAthletes}
+              eventId={eventId}
+              divisionId={divisionId}
+              emptyMessage="Nothing archived."
+            />
+          </div>
+        </details>
+      )}
 
       <form
         action={addAthleteManually}
@@ -180,6 +150,94 @@ export default async function AthletesPage({
           Add athlete
         </button>
       </form>
+    </div>
+  );
+}
+
+function AthleteTable({
+  athletes,
+  eventId,
+  divisionId,
+  emptyMessage,
+}: {
+  athletes: Array<{
+    id: string;
+    full_name: string;
+    id_number: string | null;
+    is_minor: boolean;
+    waiver_signed_at: string | null;
+    teamName: string | null;
+    paymentStatus: string;
+  }>;
+  eventId: string;
+  divisionId: string;
+  emptyMessage: string;
+}) {
+  return (
+    <div className="bg-white border border-ink/10 rounded-xl overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-ink/5 text-left">
+            <th className="px-4 py-2">Name</th>
+            <th className="px-4 py-2">ID number</th>
+            <th className="px-4 py-2">Waiver</th>
+            <th className="px-4 py-2">Payment</th>
+            <th className="px-4 py-2" />
+            <th className="px-4 py-2" />
+          </tr>
+        </thead>
+        <tbody>
+          {athletes.map((a) => (
+            <tr key={a.id} className="border-t border-ink/10">
+              <td className="px-4 py-2">
+                {a.full_name}
+                {a.is_minor && (
+                  <span className="ml-2 text-xs font-semibold uppercase tracking-wider text-accent">
+                    Minor
+                  </span>
+                )}
+                {a.teamName && <span className="ml-2 text-ink/40 text-xs">({a.teamName})</span>}
+              </td>
+              <td className="px-4 py-2 font-data">{a.id_number || "—"}</td>
+              <td className="px-4 py-2">
+                {a.waiver_signed_at ? (
+                  <span className="text-green-700">✓ Signed</span>
+                ) : (
+                  <span className="text-amber-700 font-semibold">Not signed</span>
+                )}
+              </td>
+              <td className="px-4 py-2 capitalize">{a.paymentStatus}</td>
+              <td className="px-4 py-2 text-right">
+                {a.waiver_signed_at && (
+                  <Link
+                    href={`/events/${eventId}/divisions/${divisionId}/athletes/${a.id}/waiver`}
+                    className="text-accent text-xs font-semibold hover:underline"
+                  >
+                    View waiver
+                  </Link>
+                )}
+              </td>
+              <td className="px-4 py-2 text-right">
+                <form action={removeAthlete}>
+                  <input type="hidden" name="eventId" value={eventId} />
+                  <input type="hidden" name="divisionId" value={divisionId} />
+                  <input type="hidden" name="athleteId" value={a.id} />
+                  <button type="submit" className="text-xs text-ink/40 hover:text-ink/70">
+                    Remove
+                  </button>
+                </form>
+              </td>
+            </tr>
+          ))}
+          {athletes.length === 0 && (
+            <tr>
+              <td colSpan={6} className="px-4 py-6 text-center text-ink/60 text-sm">
+                {emptyMessage}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
