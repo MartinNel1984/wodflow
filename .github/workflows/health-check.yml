@@ -1,0 +1,83 @@
+name: Wodflow Health Check
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # 08:00 SAST
+  workflow_dispatch: {}
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check site + database
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          set +e
+          failures=""
+
+          # Checks 2xx generally (not an exact "200") — PostgREST below
+          # legitimately returns 206 for a ranged/counted request, and a
+          # strict-200 check would misreport that as down.
+          check_page() {
+            local path="$1"
+            local code
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "https://wodflow.co.za${path}")
+            if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+              echo "OK: ${path} -> ${code}"
+            else
+              failures="${failures}Page ${path} returned ${code} (expected 2xx). "
+              echo "FAIL: ${path} -> ${code}"
+            fi
+          }
+
+          check_page "/"
+          check_page "/login"
+          check_page "/judge-login"
+
+          # Row-count check on public, RLS-permissive tables via the anon
+          # key — catches "site loads but DB is disconnected/empty"
+          # silently. Reads the count from Content-Range, not the HTTP
+          # status, since PostgREST's own 206 is the correct response here.
+          check_table_has_rows() {
+            local table="$1"
+            local filter="$2"
+            local headers
+            headers=$(curl -s --max-time 15 -D - -o /dev/null \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "Prefer: count=exact" \
+              "$SUPABASE_URL/rest/v1/${table}?select=id${filter}&limit=1")
+            local total
+            total=$(echo "$headers" | grep -i '^content-range:' | sed -E 's#.*/([0-9]+|\*).*#\1#' | tr -d '\r')
+            if [ -n "$total" ] && [ "$total" != "*" ] && [ "$total" -gt 0 ] 2>/dev/null; then
+              echo "OK: ${table} -> ${total} row(s)"
+            else
+              failures="${failures}Table ${table} returned 0 rows or an unreadable count. "
+              echo "FAIL: ${table} -> total=${total:-unknown}"
+            fi
+          }
+
+          check_table_has_rows "events" "&status=in.(published,live,archived)"
+          check_table_has_rows "divisions" ""
+
+          if [ -n "$failures" ]; then
+            echo "HEALTH CHECK FAILED: $failures"
+            echo "FAILURES=$failures" >> "$GITHUB_ENV"
+            exit 1
+          fi
+          echo "All checks passed."
+
+      - name: Send WhatsApp alert on failure
+        if: failure()
+        env:
+          CALLMEBOT_API_KEY: ${{ secrets.CALLMEBOT_API_KEY }}
+          NOTIFY_WHATSAPP_NUMBER: ${{ secrets.NOTIFY_WHATSAPP_NUMBER }}
+        run: |
+          if [ -n "$CALLMEBOT_API_KEY" ] && [ -n "$NOTIFY_WHATSAPP_NUMBER" ]; then
+            MESSAGE="Wodflow health check FAILED: ${FAILURES:-see GitHub Actions log}"
+            curl -s "https://api.callmebot.com/whatsapp.php" \
+              --data-urlencode "phone=${NOTIFY_WHATSAPP_NUMBER}" \
+              --data-urlencode "text=${MESSAGE}" \
+              --data-urlencode "apikey=${CALLMEBOT_API_KEY}"
+          fi
