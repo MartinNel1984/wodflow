@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { addAthleteManually, removeAthlete } from "./actions";
 
 export default async function AthletesPage({
   params,
@@ -76,6 +77,7 @@ export default async function AthletesPage({
               <th className="px-4 py-2">Waiver</th>
               <th className="px-4 py-2">Payment</th>
               <th className="px-4 py-2" />
+              <th className="px-4 py-2" />
             </tr>
           </thead>
           <tbody>
@@ -109,11 +111,21 @@ export default async function AthletesPage({
                     </Link>
                   )}
                 </td>
+                <td className="px-4 py-2 text-right">
+                  <form action={removeAthlete}>
+                    <input type="hidden" name="eventId" value={eventId} />
+                    <input type="hidden" name="divisionId" value={divisionId} />
+                    <input type="hidden" name="athleteId" value={a.id} />
+                    <button type="submit" className="text-xs text-ink/40 hover:text-ink/70">
+                      Remove
+                    </button>
+                  </form>
+                </td>
               </tr>
             ))}
             {athletes.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-ink/60 text-sm">
+                <td colSpan={6} className="px-4 py-6 text-center text-ink/60 text-sm">
                   No registrations yet.
                 </td>
               </tr>
@@ -121,6 +133,53 @@ export default async function AthletesPage({
           </tbody>
         </table>
       </div>
+
+      <form
+        action={addAthleteManually}
+        className="bg-white border border-ink/10 rounded-xl p-6 space-y-4"
+      >
+        <input type="hidden" name="eventId" value={eventId} />
+        <input type="hidden" name="divisionId" value={divisionId} />
+        <h2 className="font-semibold">Add athlete manually</h2>
+        <p className="text-ink/60 text-sm">
+          For walk-up entries who didn&apos;t go through the public registration wizard. Marked as
+          waived (no payment).
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Full name</label>
+            <input
+              type="text"
+              name="fullName"
+              required
+              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+              Email (optional)
+            </label>
+            <input
+              type="email"
+              name="email"
+              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+              ID number (optional)
+            </label>
+            <input
+              type="text"
+              name="idNumber"
+              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+            />
+          </div>
+        </div>
+        <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
+          Add athlete
+        </button>
+      </form>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { cumulativeReference } from "@/lib/workouts";
-import { createWorkout, deleteWorkout, addMovement, deleteMovement } from "./actions";
+import { requireOrganizer } from "@/lib/auth";
+import { createWorkout, deleteWorkout, addMovement, deleteMovement, copyWorkoutsFromDivision } from "./actions";
 
 export default async function WorkoutsPage({
   params,
@@ -9,14 +10,21 @@ export default async function WorkoutsPage({
 }) {
   const { eventId, divisionId } = await params;
   const supabase = await createClient();
+  const { organizationId } = await requireOrganizer();
 
-  const [{ data: division }, { data: workouts }] = await Promise.all([
+  const [{ data: division }, { data: workouts }, { data: otherDivisions }] = await Promise.all([
     supabase.from("divisions").select("name").eq("id", divisionId).single(),
     supabase
       .from("workouts")
-      .select("id, name, sequence, cap_seconds, scoring_type, tiebreak_enabled, lane_count, heat_duration_minutes, transition_minutes, workout_movements(id, sequence, name, reps_rx, reps_scaled, load_rx, load_scaled, rounds)")
+      .select("id, name, sequence, cap_seconds, scoring_type, tiebreak_enabled, lane_count, heat_duration_minutes, transition_minutes, workout_movements(id, sequence, name, reps, load, rounds)")
       .eq("division_id", divisionId)
       .order("sequence", { ascending: true }),
+    supabase
+      .from("divisions")
+      .select("id, name, events!inner(name, organization_id)")
+      .eq("events.organization_id", organizationId)
+      .neq("id", divisionId)
+      .order("name", { ascending: true }),
   ]);
 
   return (
@@ -28,6 +36,39 @@ export default async function WorkoutsPage({
         <h1 className="text-2xl font-semibold mt-1">{division?.name ?? "Division"} — Workouts</h1>
       </div>
 
+      {otherDivisions && otherDivisions.length > 0 && (
+        <form
+          action={copyWorkoutsFromDivision}
+          className="bg-paper border border-ink/10 rounded-xl p-4 flex flex-wrap items-end gap-3"
+        >
+          <input type="hidden" name="eventId" value={eventId} />
+          <input type="hidden" name="divisionId" value={divisionId} />
+          <div className="flex-1 min-w-[220px]">
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+              Copy workouts from another division
+            </label>
+            <select
+              name="sourceDivisionId"
+              required
+              className="w-full bg-white rounded-lg px-4 py-3 text-sm border border-ink/10"
+            >
+              <option value="">Select a division…</option>
+              {otherDivisions.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name} ({(d.events as unknown as { name: string })?.name})
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="bg-accent text-white rounded-lg px-4 py-2.5 text-sm font-semibold h-fit"
+          >
+            Copy workouts
+          </button>
+        </form>
+      )}
+
       <div className="space-y-6">
         {(workouts ?? []).map((w) => {
           const movements = (w.workout_movements ?? []).slice().sort((a, b) => a.sequence - b.sequence);
@@ -36,8 +77,7 @@ export default async function WorkoutsPage({
               id: m.id,
               sequence: m.sequence,
               name: m.name,
-              repsRx: m.reps_rx,
-              repsScaled: m.reps_scaled,
+              reps: m.reps,
               rounds: m.rounds,
             }))
           );
@@ -74,10 +114,8 @@ export default async function WorkoutsPage({
                       <span>
                         {m.rounds > 1 ? `${m.rounds} rounds of ` : ""}
                         {m.name}
-                        {m.reps_rx != null ? ` — RX ${m.reps_rx}` : ""}
-                        {m.reps_scaled != null ? ` / Scaled ${m.reps_scaled}` : ""}
-                        {m.load_rx ? ` @ RX ${m.load_rx}` : ""}
-                        {m.load_scaled ? `/Scaled ${m.load_scaled}` : ""}
+                        {m.reps != null ? ` — ${m.reps} reps` : ""}
+                        {m.load ? ` @ ${m.load}` : ""}
                       </span>
                       <form action={deleteMovement}>
                         <input type="hidden" name="eventId" value={eventId} />
@@ -115,10 +153,7 @@ export default async function WorkoutsPage({
                             <td className="pr-3 py-1">{row.round}</td>
                             {row.cells.map((c) => (
                               <td key={c.movementId} className="pr-3 py-1">
-                                {c.cumulativeRx != null ? `/${c.cumulativeRx}` : "—"}
-                                {c.cumulativeScaled != null && c.cumulativeScaled !== c.cumulativeRx
-                                  ? ` (Sc /${c.cumulativeScaled})`
-                                  : ""}
+                                {c.cumulative != null ? `/${c.cumulative}` : "—"}
                               </td>
                             ))}
                           </tr>
@@ -143,10 +178,8 @@ export default async function WorkoutsPage({
                   type="number"
                   defaultValue={String(movements.length + 1)}
                 />
-                <Field label="RX reps" name="repsRx" type="number" />
-                <Field label="Scaled reps" name="repsScaled" type="number" />
-                <Field label="RX load" name="loadRx" placeholder="22.5 kg" />
-                <Field label="Scaled load" name="loadScaled" placeholder="15 kg" />
+                <Field label="Reps" name="reps" type="number" />
+                <Field label="Load" name="load" placeholder="22.5 kg" />
                 <Field label="Rounds" name="rounds" type="number" defaultValue="1" />
                 <button
                   type="submit"

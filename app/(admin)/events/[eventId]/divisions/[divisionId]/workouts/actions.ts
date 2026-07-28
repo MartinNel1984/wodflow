@@ -72,10 +72,8 @@ export async function addMovement(formData: FormData) {
     workout_id: workoutId,
     sequence: Number.isNaN(sequence) ? 1 : sequence,
     name,
-    reps_rx: num("repsRx"),
-    reps_scaled: num("repsScaled"),
-    load_rx: String(formData.get("loadRx") ?? "").trim() || null,
-    load_scaled: String(formData.get("loadScaled") ?? "").trim() || null,
+    reps: num("reps"),
+    load: String(formData.get("load") ?? "").trim() || null,
     rounds: Number.isNaN(rounds) || rounds < 1 ? 1 : rounds,
   });
   revalidatePath(path(eventId, divisionId));
@@ -89,5 +87,66 @@ export async function deleteMovement(formData: FormData) {
   if (!movementId) return;
 
   await supabase.from("workout_movements").delete().eq("id", movementId);
+  revalidatePath(path(eventId, divisionId));
+}
+
+// Duplicates every workout (+ its movements) from another division into
+// this one. Most divisions in a Rumble event share near-identical WODs
+// with only small tweaks — this saves re-typing the whole scoresheet
+// builder per division. Appends after whatever workouts already exist
+// in the target division (sequence offset), rather than requiring an
+// empty division.
+export async function copyWorkoutsFromDivision(formData: FormData) {
+  const { supabase } = await requireOrganizer();
+  const eventId = String(formData.get("eventId") ?? "");
+  const divisionId = String(formData.get("divisionId") ?? "");
+  const sourceDivisionId = String(formData.get("sourceDivisionId") ?? "");
+  if (!divisionId || !sourceDivisionId || sourceDivisionId === divisionId) return;
+
+  const [{ data: sourceWorkouts }, { data: existing }] = await Promise.all([
+    supabase
+      .from("workouts")
+      .select("name, sequence, cap_seconds, scoring_type, tiebreak_enabled, lane_count, heat_duration_minutes, transition_minutes, workout_movements(sequence, name, reps, load, rounds)")
+      .eq("division_id", sourceDivisionId)
+      .order("sequence", { ascending: true }),
+    supabase.from("workouts").select("sequence").eq("division_id", divisionId),
+  ]);
+  if (!sourceWorkouts || sourceWorkouts.length === 0) return;
+
+  let nextSequence = Math.max(0, ...(existing ?? []).map((w) => w.sequence)) + 1;
+
+  for (const w of sourceWorkouts) {
+    const { data: inserted, error } = await supabase
+      .from("workouts")
+      .insert({
+        division_id: divisionId,
+        name: w.name,
+        sequence: nextSequence++,
+        cap_seconds: w.cap_seconds,
+        scoring_type: w.scoring_type,
+        tiebreak_enabled: w.tiebreak_enabled,
+        lane_count: w.lane_count,
+        heat_duration_minutes: w.heat_duration_minutes,
+        transition_minutes: w.transition_minutes,
+      })
+      .select("id")
+      .single();
+    if (error || !inserted) continue;
+
+    const movements = w.workout_movements ?? [];
+    if (movements.length > 0) {
+      await supabase.from("workout_movements").insert(
+        movements.map((m) => ({
+          workout_id: inserted.id,
+          sequence: m.sequence,
+          name: m.name,
+          reps: m.reps,
+          load: m.load,
+          rounds: m.rounds,
+        }))
+      );
+    }
+  }
+
   revalidatePath(path(eventId, divisionId));
 }

@@ -15,16 +15,14 @@ export type Movement = {
   id: string;
   sequence: number;
   name: string;
-  repsRx: number | null;
-  repsScaled: number | null;
+  reps: number | null;
   rounds: number;
 };
 
 export type CumulativeCell = {
   movementId: string;
   movementName: string;
-  cumulativeRx: number | null;
-  cumulativeScaled: number | null;
+  cumulative: number | null;
 };
 
 export type CumulativeRound = {
@@ -38,18 +36,15 @@ export function cumulativeReference(movements: Movement[]): CumulativeRound[] {
   const totalRounds = Math.max(...ordered.map((m) => m.rounds), 1);
 
   const rounds: CumulativeRound[] = [];
-  let runningRx = 0;
-  let runningScaled = 0;
+  let running = 0;
 
   for (let round = 1; round <= totalRounds; round++) {
     const cells: CumulativeCell[] = ordered.map((m) => {
-      if (m.repsRx != null) runningRx += m.repsRx;
-      if (m.repsScaled != null) runningScaled += m.repsScaled;
+      if (m.reps != null) running += m.reps;
       return {
         movementId: m.id,
         movementName: m.name,
-        cumulativeRx: m.repsRx != null ? runningRx : null,
-        cumulativeScaled: m.repsScaled != null ? runningScaled : null,
+        cumulative: m.reps != null ? running : null,
       };
     });
     rounds.push({ round, cells });

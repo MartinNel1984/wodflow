@@ -8,6 +8,7 @@ const links = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/events", label: "Events" },
   { href: "/athletes", label: "Athletes" },
+  { href: "/score", label: "Score Entry" },
   { href: "/series", label: "Series" },
   { href: "/brand-kits", label: "Brand Kits" },
   { href: "/judges", label: "Judges" },
