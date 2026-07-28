@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { createDivision, updateScoringConfig } from "./actions";
+import { createDivision, updateDivision, updateScoringConfig } from "./actions";
 import type { ScoringConfig } from "@/lib/leaderboard";
 import Link from "next/link";
 
@@ -15,7 +15,9 @@ export default async function DivisionsPage({
     supabase.from("events").select("name, default_price").eq("id", eventId).single(),
     supabase
       .from("divisions")
-      .select("id, name, team_size, price_normal, scoring_config")
+      .select(
+        "id, name, team_size, price_early, price_normal, price_late, early_bird_ends, late_starts, workout_scoring_type, scoring_config"
+      )
       .eq("event_id", eventId)
       .order("created_at", { ascending: true }),
   ]);
@@ -47,7 +49,7 @@ export default async function DivisionsPage({
                 Manage heats
               </Link>
             </div>
-            <form action={updateScoringConfig} className="flex items-center gap-2">
+            <form action={updateScoringConfig} className="flex items-center gap-2 mb-3">
               <input type="hidden" name="eventId" value={eventId} />
               <input type="hidden" name="divisionId" value={d.id} />
               <span className="text-xs text-ink/50">Scoring:</span>
@@ -63,6 +65,67 @@ export default async function DivisionsPage({
                 Save
               </button>
             </form>
+
+            <details>
+              <summary className="text-xs text-accent font-semibold cursor-pointer">
+                Edit division
+              </summary>
+              <form action={updateDivision} className="mt-3 space-y-4">
+                <input type="hidden" name="eventId" value={eventId} />
+                <input type="hidden" name="divisionId" value={d.id} />
+                <Field label="Name" name="name" required defaultValue={d.name} />
+                <div className="grid grid-cols-3 gap-4">
+                  <Field
+                    label="Team size (1 = individual)"
+                    name="teamSize"
+                    type="number"
+                    defaultValue={String(d.team_size ?? 1)}
+                  />
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+                      Scoring type
+                    </label>
+                    <select
+                      name="workoutScoringType"
+                      defaultValue={d.workout_scoring_type ?? "time"}
+                      className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10"
+                    >
+                      <option value="time">Time</option>
+                      <option value="reps">Reps</option>
+                      <option value="load">Load</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <Field
+                    label="Early-bird price"
+                    name="priceEarly"
+                    type="number"
+                    defaultValue={d.price_early != null ? String(d.price_early) : undefined}
+                  />
+                  <Field
+                    label="Normal price"
+                    name="priceNormal"
+                    type="number"
+                    required
+                    defaultValue={String(d.price_normal)}
+                  />
+                  <Field
+                    label="Late price"
+                    name="priceLate"
+                    type="number"
+                    defaultValue={d.price_late != null ? String(d.price_late) : undefined}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Early-bird ends" name="earlyBirdEnds" type="date" defaultValue={d.early_bird_ends ?? undefined} />
+                  <Field label="Late pricing starts" name="lateStarts" type="date" defaultValue={d.late_starts ?? undefined} />
+                </div>
+                <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
+                  Save division
+                </button>
+              </form>
+            </details>
           </div>
         ))}
         {(!divisions || divisions.length === 0) && (
