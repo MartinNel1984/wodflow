@@ -237,6 +237,11 @@ export default function ScorePage() {
   const selectedWorkout = workouts.find((w) => w.id === selectedWorkoutId);
   const tiebreakEnabled = selectedWorkout?.tiebreakEnabled ?? false;
   const heatLocked = selectedHeat?.status === "completed";
+  // The workout's own scoring_type wins — a division's workout_scoring_type
+  // is only a default, and workouts can override it individually. Fall back
+  // to the division default only when no specific workout is selected yet
+  // (the free-text workout-label path).
+  const activeScoringType = selectedWorkout?.scoringType ?? selectedHeat?.scoringType ?? "time";
 
   function parseValueForType(raw: string, scoringType: string, mode: "finished" | "capped") {
     if (scoringType === "time") {
@@ -253,7 +258,7 @@ export default function ScorePage() {
     if (!rawValue) return;
 
     const mode = modeByLane[lane.heatAssignmentId] ?? "finished";
-    const valueRaw = parseValueForType(rawValue, selectedHeat?.scoringType ?? "time", mode);
+    const valueRaw = parseValueForType(rawValue, activeScoringType, mode);
     if (!valueRaw) return;
 
     // Correcting a locked heat needs a deliberate second tap, not a
@@ -268,7 +273,7 @@ export default function ScorePage() {
     if (tiebreakEnabled) {
       const rawTiebreak = tiebreakValues[lane.heatAssignmentId];
       if (rawTiebreak) {
-        tiebreakValue = parseValueForType(rawTiebreak, selectedHeat?.scoringType ?? "time", "finished");
+        tiebreakValue = parseValueForType(rawTiebreak, activeScoringType, "finished");
       }
     }
 
@@ -395,7 +400,7 @@ export default function ScorePage() {
                     </div>
 
                     <div className="flex items-center justify-between gap-3">
-                      {selectedHeat?.scoringType === "time" && (
+                      {activeScoringType === "time" && (
                         <div className="flex text-xs border border-ink/10 rounded-lg overflow-hidden">
                           {(["finished", "capped"] as const).map((mode) => (
                             <button
@@ -417,13 +422,13 @@ export default function ScorePage() {
                       )}
                       <div className="flex items-center gap-2 ml-auto">
                         <input
-                          type={selectedHeat?.scoringType === "time" && (modeByLane[lane.heatAssignmentId] ?? "finished") === "finished" ? "text" : "number"}
+                          type={activeScoringType === "time" && (modeByLane[lane.heatAssignmentId] ?? "finished") === "finished" ? "text" : "number"}
                           placeholder={
-                            selectedHeat?.scoringType === "time"
+                            activeScoringType === "time"
                               ? (modeByLane[lane.heatAssignmentId] ?? "finished") === "finished"
                                 ? "mm:ss"
                                 : "reps"
-                              : selectedHeat?.scoringType === "reps"
+                              : activeScoringType === "reps"
                                 ? "reps"
                                 : "kg"
                           }
@@ -455,7 +460,7 @@ export default function ScorePage() {
                         <span className="text-xs text-ink/50">Tiebreak</span>
                         <input
                           type="text"
-                          placeholder={selectedHeat?.scoringType === "time" ? "mm:ss" : "reps"}
+                          placeholder={activeScoringType === "time" ? "mm:ss" : "reps"}
                           value={tiebreakValues[lane.heatAssignmentId] ?? ""}
                           onChange={(e) =>
                             setTiebreakValues((prev) => ({ ...prev, [lane.heatAssignmentId]: e.target.value }))
