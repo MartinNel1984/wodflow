@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeEventChecks, computeDivisionChecks, type CheckItem } from "@/lib/checklist";
-import { updateWaiverText, updateJudgingMode, updatePaymentProvider } from "./actions";
+import { updateWaiverText, updateJudgingMode, updatePaymentProvider, updateEventContactInfo } from "./actions";
 import { EventDetailsForm } from "./EventDetailsForm";
 
 export default async function ChecklistPage({
@@ -50,6 +50,25 @@ export default async function ChecklistPage({
       >
         {failCount === 0 ? "All checks passed — ready to go." : `${failCount} item(s) need attention.`}
       </div>
+
+      <form
+        action={updateEventContactInfo}
+        className="bg-white border border-ink/10 rounded-xl p-4 space-y-3"
+      >
+        <input type="hidden" name="eventId" value={eventId} />
+        <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">
+          Venue &amp; contact details
+        </h2>
+        <div className="grid grid-cols-2 gap-4">
+          <TextField label="Venue name" name="venueName" defaultValue={event?.venue_name ?? ""} />
+          <TextField label="Venue address" name="venueAddress" defaultValue={event?.venue_address ?? ""} />
+          <TextField label="Contact email" name="contactEmail" type="email" defaultValue={event?.contact_email ?? ""} />
+          <TextField label="Contact phone" name="contactPhone" defaultValue={event?.contact_phone ?? ""} />
+        </div>
+        <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
+          Save
+        </button>
+      </form>
 
       <div className="bg-white border border-ink/10 rounded-xl p-4 space-y-2">
         <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">Event</h2>
@@ -147,6 +166,30 @@ export default async function ChecklistPage({
             ))}
         </div>
       ))}
+    </div>
+  );
+}
+
+function TextField({
+  label,
+  name,
+  type = "text",
+  defaultValue,
+}: {
+  label: string;
+  name: string;
+  type?: string;
+  defaultValue?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold uppercase tracking-wider mb-2">{label}</label>
+      <input
+        type={type}
+        name={name}
+        defaultValue={defaultValue}
+        className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+      />
     </div>
   );
 }

@@ -24,6 +24,25 @@ export async function updateJudgingMode(formData: FormData) {
   revalidatePath(`/events/${eventId}/checklist`);
 }
 
+export async function updateEventContactInfo(formData: FormData) {
+  const { supabase } = await requireOrganizer();
+  const eventId = String(formData.get("eventId") ?? "");
+  if (!eventId) return;
+
+  const trimmed = (key: string) => String(formData.get(key) ?? "").trim() || null;
+
+  await supabase
+    .from("events")
+    .update({
+      venue_name: trimmed("venueName"),
+      venue_address: trimmed("venueAddress"),
+      contact_email: trimmed("contactEmail"),
+      contact_phone: trimmed("contactPhone"),
+    })
+    .eq("id", eventId);
+  revalidatePath(`/events/${eventId}/checklist`);
+}
+
 export async function updateEventDetails(formData: FormData) {
   const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
