@@ -76,13 +76,27 @@ export default function AthletesTable({
                 </td>
                 <td className="px-4 py-2 font-data">{r.idNumber || "—"}</td>
                 <td className="px-4 py-2">
-                  {r.waiverSignedAt ? (
-                    <span className="text-green-700">✓ Signed</span>
-                  ) : (
-                    <span className="text-amber-700 font-semibold">Not signed</span>
-                  )}
+                  <span
+                    className={`text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                      r.waiverSignedAt ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {r.waiverSignedAt ? "✓ Signed" : "Not signed"}
+                  </span>
                 </td>
-                <td className="px-4 py-2 capitalize">{r.paymentStatus}</td>
+                <td className="px-4 py-2">
+                  <span
+                    className={`text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full capitalize ${
+                      r.paymentStatus === "paid" || r.paymentStatus === "waived"
+                        ? "bg-green-100 text-green-700"
+                        : r.paymentStatus === "pending"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-ink/10 text-ink/60"
+                    }`}
+                  >
+                    {r.paymentStatus}
+                  </span>
+                </td>
                 <td className="px-4 py-2 text-right whitespace-nowrap">
                   {r.waiverSignedAt && (
                     <Link href={r.waiverHref} className="text-accent text-xs font-semibold hover:underline mr-3">
