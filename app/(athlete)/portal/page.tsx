@@ -166,6 +166,9 @@ export default async function PortalPage() {
             </p>
             <div className="flex items-center gap-3 mt-1">
               <span className="text-xs capitalize text-ink/50">{r.paymentStatus}</span>
+              <Link href={`/heats/${r.divisionId}`} className="text-accent text-xs hover:underline">
+                My heat →
+              </Link>
               <Link href={`/leaderboard/${r.divisionId}`} className="text-accent text-xs hover:underline">
                 View leaderboard →
               </Link>
