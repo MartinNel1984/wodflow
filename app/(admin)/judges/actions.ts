@@ -15,7 +15,7 @@ function placeholderEmail(fullName: string) {
 }
 
 export async function createJudge(formData: FormData) {
-  await requireOrganizer();
+  const { organizationId } = await requireOrganizer();
   const fullName = String(formData.get("fullName") ?? "").trim();
   const pin = String(formData.get("pin") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim() || placeholderEmail(fullName);
@@ -43,7 +43,10 @@ export async function createJudge(formData: FormData) {
 
   const { error: profileError } = await svc
     .from("profiles")
-    .upsert({ id: created.user.id, full_name: fullName, email, role }, { onConflict: "id" });
+    .upsert(
+      { id: created.user.id, full_name: fullName, email, role, organization_id: organizationId },
+      { onConflict: "id" },
+    );
   if (profileError) throw profileError;
 
   const { error: pinError } = await svc.rpc("set_user_pin", { p_profile: created.user.id, p_pin: pin });

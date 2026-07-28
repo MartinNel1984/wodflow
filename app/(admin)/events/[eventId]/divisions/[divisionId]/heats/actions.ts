@@ -12,7 +12,7 @@ import { generateHeats, type RosterEntry } from "@/lib/heats";
 // just the division) since lane count and heat duration change
 // workout to workout.
 export async function generateHeatsForDivision(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
   const workoutId = String(formData.get("workoutId") ?? "");
@@ -111,7 +111,7 @@ export async function generateHeatsForDivision(formData: FormData) {
 // lane/heat without touching any other assignment. The DB's unique
 // constraint on (heat_id, lane_number) catches accidental double-booking.
 export async function moveAssignment(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const assignmentId = String(formData.get("assignmentId") ?? "");
   const newHeatId = String(formData.get("heatId") ?? "");
   const newLaneNumber = Number(formData.get("laneNumber"));

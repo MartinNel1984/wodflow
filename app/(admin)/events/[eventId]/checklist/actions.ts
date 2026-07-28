@@ -5,7 +5,7 @@ import { requireOrganizer } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 export async function updateWaiverText(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const waiverText = String(formData.get("waiverText") ?? "").trim();
   if (!eventId) return;
@@ -15,7 +15,7 @@ export async function updateWaiverText(formData: FormData) {
 }
 
 export async function updateJudgingMode(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const judgingMode = String(formData.get("judgingMode") ?? "");
   if (!eventId || !["centralized", "distributed"].includes(judgingMode)) return;
@@ -25,7 +25,7 @@ export async function updateJudgingMode(formData: FormData) {
 }
 
 export async function updateEventDetails(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const description = String(formData.get("description") ?? "").trim();
   const posterUrl = String(formData.get("posterUrl") ?? "").trim();
@@ -39,7 +39,7 @@ export async function updateEventDetails(formData: FormData) {
 }
 
 export async function updatePaymentProvider(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const paymentProvider = String(formData.get("paymentProvider") ?? "");
   if (!eventId || !["yoco", "payfast"].includes(paymentProvider)) return;

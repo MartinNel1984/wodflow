@@ -13,7 +13,7 @@ function slugify(name: string) {
 }
 
 export async function createEvent(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase, organizationId } = await requireOrganizer();
   const name = String(formData.get("name") ?? "").trim();
   const startDate = String(formData.get("startDate") ?? "").trim();
   if (!name || !startDate) return;
@@ -32,12 +32,13 @@ export async function createEvent(formData: FormData) {
     waiver_text: String(formData.get("waiverText") ?? "").trim() || null,
     default_price: Number.isNaN(defaultPrice) ? 500 : defaultPrice,
     brand_kit_id: String(formData.get("brandKitId") ?? "").trim() || null,
+    organization_id: organizationId,
   });
   revalidatePath("/events");
 }
 
 export async function updateEventStatus(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");
   if (!id || !["draft", "published", "live", "archived"].includes(status)) return;
@@ -47,7 +48,7 @@ export async function updateEventStatus(formData: FormData) {
 }
 
 export async function updateEventBrandKit(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const id = String(formData.get("id") ?? "");
   const brandKitId = String(formData.get("brandKitId") ?? "").trim() || null;
   if (!id) return;
