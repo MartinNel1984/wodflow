@@ -1,16 +1,43 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeAllChecks } from "@/lib/checklist";
+import { requireOrganizer } from "@/lib/auth";
 import Link from "next/link";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+  const { organizationId } = await requireOrganizer();
 
   const { data: events } = await supabase
     .from("events")
     .select(
       "id, name, status, start_date, venue_name, venue_address, contact_email, contact_phone, waiver_text"
     )
+    .eq("organization_id", organizationId)
     .order("start_date", { ascending: true });
+
+  const eventIds = (events ?? []).map((e) => e.id);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [{ count: athleteCount }, { data: paidRegs }] = await Promise.all([
+    eventIds.length
+      ? supabase
+          .from("registration_athletes")
+          .select("id, registrations!inner(event_id)", { count: "exact", head: true })
+          .in("registrations.event_id", eventIds)
+      : Promise.resolve({ count: 0 }),
+    eventIds.length
+      ? supabase
+          .from("registrations")
+          .select("price_paid")
+          .in("event_id", eventIds)
+          .eq("payment_status", "paid")
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const totalRevenue = (paidRegs ?? []).reduce((sum, r) => sum + (r.price_paid ?? 0), 0);
+  const upcomingEvents = (events ?? []).filter(
+    (e) => (e.status === "published" || e.status === "live") && e.start_date >= today
+  ).length;
 
   const rows = await Promise.all(
     (events ?? []).map(async (event) => {
@@ -46,6 +73,12 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <p className="text-ink/60 text-sm mt-1">Event health at a glance.</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <StatCard label="Total athletes" value={athleteCount ?? 0} />
+        <StatCard label="Total revenue" value={`R${totalRevenue.toLocaleString("en-ZA")}`} accent />
+        <StatCard label="Upcoming events" value={upcomingEvents} />
       </div>
 
       <div className="space-y-3">
@@ -89,6 +122,17 @@ export default async function DashboardPage() {
         ))}
         {rows.length === 0 && <p className="text-ink/60 text-sm">No events yet.</p>}
       </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, accent = false }: { label: string; value: string | number; accent?: boolean }) {
+  return (
+    <div className="bg-white border border-ink/10 rounded-xl p-6">
+      <p className={`font-display text-4xl ${accent ? "text-accent" : ""}`}>
+        <span className="font-data">{value}</span>
+      </p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-ink/50 mt-1">{label}</p>
     </div>
   );
 }
