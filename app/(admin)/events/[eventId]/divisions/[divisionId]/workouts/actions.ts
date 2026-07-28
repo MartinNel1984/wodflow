@@ -52,6 +52,53 @@ export async function createWorkout(formData: FormData) {
   revalidatePath(path(eventId, divisionId));
 }
 
+export async function updateWorkout(formData: FormData) {
+  const { supabase } = await requireOrganizer();
+  const eventId = String(formData.get("eventId") ?? "");
+  const divisionId = String(formData.get("divisionId") ?? "");
+  const workoutId = String(formData.get("workoutId") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!workoutId || !name) return;
+
+  const capMinutes = Number(formData.get("capMinutes"));
+  const sequence = Number(formData.get("sequence"));
+
+  const num = (key: string) => {
+    const v = formData.get(key);
+    if (!v || v === "") return null;
+    const n = Number(v);
+    return Number.isNaN(n) ? null : n;
+  };
+
+  const pointsMethod = String(formData.get("pointsMethod") ?? "");
+  const winnerPoints = num("winnerPoints");
+  const gapPoints = num("gapPoints");
+  const scoringConfig =
+    pointsMethod === "gap_formula"
+      ? {
+          method: "gap_formula",
+          ...(winnerPoints != null ? { winner_points: winnerPoints } : {}),
+          ...(gapPoints != null ? { gap_points: gapPoints } : {}),
+        }
+      : null; // null = inherit the division's default scoring formula
+
+  await supabase
+    .from("workouts")
+    .update({
+      name,
+      sequence: Number.isNaN(sequence) ? 1 : sequence,
+      cap_seconds: Number.isNaN(capMinutes) ? null : Math.round(capMinutes * 60),
+      scoring_type: String(formData.get("scoringType") ?? "time"),
+      tiebreak_enabled: formData.get("tiebreakEnabled") === "on",
+      lane_count: num("laneCount"),
+      heat_duration_minutes: num("heatDurationMinutes"),
+      transition_minutes: num("transitionMinutes"),
+      scoring_config: scoringConfig,
+    })
+    .eq("id", workoutId);
+  revalidatePath(path(eventId, divisionId));
+}
+
 export async function deleteWorkout(formData: FormData) {
   const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");

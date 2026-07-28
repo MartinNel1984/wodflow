@@ -1,7 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { cumulativeReference } from "@/lib/workouts";
 import { requireOrganizer } from "@/lib/auth";
-import { createWorkout, deleteWorkout, addMovement, deleteMovement, copyWorkoutsFromDivision } from "./actions";
+import {
+  createWorkout,
+  updateWorkout,
+  deleteWorkout,
+  addMovement,
+  deleteMovement,
+  copyWorkoutsFromDivision,
+} from "./actions";
 
 export default async function WorkoutsPage({
   params,
@@ -104,14 +111,128 @@ export default async function WorkoutsPage({
                       : " · division default points"}
                   </p>
                 </div>
-                <form action={deleteWorkout}>
-                  <input type="hidden" name="eventId" value={eventId} />
-                  <input type="hidden" name="divisionId" value={divisionId} />
-                  <input type="hidden" name="workoutId" value={w.id} />
-                  <button type="submit" className="text-sm text-ink/40 hover:text-ink/70">
-                    Delete workout
-                  </button>
-                </form>
+                <div className="flex items-center gap-3">
+                  <details>
+                    <summary className="text-sm text-accent hover:underline cursor-pointer list-none">
+                      Edit workout
+                    </summary>
+                    <form
+                      action={updateWorkout}
+                      className="mt-3 bg-paper rounded-lg p-4 space-y-4 w-80"
+                    >
+                      <input type="hidden" name="eventId" value={eventId} />
+                      <input type="hidden" name="divisionId" value={divisionId} />
+                      <input type="hidden" name="workoutId" value={w.id} />
+                      <div className="grid grid-cols-2 gap-4">
+                        <Field label="Name" name="name" required defaultValue={w.name} />
+                        <Field label="Order" name="sequence" type="number" defaultValue={String(w.sequence)} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <Field
+                          label="Time cap (minutes)"
+                          name="capMinutes"
+                          type="number"
+                          defaultValue={w.cap_seconds ? String(Math.round(w.cap_seconds / 60)) : undefined}
+                        />
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+                            Scoring
+                          </label>
+                          <select
+                            name="scoringType"
+                            defaultValue={w.scoring_type}
+                            className="w-full bg-white rounded-lg px-4 py-3 text-sm border border-ink/10"
+                          >
+                            <option value="time">For time</option>
+                            <option value="reps">Max reps</option>
+                          </select>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          name="tiebreakEnabled"
+                          defaultChecked={w.tiebreak_enabled}
+                          className="rounded"
+                        />
+                        Tiebreak enabled for this workout
+                      </label>
+                      <div className="grid grid-cols-3 gap-4">
+                        <Field
+                          label="Lane count"
+                          name="laneCount"
+                          type="number"
+                          defaultValue={w.lane_count != null ? String(w.lane_count) : undefined}
+                        />
+                        <Field
+                          label="Heat duration (min)"
+                          name="heatDurationMinutes"
+                          type="number"
+                          defaultValue={w.heat_duration_minutes != null ? String(w.heat_duration_minutes) : undefined}
+                        />
+                        <Field
+                          label="Transition (min)"
+                          name="transitionMinutes"
+                          type="number"
+                          defaultValue={w.transition_minutes != null ? String(w.transition_minutes) : undefined}
+                        />
+                      </div>
+                      <div className="border-t border-ink/10 pt-4 space-y-3">
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+                            Points for this workout
+                          </label>
+                          <select
+                            name="pointsMethod"
+                            defaultValue={w.scoring_config?.method === "gap_formula" ? "gap_formula" : ""}
+                            className="w-full bg-white rounded-lg px-4 py-3 text-sm border border-ink/10"
+                          >
+                            <option value="">Use division default</option>
+                            <option value="gap_formula">Set points + spread for this workout</option>
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <Field
+                            label="Points for 1st"
+                            name="winnerPoints"
+                            type="number"
+                            placeholder="100"
+                            defaultValue={
+                              w.scoring_config?.method === "gap_formula" && w.scoring_config.winner_points != null
+                                ? String(w.scoring_config.winner_points)
+                                : undefined
+                            }
+                          />
+                          <Field
+                            label="Point gap per place"
+                            name="gapPoints"
+                            type="number"
+                            placeholder="5"
+                            defaultValue={
+                              w.scoring_config?.method === "gap_formula" && w.scoring_config.gap_points != null
+                                ? String(w.scoring_config.gap_points)
+                                : undefined
+                            }
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="submit"
+                        className="bg-accent text-white rounded-lg px-4 py-2.5 text-sm font-semibold"
+                      >
+                        Save changes
+                      </button>
+                    </form>
+                  </details>
+                  <form action={deleteWorkout}>
+                    <input type="hidden" name="eventId" value={eventId} />
+                    <input type="hidden" name="divisionId" value={divisionId} />
+                    <input type="hidden" name="workoutId" value={w.id} />
+                    <button type="submit" className="text-sm text-ink/40 hover:text-ink/70">
+                      Delete workout
+                    </button>
+                  </form>
+                </div>
               </div>
 
               {movements.length > 0 && (
