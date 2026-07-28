@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createOrganization, setOrganizationStatus, createOrgInvite } from "./actions";
+import { Logo } from "@/components/Logo";
 
 const SITE_URL = "https://wodflow.co.za";
 
@@ -35,8 +36,11 @@ export default async function PlatformControlPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-semibold">Platform control</h1>
-        <p className="text-paper/60 text-sm mt-1">Wodflow-wide view. Not linked anywhere — bookmark it.</p>
+        <h1 className="text-2xl font-semibold">
+          <Logo />
+        </h1>
+        <p className="text-script text-lg mt-1 text-accent">Every box, one wall.</p>
+        <p className="text-paper/60 text-sm mt-1">Platform control — not linked anywhere, bookmark it.</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -50,20 +54,20 @@ export default async function PlatformControlPage() {
         <h2 className="text-lg font-semibold">Boxes</h2>
         <div className="space-y-3">
           {orgRows.map((org) => (
-            <div key={org.id} className="border border-paper/15 rounded-xl p-4 space-y-3">
+            <div key={org.id} className="bg-white text-ink border-2 border-ink rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="font-semibold">
                     {org.name}{" "}
                     <span
                       className={`ml-2 text-xs uppercase tracking-wide px-2 py-0.5 rounded-full ${
-                        org.status === "active" ? "bg-emerald-500/20 text-emerald-300" : "bg-red-500/20 text-red-300"
+                        org.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
                       }`}
                     >
                       {org.status}
                     </span>
                   </div>
-                  <div className="text-paper/50 text-xs mt-1">
+                  <div className="text-ink/50 text-xs mt-1">
                     /{org.slug} · {org.organizerCount} team member{org.organizerCount === 1 ? "" : "s"} ·{" "}
                     {org.eventCount} event{org.eventCount === 1 ? "" : "s"}
                   </div>
@@ -73,10 +77,10 @@ export default async function PlatformControlPage() {
                   <input type="hidden" name="status" value={org.status === "active" ? "suspended" : "active"} />
                   <button
                     type="submit"
-                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg border ${
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg border-2 ${
                       org.status === "active"
-                        ? "border-red-400/40 text-red-300 hover:bg-red-500/10"
-                        : "border-emerald-400/40 text-emerald-300 hover:bg-emerald-500/10"
+                        ? "border-red-700 text-red-700 hover:bg-red-50"
+                        : "border-emerald-700 text-emerald-700 hover:bg-emerald-50"
                     }`}
                   >
                     {org.status === "active" ? "Suspend" : "Reactivate"}
@@ -85,31 +89,31 @@ export default async function PlatformControlPage() {
               </div>
 
               {org.pendingInvites.length > 0 && (
-                <div className="text-xs text-paper/60 space-y-1 border-t border-paper/10 pt-3">
+                <div className="text-xs text-ink/60 space-y-1 border-t border-ink/10 pt-3">
                   {org.pendingInvites.map((inv) => (
                     <div key={inv.id}>
                       Pending {inv.role} invite for {inv.email}:{" "}
-                      <span className="text-paper/90 break-all">{`${SITE_URL}/invite-org/${inv.token}`}</span>
+                      <span className="text-ink break-all">{`${SITE_URL}/invite-org/${inv.token}`}</span>
                     </div>
                   ))}
                 </div>
               )}
 
-              <form action={createOrgInvite} className="flex flex-wrap items-center gap-2 border-t border-paper/10 pt-3">
+              <form action={createOrgInvite} className="flex flex-wrap items-center gap-2 border-t border-ink/10 pt-3">
                 <input type="hidden" name="organizationId" value={org.id} />
                 <input
                   type="email"
                   name="email"
                   placeholder="new organizer's email"
                   required
-                  className="bg-paper/5 border border-paper/15 rounded-lg px-2 py-1 text-sm flex-1 min-w-[180px]"
+                  className="bg-paper border border-ink/15 rounded-lg px-2 py-1 text-sm flex-1 min-w-[180px]"
                 />
-                <select name="role" defaultValue="organizer" className="bg-paper/5 border border-paper/15 rounded-lg px-2 py-1 text-sm">
+                <select name="role" defaultValue="organizer" className="bg-paper border border-ink/15 rounded-lg px-2 py-1 text-sm">
                   <option value="organizer">organizer</option>
                   <option value="head_judge">head judge</option>
                   <option value="judge">judge</option>
                 </select>
-                <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-paper/10 hover:bg-paper/20">
+                <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-accent text-white hover:opacity-90">
                   Generate invite link
                 </button>
               </form>
@@ -120,15 +124,15 @@ export default async function PlatformControlPage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Add a new box</h2>
-        <form action={createOrganization} className="flex flex-wrap items-center gap-2">
+        <form action={createOrganization} className="bg-white text-ink border-2 border-ink rounded-xl p-4 flex flex-wrap items-center gap-2">
           <input
             type="text"
             name="name"
             placeholder="Box name, e.g. Against The Grain Fitness"
             required
-            className="bg-paper/5 border border-paper/15 rounded-lg px-3 py-2 text-sm flex-1 min-w-[240px]"
+            className="bg-paper border border-ink/15 rounded-lg px-3 py-2 text-sm flex-1 min-w-[240px]"
           />
-          <button type="submit" className="text-sm font-semibold px-4 py-2 rounded-lg bg-paper text-ink hover:bg-paper/90">
+          <button type="submit" className="text-sm font-semibold px-4 py-2 rounded-lg bg-accent text-white hover:opacity-90">
             Create organization
           </button>
         </form>
@@ -139,10 +143,10 @@ export default async function PlatformControlPage() {
 
 function Stat({ label, value, sub }: { label: string; value: number; sub?: string }) {
   return (
-    <div className="border border-paper/15 rounded-xl p-4">
+    <div className="bg-white text-ink border-2 border-ink rounded-2xl px-2 py-4 text-center">
       <div className="text-2xl font-semibold">{value}</div>
-      <div className="text-paper/60 text-xs mt-1">{label}</div>
-      {sub && <div className="text-paper/40 text-[11px] mt-1">{sub}</div>}
+      <div className="text-ink/60 text-xs mt-1">{label}</div>
+      {sub && <div className="text-ink/40 text-[11px] mt-1">{sub}</div>}
     </div>
   );
 }

@@ -109,9 +109,8 @@ alter table public.events      alter column organization_id set not null;
 alter table public.brand_kits  alter column organization_id set not null;
 alter table public.series      alter column organization_id set not null;
 
--- FILL IN BEFORE RUNNING IN PRODUCTION:
--- update public.profiles set role = 'platform_admin', organization_id = null
--- where email = 'martin@roboticsleague.co.za';
+update public.profiles set role = 'platform_admin', organization_id = null
+where email = 'martin@roboticsleague.co.za';
 
 -- ------------------------------------------------------------
 -- 7. Helper functions

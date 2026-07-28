@@ -22,7 +22,15 @@ export default async function PlatformLayout({ children }: { children: React.Rea
   if (profile?.role !== "platform_admin") redirect("/login");
 
   return (
-    <div className="min-h-screen bg-ink text-paper">
+    <div className="graffiti-page min-h-screen">
+      <div className="graffiti-photos" aria-hidden="true">
+        {/* eslint-disable @next/next/no-img-element */}
+        {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
+          <img key={n} src={`/mural/action-${n}.jpg`} alt="" />
+        ))}
+        {/* eslint-enable @next/next/no-img-element */}
+      </div>
+      <div className="graffiti-hex" aria-hidden="true" />
       <main className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">{children}</main>
     </div>
   );
