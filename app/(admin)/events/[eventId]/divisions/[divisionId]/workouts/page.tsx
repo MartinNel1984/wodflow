@@ -12,10 +12,13 @@ import {
 
 export default async function WorkoutsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ eventId: string; divisionId: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { eventId, divisionId } = await params;
+  const { error } = await searchParams;
   const supabase = await createClient();
   const { organizationId } = await requireOrganizer();
 
@@ -42,6 +45,12 @@ export default async function WorkoutsPage({
         </a>
         <h1 className="text-2xl font-semibold mt-1">{division?.name ?? "Division"} — Workouts</h1>
       </div>
+
+      {error && (
+        <p className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+          {error}
+        </p>
+      )}
 
       {otherDivisions && otherDivisions.length > 0 && (
         <form

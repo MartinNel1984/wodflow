@@ -3,9 +3,14 @@
 import { requireOrganizer } from "@/lib/auth";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 function path(eventId: string, divisionId: string) {
   return `/events/${eventId}/divisions/${divisionId}/workouts`;
+}
+
+function pathWithError(eventId: string, divisionId: string, message: string) {
+  return `${path(eventId, divisionId)}?error=${encodeURIComponent(message)}`;
 }
 
 export async function createWorkout(formData: FormData) {
@@ -37,7 +42,7 @@ export async function createWorkout(formData: FormData) {
         }
       : null; // null = inherit the division's default scoring formula
 
-  await supabase.from("workouts").insert({
+  const { error } = await supabase.from("workouts").insert({
     division_id: divisionId,
     name,
     sequence: Number.isNaN(sequence) ? 1 : sequence,
@@ -49,6 +54,17 @@ export async function createWorkout(formData: FormData) {
     transition_minutes: num("transitionMinutes"),
     scoring_config: scoringConfig,
   });
+  if (error) {
+    redirect(
+      pathWithError(
+        eventId,
+        divisionId,
+        error.code === "23505"
+          ? `A workout already has order/sequence ${sequence} in this division — use a different order.`
+          : "Could not create workout — please try again."
+      )
+    );
+  }
   revalidatePath(path(eventId, divisionId));
 }
 
@@ -82,7 +98,7 @@ export async function updateWorkout(formData: FormData) {
         }
       : null; // null = inherit the division's default scoring formula
 
-  await supabase
+  const { data: updated, error } = await supabase
     .from("workouts")
     .update({
       name,
@@ -95,7 +111,25 @@ export async function updateWorkout(formData: FormData) {
       transition_minutes: num("transitionMinutes"),
       scoring_config: scoringConfig,
     })
-    .eq("id", workoutId);
+    .eq("id", workoutId)
+    .select("id");
+  if (error) {
+    redirect(
+      pathWithError(
+        eventId,
+        divisionId,
+        error.code === "23505"
+          ? `Another workout already has order/sequence ${sequence} in this division — use a different order.`
+          : "Could not save workout — please try again."
+      )
+    );
+  }
+  // RLS can filter an update to zero rows without an error (e.g. this
+  // workout no longer belongs to your organization) — the swallowed
+  // no-op looks identical to "nothing happened" from the admin's side.
+  if (!updated || updated.length === 0) {
+    redirect(pathWithError(eventId, divisionId, "Could not save workout — it may no longer exist."));
+  }
   revalidatePath(path(eventId, divisionId));
 }
 
@@ -106,7 +140,10 @@ export async function deleteWorkout(formData: FormData) {
   const workoutId = String(formData.get("workoutId") ?? "");
   if (!workoutId) return;
 
-  await supabase.from("workouts").delete().eq("id", workoutId);
+  const { error } = await supabase.from("workouts").delete().eq("id", workoutId);
+  if (error) {
+    redirect(pathWithError(eventId, divisionId, "Could not delete workout — please try again."));
+  }
   revalidatePath(path(eventId, divisionId));
 }
 
@@ -128,7 +165,7 @@ export async function addMovement(formData: FormData) {
   const sequence = Number(formData.get("sequence"));
   const rounds = Number(formData.get("rounds"));
 
-  await supabase.from("workout_movements").insert({
+  const { error } = await supabase.from("workout_movements").insert({
     workout_id: workoutId,
     sequence: Number.isNaN(sequence) ? 1 : sequence,
     name,
@@ -136,6 +173,17 @@ export async function addMovement(formData: FormData) {
     load: String(formData.get("load") ?? "").trim() || null,
     rounds: Number.isNaN(rounds) || rounds < 1 ? 1 : rounds,
   });
+  if (error) {
+    redirect(
+      pathWithError(
+        eventId,
+        divisionId,
+        error.code === "23505"
+          ? `Another movement already has order/sequence ${sequence} for this workout — use a different order.`
+          : "Could not add movement — please try again."
+      )
+    );
+  }
   revalidatePath(path(eventId, divisionId));
 }
 
@@ -146,7 +194,10 @@ export async function deleteMovement(formData: FormData) {
   const movementId = String(formData.get("movementId") ?? "");
   if (!movementId) return;
 
-  await supabase.from("workout_movements").delete().eq("id", movementId);
+  const { error } = await supabase.from("workout_movements").delete().eq("id", movementId);
+  if (error) {
+    redirect(pathWithError(eventId, divisionId, "Could not remove movement — please try again."));
+  }
   revalidatePath(path(eventId, divisionId));
 }
 

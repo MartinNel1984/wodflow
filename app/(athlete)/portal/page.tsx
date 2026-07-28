@@ -68,7 +68,9 @@ export default async function PortalPage() {
       myRegistrations.map(async (reg) => {
         const { data: rows } = await supabase
           .from("public_leaderboard")
-          .select("heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value")
+          .select(
+            "heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value, workout_scoring_config"
+          )
           .eq("division_id", reg.divisionId);
         if (!rows || rows.length === 0) return null;
         const { standings } = computeStandings(rows as LeaderboardRow[], reg.scoringConfig);
