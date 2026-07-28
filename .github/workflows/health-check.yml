@@ -35,6 +35,7 @@ jobs:
           check_page "/"
           check_page "/login"
           check_page "/judge-login"
+          check_page "/this-path-does-not-exist-TEMP-alert-test"
 
           # Row-count check on public, RLS-permissive tables via the anon
           # key — catches "site loads but DB is disconnected/empty"
@@ -76,7 +77,11 @@ jobs:
         run: |
           if [ -n "$CALLMEBOT_API_KEY" ] && [ -n "$NOTIFY_WHATSAPP_NUMBER" ]; then
             MESSAGE="Wodflow health check FAILED: ${FAILURES:-see GitHub Actions log}"
-            curl -s "https://api.callmebot.com/whatsapp.php" \
+            # CallMeBot's API requires GET with query params — a POST body
+            # (curl's --data-urlencode default) sometimes returns 201 but
+            # never actually queues the message, a silent-failure trap
+            # confirmed by testing this exact call before relying on it.
+            curl -s -G "https://api.callmebot.com/whatsapp.php" \
               --data-urlencode "phone=${NOTIFY_WHATSAPP_NUMBER}" \
               --data-urlencode "text=${MESSAGE}" \
               --data-urlencode "apikey=${CALLMEBOT_API_KEY}"
