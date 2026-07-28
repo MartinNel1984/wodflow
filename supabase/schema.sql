@@ -82,6 +82,7 @@ create table if not exists public.divisions (
   transition_minutes     int check (transition_minutes >= 0),
   workout_scoring_type   text not null default 'time'
                            check (workout_scoring_type in ('time', 'reps', 'load')),
+  max_entries            int check (max_entries > 0),  -- null = unlimited
   created_at             timestamptz not null default now()
 );
 

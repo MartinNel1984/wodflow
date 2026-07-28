@@ -51,7 +51,9 @@ export async function POST(request: Request) {
 
   const { data: division, error: divError } = await supabase
     .from("divisions")
-    .select("id, name, team_size, price_early, price_normal, price_late, early_bird_ends, late_starts, event_id")
+    .select(
+      "id, name, team_size, price_early, price_normal, price_late, early_bird_ends, late_starts, event_id, max_entries"
+    )
     .eq("id", divisionId)
     .single();
 
@@ -63,6 +65,18 @@ export async function POST(request: Request) {
       { error: `This division requires exactly ${division.team_size} athlete(s).` },
       { status: 400 }
     );
+  }
+
+  if (division.max_entries != null) {
+    // Refunded entries free up their slot; pending/paid/waived all hold one.
+    const { count } = await supabase
+      .from("registrations")
+      .select("id", { count: "exact", head: true })
+      .eq("division_id", divisionId)
+      .neq("payment_status", "refunded");
+    if ((count ?? 0) >= division.max_entries) {
+      return NextResponse.json({ error: "This division is full." }, { status: 409 });
+    }
   }
 
   const { data: event } = await supabase

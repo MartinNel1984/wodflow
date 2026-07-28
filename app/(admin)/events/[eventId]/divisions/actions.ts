@@ -3,6 +3,7 @@
 import { requireOrganizer } from "@/lib/auth";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export async function createDivision(formData: FormData) {
   const { supabase } = await requireOrganizer();
@@ -31,6 +32,7 @@ export async function createDivision(formData: FormData) {
     late_starts: String(formData.get("lateStarts") ?? "").trim() || null,
     workout_scoring_type: String(formData.get("workoutScoringType") ?? "time"),
     scoring_config: { method: scoringMethod },
+    max_entries: num("maxEntries"),
   });
   revalidatePath(`/events/${eventId}/divisions`);
 }
@@ -61,6 +63,7 @@ export async function updateDivision(formData: FormData) {
       early_bird_ends: String(formData.get("earlyBirdEnds") ?? "").trim() || null,
       late_starts: String(formData.get("lateStarts") ?? "").trim() || null,
       workout_scoring_type: String(formData.get("workoutScoringType") ?? "time"),
+      max_entries: num("maxEntries"),
     })
     .eq("id", divisionId);
   revalidatePath(`/events/${eventId}/divisions`);
@@ -75,4 +78,29 @@ export async function updateScoringConfig(formData: FormData) {
 
   await supabase.from("divisions").update({ scoring_config: { method: scoringMethod } }).eq("id", divisionId);
   revalidatePath(`/events/${eventId}/divisions`);
+}
+
+export async function deleteDivision(formData: FormData) {
+  const { supabase } = await requireOrganizer();
+  const eventId = String(formData.get("eventId") ?? "");
+  const divisionId = String(formData.get("divisionId") ?? "");
+  if (!eventId || !divisionId) return;
+
+  // Workouts/heats cascade at the DB level, but registrations don't (a
+  // division with paid entrants shouldn't silently vanish) — block instead.
+  const { count } = await supabase
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("division_id", divisionId);
+  if (count && count > 0) {
+    redirect(
+      `/events/${eventId}/divisions?error=${encodeURIComponent(
+        `${count} team(s)/athlete(s) are registered in this division — remove them first.`
+      )}`
+    );
+  }
+
+  await supabase.from("divisions").delete().eq("id", divisionId);
+  revalidatePath(`/events/${eventId}/divisions`);
+  redirect(`/events/${eventId}/divisions`);
 }
