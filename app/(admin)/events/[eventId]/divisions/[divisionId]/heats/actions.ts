@@ -1,9 +1,10 @@
 "use server";
 
-import { requireOrganizer } from "@/lib/auth";
+import { requireOrganizer, requirePrivileged } from "@/lib/auth";
 
 import { revalidatePath } from "next/cache";
 import { generateHeats, type RosterEntry } from "@/lib/heats";
+import { parseTime } from "@/lib/scoring";
 
 // Whole-workout regeneration. Only ever touches heats/assignments in
 // 'scheduled' status — heats already 'in_progress' or 'completed' are
@@ -123,6 +124,68 @@ export async function moveAssignment(formData: FormData) {
     .from("heat_assignments")
     .update({ heat_id: newHeatId, lane_number: newLaneNumber })
     .eq("id", assignmentId);
+  if (error) throw error;
+
+  revalidatePath(`/events/${eventId}/divisions/${divisionId}/heats`);
+}
+
+// Corrects a score by inserting a new row, same as the judge scoring
+// screen — scores are append-only (see schema.sql's note on
+// public.scores) so every past value stays in the audit trail; the
+// leaderboard views already pick the latest row per lane/workout.
+export async function correctScore(formData: FormData) {
+  const { supabase } = await requirePrivileged();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const eventId = String(formData.get("eventId") ?? "");
+  const divisionId = String(formData.get("divisionId") ?? "");
+  const heatAssignmentId = String(formData.get("heatAssignmentId") ?? "");
+  const workoutId = String(formData.get("workoutId") ?? "");
+  const workoutRefId = String(formData.get("workoutRefId") ?? "") || null;
+  const scoringType = String(formData.get("scoringType") ?? "time");
+  const rawValue = String(formData.get("value") ?? "").trim();
+  const rxOrScaled = String(formData.get("rxOrScaled") ?? "rx");
+  if (!heatAssignmentId || !workoutId || !rawValue || !user) return;
+
+  let valueRaw: Record<string, unknown>;
+  if (scoringType === "time") {
+    const seconds = parseTime(rawValue);
+    if (seconds == null) return;
+    valueRaw = { time_seconds: seconds };
+  } else if (scoringType === "reps") {
+    valueRaw = { reps: Number(rawValue) };
+  } else {
+    valueRaw = { load_kg: Number(rawValue) };
+  }
+
+  const { error } = await supabase.from("scores").insert({
+    heat_assignment_id: heatAssignmentId,
+    workout_id: workoutId,
+    workout_ref_id: workoutRefId,
+    rx_or_scaled: rxOrScaled,
+    value_raw: valueRaw,
+    submitted_by: user.id,
+    client_submission_id: crypto.randomUUID(),
+  });
+  if (error) throw error;
+
+  revalidatePath(`/events/${eventId}/divisions/${divisionId}/heats`);
+}
+
+// Deletes a single score row outright — for the case where a lane was
+// scored entirely by mistake (wrong athlete, test entry) rather than
+// just entered wrong, where a correcting insert wouldn't remove
+// anything. RLS (scores_privileged_all) is the real gate here; this
+// action's requirePrivileged() call matches it, not enforces it twice.
+export async function deleteScore(formData: FormData) {
+  const { supabase } = await requirePrivileged();
+  const eventId = String(formData.get("eventId") ?? "");
+  const divisionId = String(formData.get("divisionId") ?? "");
+  const scoreId = String(formData.get("scoreId") ?? "");
+  if (!scoreId) return;
+
+  const { error } = await supabase.from("scores").delete().eq("id", scoreId);
   if (error) throw error;
 
   revalidatePath(`/events/${eventId}/divisions/${divisionId}/heats`);

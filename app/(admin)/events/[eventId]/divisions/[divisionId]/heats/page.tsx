@@ -1,5 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
-import { generateHeatsForDivision, moveAssignment } from "./actions";
+import { formatTime } from "@/lib/scoring";
+import { generateHeatsForDivision, moveAssignment, correctScore, deleteScore } from "./actions";
+
+type ValueRaw = { time_seconds?: number; reps?: number; load_kg?: number };
+
+function formatScore(valueRaw: ValueRaw, scoringType: string): string {
+  if (scoringType === "time" && valueRaw.time_seconds != null) return formatTime(valueRaw.time_seconds);
+  if (valueRaw.reps != null) return `${valueRaw.reps} reps`;
+  if (valueRaw.load_kg != null) return `${valueRaw.load_kg} kg`;
+  return "—";
+}
+
+function scoreInputDefault(valueRaw: ValueRaw, scoringType: string): string {
+  if (scoringType === "time" && valueRaw.time_seconds != null) return formatTime(valueRaw.time_seconds);
+  if (valueRaw.reps != null) return String(valueRaw.reps);
+  if (valueRaw.load_kg != null) return String(valueRaw.load_kg);
+  return "";
+}
 
 export default async function HeatsPage({
   params,
@@ -16,7 +33,7 @@ export default async function HeatsPage({
     supabase.from("divisions").select("name").eq("id", divisionId).single(),
     supabase
       .from("workouts")
-      .select("id, name, sequence, lane_count, heat_duration_minutes, transition_minutes")
+      .select("id, name, sequence, lane_count, heat_duration_minutes, transition_minutes, scoring_type, tiebreak_enabled")
       .eq("division_id", divisionId)
       .order("sequence", { ascending: true }),
   ]);
@@ -45,6 +62,23 @@ export default async function HeatsPage({
     ? await supabase.from("scores").select("heat_assignment_id").in("heat_assignment_id", allAssignmentIds)
     : { data: [] as { heat_assignment_id: string }[] };
   const scoredAssignmentIds = new Set((scoredRows ?? []).map((r) => r.heat_assignment_id));
+
+  // Current score per lane for this workout, so an organizer/head judge
+  // can see and correct/delete what's already been entered rather than
+  // retyping blind. Scoped in JS (not the query) against the active
+  // workout so free-text legacy entries (workout_ref_id null, matched
+  // by name) still show up alongside workout-builder entries.
+  const { data: latestScoreRows } = allAssignmentIds.length
+    ? await supabase
+        .from("latest_scores")
+        .select("id, heat_assignment_id, workout_id, workout_ref_id, value_raw, rx_or_scaled, submitted_at")
+        .in("heat_assignment_id", allAssignmentIds)
+    : { data: [] as never[] };
+  const scoreByAssignment = new Map(
+    (latestScoreRows ?? [])
+      .filter((s) => (activeWorkout ? s.workout_ref_id === activeWorkout.id || (!s.workout_ref_id && s.workout_id === activeWorkout.name) : false))
+      .map((s) => [s.heat_assignment_id, s])
+  );
 
   function athleteLabel(reg: {
     team_name: string | null;
@@ -163,31 +197,86 @@ export default async function HeatsPage({
                 <span className="text-xs uppercase tracking-wider text-ink/50">{heat.status}</span>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {heat.heat_assignments
                 .sort((a, b) => a.lane_number - b.lane_number)
                 .map((a) => {
                   const reg = Array.isArray(a.registrations) ? a.registrations[0] : a.registrations;
+                  const score = scoreByAssignment.get(a.id);
+                  const scoringType = activeWorkout?.scoring_type ?? "time";
                   return (
-                    <div key={a.id} className="flex items-center justify-between text-sm">
-                      <span>
-                        Lane {a.lane_number} — {reg ? athleteLabel(reg) : "Unknown"}
-                      </span>
-                      <form action={moveAssignment} className="flex items-center gap-1">
-                        <input type="hidden" name="eventId" value={eventId} />
-                        <input type="hidden" name="divisionId" value={divisionId} />
-                        <input type="hidden" name="assignmentId" value={a.id} />
-                        <input type="hidden" name="heatId" value={heat.id} />
-                        <input
-                          type="number"
-                          name="laneNumber"
-                          defaultValue={a.lane_number}
-                          className="w-14 text-xs border border-ink/10 rounded px-1 py-0.5"
-                        />
-                        <button type="submit" className="text-xs text-accent font-semibold">
-                          Move
-                        </button>
-                      </form>
+                    <div key={a.id} className="space-y-1.5 border-b border-ink/5 pb-2 last:border-0 last:pb-0">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>
+                          Lane {a.lane_number} — {reg ? athleteLabel(reg) : "Unknown"}
+                        </span>
+                        <form action={moveAssignment} className="flex items-center gap-1">
+                          <input type="hidden" name="eventId" value={eventId} />
+                          <input type="hidden" name="divisionId" value={divisionId} />
+                          <input type="hidden" name="assignmentId" value={a.id} />
+                          <input type="hidden" name="heatId" value={heat.id} />
+                          <input
+                            type="number"
+                            name="laneNumber"
+                            defaultValue={a.lane_number}
+                            className="w-14 text-xs border border-ink/10 rounded px-1 py-0.5"
+                          />
+                          <button type="submit" className="text-xs text-accent font-semibold">
+                            Move
+                          </button>
+                        </form>
+                      </div>
+                      {activeWorkout && (
+                        <div className="flex items-center gap-2 text-xs text-ink/60">
+                          <span>
+                            Score: {score ? formatScore(score.value_raw as ValueRaw, scoringType) : "Not entered"}
+                          </span>
+                          <details className="ml-auto">
+                            <summary className="text-accent font-semibold cursor-pointer list-none">
+                              {score ? "Correct" : "Enter score"}
+                            </summary>
+                            <form
+                              action={correctScore}
+                              className="mt-2 flex items-center gap-2 bg-paper rounded-lg p-2"
+                            >
+                              <input type="hidden" name="eventId" value={eventId} />
+                              <input type="hidden" name="divisionId" value={divisionId} />
+                              <input type="hidden" name="heatAssignmentId" value={a.id} />
+                              <input type="hidden" name="workoutId" value={activeWorkout.name} />
+                              <input type="hidden" name="workoutRefId" value={activeWorkout.id} />
+                              <input type="hidden" name="scoringType" value={scoringType} />
+                              <input
+                                type="text"
+                                name="value"
+                                placeholder={scoringType === "time" ? "mm:ss" : scoringType === "reps" ? "reps" : "kg"}
+                                defaultValue={score ? scoreInputDefault(score.value_raw as ValueRaw, scoringType) : ""}
+                                className="w-20 border border-ink/10 rounded px-2 py-1 text-xs"
+                              />
+                              <select
+                                name="rxOrScaled"
+                                defaultValue={score?.rx_or_scaled ?? "rx"}
+                                className="border border-ink/10 rounded px-1 py-1 text-xs"
+                              >
+                                <option value="rx">RX</option>
+                                <option value="scaled">Scaled</option>
+                              </select>
+                              <button type="submit" className="text-xs bg-accent text-white rounded px-2 py-1 font-semibold">
+                                Save
+                              </button>
+                            </form>
+                          </details>
+                          {score && (
+                            <form action={deleteScore}>
+                              <input type="hidden" name="eventId" value={eventId} />
+                              <input type="hidden" name="divisionId" value={divisionId} />
+                              <input type="hidden" name="scoreId" value={score.id} />
+                              <button type="submit" className="text-ink/40 hover:text-ink/70">
+                                Delete
+                              </button>
+                            </form>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
