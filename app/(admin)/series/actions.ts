@@ -5,17 +5,17 @@ import { requireOrganizer } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 export async function createSeries(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase, organizationId } = await requireOrganizer();
   const name = String(formData.get("name") ?? "").trim();
   const year = Number(formData.get("year"));
   if (!name || Number.isNaN(year)) return;
 
-  await supabase.from("series").insert({ name, year });
+  await supabase.from("series").insert({ name, year, organization_id: organizationId });
   revalidatePath("/series");
 }
 
 export async function addSeriesEvent(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const seriesId = String(formData.get("seriesId") ?? "");
   const eventId = String(formData.get("eventId") ?? "");
   if (!seriesId || !eventId) return;
@@ -32,7 +32,7 @@ export async function addSeriesEvent(formData: FormData) {
 }
 
 export async function removeSeriesEvent(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const seriesId = String(formData.get("seriesId") ?? "");
   const seriesEventId = String(formData.get("seriesEventId") ?? "");
   if (!seriesEventId) return;

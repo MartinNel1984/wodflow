@@ -5,7 +5,7 @@ import { requireOrganizer } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 export async function createDivision(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const priceNormal = Number(formData.get("priceNormal"));
@@ -36,7 +36,7 @@ export async function createDivision(formData: FormData) {
 }
 
 export async function updateScoringConfig(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
   const scoringMethod = String(formData.get("scoringMethod") ?? "");

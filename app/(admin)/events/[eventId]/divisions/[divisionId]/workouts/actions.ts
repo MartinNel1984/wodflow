@@ -9,7 +9,7 @@ function path(eventId: string, divisionId: string) {
 }
 
 export async function createWorkout(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
@@ -40,7 +40,7 @@ export async function createWorkout(formData: FormData) {
 }
 
 export async function deleteWorkout(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
   const workoutId = String(formData.get("workoutId") ?? "");
@@ -51,7 +51,7 @@ export async function deleteWorkout(formData: FormData) {
 }
 
 export async function addMovement(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
   const workoutId = String(formData.get("workoutId") ?? "");
@@ -82,7 +82,7 @@ export async function addMovement(formData: FormData) {
 }
 
 export async function deleteMovement(formData: FormData) {
-  const supabase = await requireOrganizer();
+  const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
   const movementId = String(formData.get("movementId") ?? "");
