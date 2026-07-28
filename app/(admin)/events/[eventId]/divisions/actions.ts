@@ -100,7 +100,18 @@ export async function deleteDivision(formData: FormData) {
     );
   }
 
-  await supabase.from("divisions").delete().eq("id", divisionId);
+  const { error: deleteError } = await supabase.from("divisions").delete().eq("id", divisionId);
+  if (deleteError) {
+    // The registrations.division_id FK has no cascade, so this also
+    // catches the race where a registration lands between the count
+    // check above and this delete — without this check that race would
+    // silently redirect as if the division was deleted when it wasn't.
+    redirect(
+      `/events/${eventId}/divisions?error=${encodeURIComponent(
+        "Could not delete division — a team/athlete registered just now. Please try again."
+      )}`
+    );
+  }
   revalidatePath(`/events/${eventId}/divisions`);
   redirect(`/events/${eventId}/divisions`);
 }

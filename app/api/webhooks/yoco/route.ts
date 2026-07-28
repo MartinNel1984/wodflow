@@ -67,19 +67,27 @@ export async function POST(request: Request) {
     return new Response("OK", { status: 200 });
   }
 
-  const { error: updateError } = await supabase
+  // Scope the update to payment_status != "paid" and check what actually
+  // changed, rather than trusting the read above — two concurrent
+  // deliveries can both pass that check before either commits, which
+  // would otherwise send the confirmation email twice.
+  const { data: updated, error: updateError } = await supabase
     .from("registrations")
     .update({ payment_status: "paid", paid_at: new Date().toISOString(), paid_via: "yoco" })
-    .eq("id", registration.id);
+    .eq("id", registration.id)
+    .neq("payment_status", "paid")
+    .select("id");
 
   if (updateError) {
     console.error("Yoco webhook: failed to mark registration paid", updateError);
     return new Response("Update failed", { status: 500 });
   }
 
-  await sendRegistrationEmails(registration.id).catch((err) =>
-    console.error("Yoco webhook: sendRegistrationEmails failed", err)
-  );
+  if (updated && updated.length > 0) {
+    await sendRegistrationEmails(registration.id).catch((err) =>
+      console.error("Yoco webhook: sendRegistrationEmails failed", err)
+    );
+  }
 
   return new Response("OK", { status: 200 });
 }

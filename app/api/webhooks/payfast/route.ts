@@ -62,7 +62,11 @@ export async function POST(request: Request) {
     return new Response("Amount mismatch", { status: 400 });
   }
 
-  const { error: updateError } = await supabase
+  // Scope the update to payment_status != "paid" and check what actually
+  // changed, rather than trusting the read above — two concurrent ITN
+  // deliveries can both pass that check before either commits, which
+  // would otherwise send the confirmation email twice.
+  const { data: updated, error: updateError } = await supabase
     .from("registrations")
     .update({
       payment_status: "paid",
@@ -70,16 +74,20 @@ export async function POST(request: Request) {
       paid_via: "payfast",
       payfast_payment_id: pfPaymentId,
     })
-    .eq("id", registrationId);
+    .eq("id", registrationId)
+    .neq("payment_status", "paid")
+    .select("id");
 
   if (updateError) {
     console.error("PayFast webhook: failed to mark registration paid", updateError);
     return new Response("Update failed", { status: 500 });
   }
 
-  await sendRegistrationEmails(registrationId).catch((err) =>
-    console.error("PayFast webhook: sendRegistrationEmails failed", err)
-  );
+  if (updated && updated.length > 0) {
+    await sendRegistrationEmails(registrationId).catch((err) =>
+      console.error("PayFast webhook: sendRegistrationEmails failed", err)
+    );
+  }
 
   return new Response("OK", { status: 200 });
 }

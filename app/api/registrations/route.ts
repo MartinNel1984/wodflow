@@ -109,6 +109,12 @@ export async function POST(request: Request) {
     .single();
 
   if (regError || !registration) {
+    // The DB trigger enforce_division_max_entries is the source of truth
+    // (the count check above is just a fast-path pre-check, not a lock,
+    // so concurrent submissions for the last slot can both pass it).
+    if (regError?.message?.includes("Division is full")) {
+      return NextResponse.json({ error: "This division is full." }, { status: 409 });
+    }
     return NextResponse.json({ error: "Could not create registration." }, { status: 500 });
   }
 
