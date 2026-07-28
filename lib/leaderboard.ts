@@ -7,9 +7,13 @@ export type LeaderboardRow = {
   tiebreak_value: { time_seconds?: number; reps?: number } | null;
   registration_id: string;
   display_name: string;
+  workout_name?: string;
+  workout_scoring_config?: ScoringConfig | null;
 };
 
-export type ScoringConfig = { method: "rank_sum" } | { method: "gap_formula"; winner_points?: number };
+export type ScoringConfig =
+  | { method: "rank_sum" }
+  | { method: "gap_formula"; winner_points?: number; gap_points?: number };
 
 export type WorkoutResult = {
   registrationId: string;
@@ -46,7 +50,10 @@ export type Standing = {
 export function pointsForPosition(position: number, entrants: number, config: ScoringConfig): number {
   if (config.method === "gap_formula") {
     const winnerPoints = config.winner_points ?? 100;
-    const gap = Math.round(winnerPoints / entrants);
+    // gap_points is a deliberate manual override (Tjokkie: "spread is 5
+    // points because we have 20 teams", his own number, not necessarily
+    // 100/20) — only auto-derive from entrant count when he hasn't set one.
+    const gap = config.gap_points ?? Math.round(winnerPoints / entrants);
     return Math.max(0, winnerPoints - (position - 1) * gap);
   }
   return entrants - position + 1;
@@ -114,27 +121,32 @@ export function computeWorkoutResults(
 }
 
 // Full-division standings — one workout's results feed into an overall
-// points total per registration, ranked highest-total-wins.
+// points total per registration, ranked highest-total-wins. Each workout
+// uses its OWN scoring_config (M17 winner_points/gap, now settable per
+// workout — a 100-point WOD and a 50-point WOD can carry different
+// spreads) when it has one, falling back to the division's default
+// otherwise, so divisions that never set a per-workout override keep
+// behaving exactly as before.
 export function computeStandings(
   rows: LeaderboardRow[],
-  scoringConfig: ScoringConfig = { method: "rank_sum" }
+  divisionScoringConfig: ScoringConfig = { method: "rank_sum" }
 ): {
   standings: Standing[];
-  workouts: { id: string; results: WorkoutResult[] }[];
+  workouts: { id: string; name: string; results: WorkoutResult[] }[];
 } {
   const workoutIds = [...new Set(rows.map((r) => r.workout_id))].sort();
   const registrationIds = [...new Set(rows.map((r) => r.registration_id))];
   const nameByRegistration = new Map(rows.map((r) => [r.registration_id, r.display_name]));
 
   const resultsByWorkout = new Map<string, WorkoutResult[]>();
+  const nameByWorkout = new Map<string, string>();
   for (const workoutId of workoutIds) {
+    const workoutRows = rows.filter((r) => r.workout_id === workoutId);
+    const workoutConfig = workoutRows.find((r) => r.workout_scoring_config)?.workout_scoring_config;
+    nameByWorkout.set(workoutId, workoutRows[0]?.workout_name ?? workoutId);
     resultsByWorkout.set(
       workoutId,
-      computeWorkoutResults(
-        rows.filter((r) => r.workout_id === workoutId),
-        registrationIds,
-        scoringConfig
-      )
+      computeWorkoutResults(workoutRows, registrationIds, workoutConfig ?? divisionScoringConfig)
     );
   }
 
@@ -153,7 +165,11 @@ export function computeStandings(
     }))
     .sort((a, b) => b.totalPoints - a.totalPoints);
 
-  const workouts = workoutIds.map((id) => ({ id, results: resultsByWorkout.get(id)! }));
+  const workouts = workoutIds.map((id) => ({
+    id,
+    name: nameByWorkout.get(id) ?? id,
+    results: resultsByWorkout.get(id)!,
+  }));
 
   return { standings, workouts };
 }

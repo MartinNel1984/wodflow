@@ -16,7 +16,7 @@ export default async function WorkoutsPage({
     supabase.from("divisions").select("name").eq("id", divisionId).single(),
     supabase
       .from("workouts")
-      .select("id, name, sequence, cap_seconds, scoring_type, tiebreak_enabled, lane_count, heat_duration_minutes, transition_minutes, workout_movements(id, sequence, name, reps, load, rounds)")
+      .select("id, name, sequence, cap_seconds, scoring_type, tiebreak_enabled, lane_count, heat_duration_minutes, transition_minutes, scoring_config, workout_movements(id, sequence, name, reps, load, rounds)")
       .eq("division_id", divisionId)
       .order("sequence", { ascending: true }),
     supabase
@@ -95,6 +95,13 @@ export default async function WorkoutsPage({
                     {w.tiebreak_enabled ? " · tiebreak on" : ""}
                     {w.lane_count ? ` · ${w.lane_count} lanes` : ""}
                     {w.heat_duration_minutes ? ` · ${w.heat_duration_minutes} min heats` : ""}
+                    {w.scoring_config?.method === "gap_formula"
+                      ? ` · ${w.scoring_config.winner_points ?? 100} pts, ${
+                          w.scoring_config.gap_points != null
+                            ? `${w.scoring_config.gap_points} pt spread`
+                            : "auto spread"
+                        }`
+                      : " · division default points"}
                   </p>
                 </div>
                 <form action={deleteWorkout}>
@@ -227,6 +234,27 @@ export default async function WorkoutsPage({
           <Field label="Heat duration (min)" name="heatDurationMinutes" type="number" />
           <Field label="Transition (min)" name="transitionMinutes" type="number" />
         </div>
+
+        <div className="border-t border-ink/10 pt-4 space-y-3">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+              Points for this workout
+            </label>
+            <select
+              name="pointsMethod"
+              defaultValue=""
+              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10"
+            >
+              <option value="">Use division default</option>
+              <option value="gap_formula">Set points + spread for this workout</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Points for 1st" name="winnerPoints" type="number" placeholder="100" />
+            <Field label="Point gap per place" name="gapPoints" type="number" placeholder="5" />
+          </div>
+        </div>
+
         <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
           Create workout
         </button>

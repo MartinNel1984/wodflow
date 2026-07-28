@@ -25,6 +25,18 @@ export async function createWorkout(formData: FormData) {
     return Number.isNaN(n) ? null : n;
   };
 
+  const pointsMethod = String(formData.get("pointsMethod") ?? "");
+  const winnerPoints = num("winnerPoints");
+  const gapPoints = num("gapPoints");
+  const scoringConfig =
+    pointsMethod === "gap_formula"
+      ? {
+          method: "gap_formula",
+          ...(winnerPoints != null ? { winner_points: winnerPoints } : {}),
+          ...(gapPoints != null ? { gap_points: gapPoints } : {}),
+        }
+      : null; // null = inherit the division's default scoring formula
+
   await supabase.from("workouts").insert({
     division_id: divisionId,
     name,
@@ -35,6 +47,7 @@ export async function createWorkout(formData: FormData) {
     lane_count: num("laneCount"),
     heat_duration_minutes: num("heatDurationMinutes"),
     transition_minutes: num("transitionMinutes"),
+    scoring_config: scoringConfig,
   });
   revalidatePath(path(eventId, divisionId));
 }

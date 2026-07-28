@@ -13,7 +13,7 @@ export default function LeaderboardView({
 }: {
   divisionName: string;
   standings: Standing[];
-  workouts: { id: string; results: WorkoutResult[] }[];
+  workouts: { id: string; name: string; results: WorkoutResult[] }[];
   brandKit?: BrandKit | null;
 }) {
   const [view, setView] = useState<string>("overall");
@@ -41,7 +41,7 @@ export default function LeaderboardView({
               <option value="overall">Overall</option>
               {workouts.map((w) => (
                 <option key={w.id} value={w.id}>
-                  {w.id}
+                  {w.name}
                 </option>
               ))}
             </select>
@@ -82,17 +82,24 @@ export default function LeaderboardView({
                 </tr>
               </thead>
               <tbody>
-                {standings.map((s, i) => (
-                  <tr
-                    key={s.registrationId}
-                    className="border-t border-ink/10 animate-settle-in"
-                    style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
-                  >
-                    <td className="px-4 py-2 font-data font-bold text-accent">{i + 1}</td>
-                    <td className="px-4 py-2">{s.displayName}</td>
-                    <td className="px-4 py-2 text-right font-data">{s.totalPoints}</td>
-                  </tr>
-                ))}
+                {standings.map((s, i) => {
+                  const medal = ["🥇", "🥈", "🥉"][i];
+                  return (
+                    <tr
+                      key={s.registrationId}
+                      className={`border-t border-ink/10 animate-settle-in ${
+                        i === 0 ? "bg-accent/10" : ""
+                      }`}
+                      style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
+                    >
+                      <td className="px-4 py-2 font-data font-bold text-accent text-lg">
+                        {medal ?? i + 1}
+                      </td>
+                      <td className={`px-4 py-2 ${i === 0 ? "font-semibold" : ""}`}>{s.displayName}</td>
+                      <td className="px-4 py-2 text-right font-data font-bold">{s.totalPoints}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

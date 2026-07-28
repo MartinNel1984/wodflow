@@ -46,7 +46,7 @@ export default async function Home() {
                 className="flex items-center gap-3 bg-white text-ink border-2 border-ink rounded-xl px-4 py-3 hover-lift"
               >
                 {kit?.logo_url && <BrandKitLogo kit={kit} className="h-8 shrink-0" />}
-                <div>
+                <div className="flex-1">
                   <p className="font-semibold">{e.name}</p>
                   <p className="text-ink/60 text-sm">
                     {e.start_date}
@@ -55,6 +55,9 @@ export default async function Home() {
                   </p>
                   {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
                 </div>
+                <span className="shrink-0 bg-accent text-white text-xs font-semibold uppercase tracking-wider rounded-full px-3 py-1.5">
+                  Enter now →
+                </span>
               </a>
             );
           }
@@ -77,6 +80,9 @@ export default async function Home() {
                 </p>
                 {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
                 {e.description && <p className="text-ink/70 text-sm mt-2 line-clamp-3">{e.description}</p>}
+                <span className="mt-3 inline-block bg-accent text-white text-xs font-semibold uppercase tracking-wider rounded-full px-3 py-1.5">
+                  Enter now →
+                </span>
               </div>
             </a>
           );
