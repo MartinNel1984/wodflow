@@ -78,7 +78,12 @@ export default function LeaderboardView({
                 <tr className="bg-ink/5 text-left">
                   <th className="px-4 py-2">#</th>
                   <th className="px-4 py-2">Name</th>
-                  <th className="px-4 py-2 text-right">Points</th>
+                  {workouts.map((w) => (
+                    <th key={w.id} className="px-4 py-2 text-right">
+                      {w.name}
+                    </th>
+                  ))}
+                  <th className="px-4 py-2 text-right">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -96,6 +101,14 @@ export default function LeaderboardView({
                         {medal ?? i + 1}
                       </td>
                       <td className={`px-4 py-2 ${i === 0 ? "font-semibold" : ""}`}>{s.displayName}</td>
+                      {workouts.map((w) => {
+                        const score = s.workoutScores[w.id];
+                        return (
+                          <td key={w.id} className="px-4 py-2 text-right font-data text-ink/70">
+                            {score ? `${score.display} (${score.points})` : "—"}
+                          </td>
+                        );
+                      })}
                       <td className="px-4 py-2 text-right font-data font-bold">{s.totalPoints}</td>
                     </tr>
                   );

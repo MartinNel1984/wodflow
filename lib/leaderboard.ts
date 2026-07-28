@@ -28,6 +28,7 @@ export type Standing = {
   registrationId: string;
   displayName: string;
   totalPoints: number;
+  workoutScores: Record<string, { display: string; points: number } | undefined>;
 };
 
 // Two point tables, both driven by divisions.scoring_config:
@@ -151,9 +152,13 @@ export function computeStandings(
   }
 
   const pointsByRegistration = new Map<string, number>();
-  for (const results of resultsByWorkout.values()) {
+  const workoutScoresByRegistration = new Map<string, Standing["workoutScores"]>();
+  for (const [workoutId, results] of resultsByWorkout) {
     for (const r of results) {
       pointsByRegistration.set(r.registrationId, (pointsByRegistration.get(r.registrationId) ?? 0) + r.points);
+      const scores = workoutScoresByRegistration.get(r.registrationId) ?? {};
+      scores[workoutId] = { display: r.display, points: r.points };
+      workoutScoresByRegistration.set(r.registrationId, scores);
     }
   }
 
@@ -162,6 +167,7 @@ export function computeStandings(
       registrationId,
       displayName: nameByRegistration.get(registrationId) ?? "Unnamed",
       totalPoints: pointsByRegistration.get(registrationId) ?? 0,
+      workoutScores: workoutScoresByRegistration.get(registrationId) ?? {},
     }))
     .sort((a, b) => b.totalPoints - a.totalPoints);
 
