@@ -5,13 +5,16 @@ import { EventDetailsForm } from "./EventDetailsForm";
 
 export default async function ChecklistPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ eventId: string }>;
+  searchParams: Promise<{ division?: string }>;
 }) {
   const { eventId } = await params;
+  const { division: selectedDivisionId } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: event }, { data: divisions }] = await Promise.all([
+  const [{ data: event }, { data: divisions }, { data: registrations }] = await Promise.all([
     supabase
       .from("events")
       .select(
@@ -23,12 +26,33 @@ export default async function ChecklistPage({
       .from("divisions")
       .select("id, name, price_normal, workouts(id, name, lane_count, heat_duration_minutes)")
       .eq("event_id", eventId),
+    supabase
+      .from("registrations")
+      .select(
+        "team_name, payment_status, division_id, divisions(name), registration_athletes(id, full_name, is_minor)"
+      )
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: true }),
   ]);
 
   const eventChecks = computeEventChecks(event, divisions ?? []);
   const divisionChecks = computeDivisionChecks(divisions ?? []);
   const allChecks = [...eventChecks, ...divisionChecks];
   const failCount = allChecks.filter((c) => !c.ok).length;
+
+  // A spot is only reserved once payment clears (paid) or is waived by an
+  // organizer — same rule as the per-division athletes roster.
+  const confirmedAthletes = (registrations ?? [])
+    .filter((r) => r.payment_status === "paid" || r.payment_status === "waived")
+    .flatMap((r) =>
+      (r.registration_athletes ?? []).map((a) => ({
+        ...a,
+        teamName: r.team_name,
+        divisionId: r.division_id,
+        divisionName: r.divisions?.[0]?.name ?? "—",
+      }))
+    )
+    .filter((a) => !selectedDivisionId || a.divisionId === selectedDivisionId);
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
@@ -49,6 +73,69 @@ export default async function ChecklistPage({
         }`}
       >
         {failCount === 0 ? "All checks passed — ready to go." : `${failCount} item(s) need attention.`}
+      </div>
+
+      <div className="bg-white border border-ink/10 rounded-xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">
+            Athletes — spot reserved ({confirmedAthletes.length})
+          </h2>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href={`/events/${eventId}/checklist`}
+            className={`text-xs rounded-full px-3 py-1.5 font-semibold ${
+              !selectedDivisionId ? "bg-accent text-white" : "bg-paper text-ink/60 hover:text-ink"
+            }`}
+          >
+            All
+          </a>
+          {(divisions ?? []).map((d) => (
+            <a
+              key={d.id}
+              href={`/events/${eventId}/checklist?division=${d.id}`}
+              className={`text-xs rounded-full px-3 py-1.5 font-semibold ${
+                selectedDivisionId === d.id ? "bg-accent text-white" : "bg-paper text-ink/60 hover:text-ink"
+              }`}
+            >
+              {d.name}
+            </a>
+          ))}
+        </div>
+        <div className="border border-ink/10 rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-ink/5 text-left">
+                <th className="px-4 py-2">Name</th>
+                <th className="px-4 py-2">Division</th>
+                <th className="px-4 py-2">Team</th>
+              </tr>
+            </thead>
+            <tbody>
+              {confirmedAthletes.map((a) => (
+                <tr key={a.id} className="border-t border-ink/10">
+                  <td className="px-4 py-2">
+                    {a.full_name}
+                    {a.is_minor && (
+                      <span className="ml-2 text-xs font-semibold uppercase tracking-wider text-accent">
+                        Minor
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2">{a.divisionName}</td>
+                  <td className="px-4 py-2 text-ink/60">{a.teamName || "—"}</td>
+                </tr>
+              ))}
+              {confirmedAthletes.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-4 py-6 text-center text-ink/60 text-sm">
+                    No confirmed athletes {selectedDivisionId ? "in this division" : "yet"}.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <form
