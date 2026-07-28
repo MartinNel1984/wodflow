@@ -19,13 +19,21 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
     if (authError) {
       setError(authError.message);
       setLoading(false);
       return;
     }
-    router.push("/dashboard");
+    // platform_admin can't reach /dashboard (organizer-only, see
+    // (admin)/layout.tsx) — sending it there anyway bounced straight back
+    // to /login, which looked identical to a failed sign-in.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.user.id)
+      .single();
+    router.push(profile?.role === "platform_admin" ? "/platform/control" : "/dashboard");
     router.refresh();
   }
 
