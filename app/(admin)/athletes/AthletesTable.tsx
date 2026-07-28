@@ -15,7 +15,17 @@ export type AthleteRow = {
   waiverHref: string;
 };
 
-export default function AthletesTable({ rows }: { rows: AthleteRow[] }) {
+export default function AthletesTable({
+  rows,
+  divisions,
+  addAthleteAction,
+  removeAthleteAction,
+}: {
+  rows: AthleteRow[];
+  divisions: { id: string; label: string }[];
+  addAthleteAction: (formData: FormData) => void;
+  removeAthleteAction: (formData: FormData) => void;
+}) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -73,12 +83,18 @@ export default function AthletesTable({ rows }: { rows: AthleteRow[] }) {
                   )}
                 </td>
                 <td className="px-4 py-2 capitalize">{r.paymentStatus}</td>
-                <td className="px-4 py-2 text-right">
+                <td className="px-4 py-2 text-right whitespace-nowrap">
                   {r.waiverSignedAt && (
-                    <Link href={r.waiverHref} className="text-accent text-xs font-semibold hover:underline">
+                    <Link href={r.waiverHref} className="text-accent text-xs font-semibold hover:underline mr-3">
                       View waiver
                     </Link>
                   )}
+                  <form action={removeAthleteAction} className="inline">
+                    <input type="hidden" name="athleteId" value={r.id} />
+                    <button type="submit" className="text-xs text-ink/40 hover:text-ink/70">
+                      Remove
+                    </button>
+                  </form>
                 </td>
               </tr>
             ))}
@@ -92,6 +108,66 @@ export default function AthletesTable({ rows }: { rows: AthleteRow[] }) {
           </tbody>
         </table>
       </div>
+
+      <form
+        action={addAthleteAction}
+        className="bg-white border border-ink/10 rounded-xl p-6 space-y-4"
+      >
+        <h2 className="font-semibold">Add athlete manually</h2>
+        <p className="text-ink/60 text-sm">
+          For walk-up entries who didn&apos;t go through the public registration wizard. Marked as
+          waived (no payment).
+        </p>
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Division</label>
+          <select
+            name="divisionId"
+            required
+            className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10"
+          >
+            <option value="">Select a division…</option>
+            {divisions.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Full name</label>
+            <input
+              type="text"
+              name="fullName"
+              required
+              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+              Email (optional)
+            </label>
+            <input
+              type="email"
+              name="email"
+              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+              ID number (optional)
+            </label>
+            <input
+              type="text"
+              name="idNumber"
+              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+            />
+          </div>
+        </div>
+        <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
+          Add athlete
+        </button>
+      </form>
     </div>
   );
 }

@@ -14,17 +14,23 @@ function path(eventId: string, divisionId: string) {
 // placeholder is generated when the organizer doesn't have one on hand.
 export async function addAthleteManually(formData: FormData) {
   const { supabase } = await requireOrganizer();
-  const eventId = String(formData.get("eventId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
   const fullName = String(formData.get("fullName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const idNumber = String(formData.get("idNumber") ?? "").trim();
-  if (!eventId || !divisionId || !fullName) return;
+  if (!divisionId || !fullName) return;
+
+  // Looked up server-side rather than trusted from a hidden eventId field
+  // — this action is now called from both the per-division Athletes page
+  // and the cross-event Athletes directory, and the division is always
+  // the single source of truth for which event a registration belongs to.
+  const { data: division } = await supabase.from("divisions").select("event_id").eq("id", divisionId).single();
+  if (!division) return;
 
   const { data: registration, error } = await supabase
     .from("registrations")
     .insert({
-      event_id: eventId,
+      event_id: division.event_id,
       division_id: divisionId,
       payment_status: "waived",
     })
@@ -40,7 +46,8 @@ export async function addAthleteManually(formData: FormData) {
     is_captain: true,
   });
 
-  revalidatePath(path(eventId, divisionId));
+  revalidatePath(path(division.event_id, divisionId));
+  revalidatePath("/athletes");
 }
 
 // Removes a single athlete row. If they were the last person on their
@@ -70,5 +77,6 @@ export async function removeAthlete(formData: FormData) {
     await supabase.from("registrations").delete().eq("id", athlete.registration_id);
   }
 
-  revalidatePath(path(eventId, divisionId));
+  if (eventId && divisionId) revalidatePath(path(eventId, divisionId));
+  revalidatePath("/athletes");
 }
