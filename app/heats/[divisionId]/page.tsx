@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { createPublicClient } from "@/lib/supabase/public";
+import { RumbleBackdrop } from "@/components/RumbleBackdrop";
+import type { BrandKit } from "@/lib/brandKit";
 
 export const revalidate = 8;
 
@@ -34,7 +36,13 @@ export default async function PublicHeatSheetPage({
   const supabase = createPublicClient();
 
   const [{ data: division }, { data: rows }] = await Promise.all([
-    supabase.from("divisions").select("name").eq("id", divisionId).single(),
+    supabase
+      .from("divisions")
+      .select(
+        "name, events(brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline))"
+      )
+      .eq("id", divisionId)
+      .single(),
     supabase
       .from("public_heat_sheet")
       .select("heat_id, workout_name, workout_sequence, heat_number, start_time, lane_number, display_name")
@@ -72,7 +80,14 @@ export default async function PublicHeatSheetPage({
   }
   const heatIds = [...heatMap.keys()];
 
-  return (
+  const event = Array.isArray(division?.events) ? division.events[0] : division?.events;
+  const brandKit = (Array.isArray(event?.brand_kits) ? event.brand_kits[0] : event?.brand_kits) as
+    | BrandKit
+    | null
+    | undefined;
+  const isBigOne = brandKit?.name === "Rumble Big One";
+
+  const content = (
     <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
       <h1 className="text-2xl font-semibold text-center">{division?.name ?? "Heat sheet"}</h1>
 
@@ -106,4 +121,17 @@ export default async function PublicHeatSheetPage({
       )}
     </div>
   );
+
+  if (isBigOne) {
+    return (
+      <RumbleBackdrop
+        logoSrc={brandKit?.logo_url || "/rumble/series-logo.png"}
+        logoAlt={brandKit?.name || "Rumble Big One"}
+      >
+        <div className="w-full bg-white text-ink rounded-2xl shadow-xl">{content}</div>
+      </RumbleBackdrop>
+    );
+  }
+
+  return content;
 }

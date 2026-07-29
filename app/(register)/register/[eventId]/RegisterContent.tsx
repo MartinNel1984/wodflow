@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BrandKitLogo } from "@/components/BrandKitLogo";
+import { RumbleBackdrop } from "@/components/RumbleBackdrop";
 import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 import { currentPrice } from "@/lib/pricing";
 
@@ -234,7 +235,9 @@ export default function RegisterContent() {
 
   if (loading) return <p className="text-center py-20 text-ink/50">Loading…</p>;
 
-  return (
+  const isBigOne = brandKit?.name === "Rumble Big One";
+
+  const content = (
     <div className="max-w-xl mx-auto px-4 py-10 space-y-8" style={brandKitStyle(brandKit)}>
       {posterUrl && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -428,6 +431,19 @@ export default function RegisterContent() {
       )}
     </div>
   );
+
+  if (isBigOne) {
+    return (
+      <RumbleBackdrop
+        logoSrc={brandKit?.logo_url || "/rumble/series-logo.png"}
+        logoAlt={brandKit?.name || "Rumble Big One"}
+      >
+        <div className="w-full bg-white text-ink rounded-2xl shadow-xl">{content}</div>
+      </RumbleBackdrop>
+    );
+  }
+
+  return content;
 }
 
 function Field({

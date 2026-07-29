@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { BrandKitLogo } from "@/components/BrandKitLogo";
+import { RumbleBackdrop } from "@/components/RumbleBackdrop";
 import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 
 type TeamInvite = { token: string; email_or_phone: string; status: string };
@@ -70,7 +71,9 @@ export default function ConfirmationPage() {
   const event = extractEvent(division);
   const brandKit = extractBrandKit(event);
 
-  return (
+  const isBigOne = brandKit?.name === "Rumble Big One";
+
+  const content = (
     <div className="max-w-md mx-auto px-4 py-16 text-center space-y-4" style={brandKitStyle(brandKit)}>
       {event?.poster_url ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -122,4 +125,17 @@ export default function ConfirmationPage() {
       )}
     </div>
   );
+
+  if (isBigOne) {
+    return (
+      <RumbleBackdrop
+        logoSrc={brandKit?.logo_url || "/rumble/series-logo.png"}
+        logoAlt={brandKit?.name || "Rumble Big One"}
+      >
+        <div className="w-full bg-white text-ink rounded-2xl shadow-xl">{content}</div>
+      </RumbleBackdrop>
+    );
+  }
+
+  return content;
 }

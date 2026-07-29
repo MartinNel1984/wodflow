@@ -24,17 +24,21 @@ export default async function AthleteLayout({ children }: { children: React.Reac
   if (role !== "athlete") redirect("/athlete-login");
 
   return (
-    <div className="graffiti-page min-h-screen">
-      <div className="graffiti-photos" aria-hidden="true">
+    <div className="rumble-page min-h-screen" style={{ "--color-accent": "var(--rumble-blue-bright)" } as React.CSSProperties}>
+      <div className="rumble-photos" aria-hidden="true">
         {/* eslint-disable @next/next/no-img-element */}
         {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
           <img key={n} src={`/mural/action-${n}.jpg`} alt="" />
         ))}
         {/* eslint-enable @next/next/no-img-element */}
       </div>
-      <div className="graffiti-hex" aria-hidden="true" />
+      <div className="rumble-texture" aria-hidden="true" />
       <AthleteRouteGuard role={role} />
       <AthleteNav />
+      <div className="flex justify-center pt-2 pb-6">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/rumble/series-logo.png" alt="Rumble Series" className="rumble-hero-logo-sm" />
+      </div>
       <main className="p-4 sm:p-6 lg:p-8">{children}</main>
     </div>
   );

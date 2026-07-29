@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BrandKitLogo } from "@/components/BrandKitLogo";
+import { RumbleBackdrop } from "@/components/RumbleBackdrop";
 import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 import type { Standing, WorkoutResult } from "@/lib/leaderboard";
 
@@ -18,8 +19,9 @@ export default function LeaderboardView({
 }) {
   const [view, setView] = useState<string>("overall");
   const selectedWorkout = workouts.find((w) => w.id === view);
+  const isBigOne = brandKit?.name === "Rumble Big One";
 
-  return (
+  const content = (
     <div className="max-w-2xl mx-auto px-4 py-10 space-y-6" style={brandKitStyle(brandKit)}>
       <div className="text-center">
         <div className="text-lg font-semibold opacity-70">
@@ -120,4 +122,17 @@ export default function LeaderboardView({
       )}
     </div>
   );
+
+  if (isBigOne) {
+    return (
+      <RumbleBackdrop
+        logoSrc={brandKit?.logo_url || "/rumble/series-logo.png"}
+        logoAlt={brandKit?.name || "Rumble Big One"}
+      >
+        <div className="w-full bg-white text-ink rounded-2xl shadow-xl">{content}</div>
+      </RumbleBackdrop>
+    );
+  }
+
+  return content;
 }

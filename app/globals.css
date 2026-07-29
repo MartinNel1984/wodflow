@@ -8,13 +8,29 @@
    gym-red or the amber/gold buttons already used elsewhere in this
    space. Paper is a cool off-white, deliberately not the cream/beige
    that reads as an AI-cliché default. */
-@theme inline {
+/* Colors get a plain (non-inline) @theme block deliberately: "inline"
+   makes Tailwind bake the resolved value directly into each utility
+   class (e.g. `.bg-accent { background-color: #f5470c }`) instead of
+   emitting `var(--color-accent)`. That silently broke every brand
+   kit's accent color sitewide — brandKitStyle()'s runtime
+   --color-accent override on a wrapping element had nothing to
+   attach to, so every "Enter now" button/badge/link rendered
+   Wodflow's default orange regardless of the assigned kit. A plain
+   @theme block keeps the var() reference so the override actually
+   reaches bg-accent/text-accent/border-accent. */
+@theme {
   --color-ink: #16171c;
   --color-paper: #f7f7f4;
   --color-accent: #f5470c;
   --color-volt: #d4ff3f;
   --color-cobalt: #1e5bff;
   --color-magenta: #ff2ec4;
+}
+
+/* Fonts stay in their own @theme inline block — next/font injects a
+   same-named CSS variable via className, and inline mode is what lets
+   the theme token reference that variable without a resolution loop. */
+@theme inline {
   --font-display: var(--font-display), sans-serif;
   --font-sans: var(--font-sans), sans-serif;
   --font-mono: var(--font-mono), monospace;
@@ -365,6 +381,15 @@ button:hover, .hover-lift:hover {
   width: min(92vw, 560px);
   height: auto;
   filter: drop-shadow(0 0 60px color-mix(in srgb, var(--rumble-blue-bright) 45%, transparent));
+}
+
+/* Same full-bright glow treatment as .rumble-hero-logo, sized down for
+   pages that need room for a form/card below the logo (login, portal,
+   registration) rather than the hub's full-viewport hero moment. */
+.rumble-hero-logo-sm {
+  width: min(78vw, 340px);
+  height: auto;
+  filter: drop-shadow(0 0 45px color-mix(in srgb, var(--rumble-blue-bright) 45%, transparent));
 }
 
 .rumble-tagline {

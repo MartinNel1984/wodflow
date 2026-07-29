@@ -117,7 +117,6 @@ export default async function PortalPage() {
     <div className="max-w-2xl mx-auto space-y-8">
       <div className="py-2">
         <h1 className="text-2xl font-semibold">My Wodflow</h1>
-        <p className="text-script text-xl mt-1 text-accent">Feel the flow. Chase the clock.</p>
       </div>
 
       <div className="grid grid-cols-3 gap-3">

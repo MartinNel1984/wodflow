@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Logo } from "@/components/Logo";
+import { RumbleBackdrop } from "@/components/RumbleBackdrop";
 
 export default function AthleteLoginPage() {
   return (
@@ -38,20 +38,12 @@ function AthleteLoginForm() {
   }
 
   return (
-    <div className="graffiti-page min-h-screen flex items-center justify-center">
-      <div className="graffiti-photos" aria-hidden="true">
-        {/* eslint-disable @next/next/no-img-element */}
-        {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
-          <img key={n} src={`/mural/action-${n}.jpg`} alt="" />
-        ))}
-        {/* eslint-enable @next/next/no-img-element */}
-      </div>
-      <div className="graffiti-hex" aria-hidden="true" />
+    <RumbleBackdrop logoSrc="/rumble/series-logo.png" logoAlt="Rumble Series">
       <div className="w-full max-w-sm px-4">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold"><Logo /></h1>
-          <p className="text-script text-lg mt-2 text-accent">Feel the flow. Chase the clock.</p>
-          <p className="mt-1 text-paper/60 text-sm">Athlete sign-in</p>
+          <p className="rumble-headline text-xl" style={{ color: "var(--rumble-blue-bright)" }}>
+            Athlete sign-in
+          </p>
         </div>
         <form
           onSubmit={handleSubmit}
@@ -97,6 +89,6 @@ function AthleteLoginForm() {
           </a>
         </p>
       </div>
-    </div>
+    </RumbleBackdrop>
   );
 }
