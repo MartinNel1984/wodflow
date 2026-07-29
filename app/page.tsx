@@ -75,7 +75,7 @@ export default async function RumbleHubPage() {
           </div>
         ) : (
           <div className="rumble-card text-center">
-            <p className="rumble-display text-xl" style={{ color: "var(--rumble-blue-bright)" }}>
+            <p className="rumble-headline text-xl" style={{ color: "var(--rumble-blue-bright)" }}>
               {event ? `Leaderboard opens ${formatDateRange(event.start_date, null)}` : "Leaderboard opens soon"}
             </p>
             <p className="text-sm mt-2 opacity-70">Check back once The Big One kicks off.</p>

@@ -285,6 +285,10 @@ button:hover, .hover-lift:hover {
   font-family: var(--font-rumble-display), sans-serif;
 }
 
+.rumble-headline {
+  font-family: var(--font-rumble-headline), sans-serif;
+}
+
 .rumble-accent {
   font-family: var(--font-rumble-accent), cursive;
 }
@@ -370,7 +374,7 @@ button:hover, .hover-lift:hover {
 }
 
 .rumble-section-title {
-  font-family: var(--font-rumble-display), sans-serif;
+  font-family: var(--font-rumble-headline), sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-size: 1.5rem;
