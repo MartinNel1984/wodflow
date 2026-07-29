@@ -293,6 +293,14 @@ button:hover, .hover-lift:hover {
   font-family: var(--font-rumble-accent), cursive;
 }
 
+/* CI doc's "optional extra" script (Rockybilly). Not applied to
+   anything on the hub yet — kept ready for whenever a section needs
+   a second, more elegant script alongside .rumble-accent's rougher
+   marker style. */
+.rumble-optional {
+  font-family: var(--font-rumble-optional), cursive;
+}
+
 /* One rising glow in Rumble blue, echoing the CI doc's own logo glow
    rather than wodflow's flame-orange corner light. */
 .rumble-page::before {

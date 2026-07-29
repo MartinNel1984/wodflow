@@ -32,6 +32,13 @@ const rumbleAccent = localFont({
   src: "./fonts/StreetPunksMarker.ttf",
   variable: "--font-rumble-accent",
 });
+// The CI doc's "optional extra" script (also from Nic). Not used
+// anywhere on the hub yet — no current section calls for a 4th
+// typeface — but registered and ready for whenever it's needed.
+const rumbleOptional = localFont({
+  src: "./fonts/Rockybilly.ttf",
+  variable: "--font-rumble-optional",
+});
 
 export const metadata: Metadata = {
   title: "Wodflow",
@@ -42,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${display.variable} ${sans.variable} ${mono.variable} ${script.variable} ${rumbleDisplay.variable} ${rumbleHeadline.variable} ${rumbleAccent.variable}`}
+      className={`${display.variable} ${sans.variable} ${mono.variable} ${script.variable} ${rumbleDisplay.variable} ${rumbleHeadline.variable} ${rumbleAccent.variable} ${rumbleOptional.variable}`}
     >
       <body>{children}</body>
     </html>
