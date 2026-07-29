@@ -52,7 +52,7 @@ Confirmed palettes/fonts directly from the CI doc:
 
 `wodflow.co.za` (root `app/page.tsx`) becomes the Rumble hub — full Rumble branding, no
 wodflow mural styling. The current homepage content (live-events list + athlete/judge/
-organizer sign-in) moves unchanged to `wodflow.co.za/events`, reached via a "Rumble
+organizer sign-in) moves unchanged to `wodflow.co.za/all-events`, reached via a "Rumble
 Series →" CTA on the hub. Registration, leaderboard, judge, and admin routes are
 untouched.
 
@@ -69,7 +69,7 @@ anywhere on this page.
 ## Page sections (top to bottom)
 
 1. **Hero** — as above.
-2. **"Rumble Series" CTA** → `/events`.
+2. **"Rumble Series" CTA** → `/all-events`.
 3. **Leaderboard/Heats** — live data (existing `public_leaderboard` view + heats routes,
    scoped to the Big One's divisions) during event days; a "Leaderboard opens Oct 2nd"
    teaser outside that window. Degrades to the teaser state, never an empty/error table.
@@ -101,7 +101,7 @@ isn't there yet.
 
 ## Testing
 
-- Real browser check of the hub at `/`, the relocated list at `/events`, and that
+- Real browser check of the hub at `/`, the relocated list at `/all-events`, and that
   registration/leaderboard/scoresheet pages for "Rumble in Randburg" now render the
   correct blue Big One branding instead of Indy red/orange.
 - Confirm leaderboard/heats section shows the teaser state now (pre-event) and would

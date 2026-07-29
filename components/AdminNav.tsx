@@ -12,6 +12,7 @@ const links = [
   { href: "/leaderboards", label: "Leaderboard" },
   { href: "/series", label: "Series" },
   { href: "/brand-kits", label: "Brand Kits" },
+  { href: "/hub-photos", label: "Hub Photos" },
   { href: "/judges", label: "Judges" },
   { href: "/settings", label: "Settings" },
 ];

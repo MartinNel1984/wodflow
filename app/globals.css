@@ -260,3 +260,127 @@ button:hover, .hover-lift:hover {
     display: none;
   }
 }
+
+/* ============================================================
+   Rumble Series hub (wodflow.co.za root) — a total Rumble takeover,
+   deliberately its own visual system rather than a reskin of the
+   .graffiti-page mural above. Own palette (real Rumble Series blue,
+   not wodflow's flame-orange), own type (Punch Condensed — the real
+   CI font — plus a bold tag-style accent), own background texture
+   (Rumble's crown/"XX" marks, not wodflow's hex/kettlebell). Nothing
+   from wodflow's own brand should bleed into this page.
+   ============================================================ */
+.rumble-page {
+  --rumble-blue-deep: #2e3192;
+  --rumble-blue: #3552a4;
+  --rumble-blue-bright: #00aeef;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: #0a0b10;
+  color: #f7f9fc;
+}
+
+.rumble-display {
+  font-family: var(--font-rumble-display), sans-serif;
+}
+
+.rumble-accent {
+  font-family: var(--font-rumble-accent), cursive;
+}
+
+/* One rising glow in Rumble blue, echoing the CI doc's own logo glow
+   rather than wodflow's flame-orange corner light. */
+.rumble-page::before {
+  content: "";
+  position: absolute;
+  inset: -15%;
+  z-index: -2;
+  background-image:
+    radial-gradient(ellipse 65% 55% at 12% 100%, color-mix(in srgb, var(--rumble-blue-bright) 55%, transparent) 0%, transparent 62%),
+    radial-gradient(ellipse 45% 40% at 100% 0%, color-mix(in srgb, var(--rumble-blue) 45%, transparent) 0%, transparent 65%);
+  filter: blur(90px) saturate(1.2);
+}
+
+/* Rumble's own crown + "XX" tag-marks tiled as faint background
+   linework — hand-traced from the CI artwork's own crown motif, not
+   wodflow's hex/kettlebell icon. Stroke-only, very low opacity. */
+.rumble-texture {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.5;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='220'%3E%3Cg fill='none' stroke='%2300aeef' stroke-opacity='0.16' stroke-width='3' stroke-linejoin='round'%3E%3Cpath d='M30 90 L20 40 L45 62 L60 30 L75 62 L100 40 L90 90 Z'/%3E%3Cpath d='M60 96 h30'/%3E%3C/g%3E%3Cg fill='none' stroke='%2300aeef' stroke-opacity='0.12' stroke-width='4' stroke-linecap='round'%3E%3Cpath d='M175 150 L195 170 M195 150 L175 170'/%3E%3Cpath d='M210 145 L230 165 M230 145 L210 165'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 260px 220px;
+}
+
+.rumble-hero {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1.25rem;
+}
+
+.rumble-hero-logo {
+  width: min(92vw, 560px);
+  height: auto;
+  filter: drop-shadow(0 0 60px color-mix(in srgb, var(--rumble-blue-bright) 45%, transparent));
+}
+
+.rumble-tagline {
+  font-family: var(--font-rumble-accent), cursive;
+  font-size: clamp(1.5rem, 1.1rem + 1.8vw, 2.5rem);
+  color: var(--rumble-blue-bright);
+  margin-top: 1rem;
+}
+
+.rumble-dates {
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #f7f9fc 70%, transparent);
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.rumble-cta {
+  display: inline-block;
+  margin-top: 2.5rem;
+  padding: 1rem 2.5rem;
+  border-radius: 999px;
+  background: var(--rumble-blue-bright);
+  color: #0a0b10;
+  font-family: var(--font-rumble-display), sans-serif;
+  font-size: 1.25rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  box-shadow: 0 0 40px color-mix(in srgb, var(--rumble-blue-bright) 55%, transparent);
+}
+
+.rumble-section {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem;
+}
+
+.rumble-section-title {
+  font-family: var(--font-rumble-display), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 1.5rem;
+  color: var(--rumble-blue-bright);
+  margin-bottom: 1rem;
+}
+
+.rumble-card {
+  background: color-mix(in srgb, var(--rumble-blue) 22%, #0a0b10);
+  border: 1px solid color-mix(in srgb, var(--rumble-blue-bright) 35%, transparent);
+  border-radius: 1rem;
+  padding: 1.25rem;
+}

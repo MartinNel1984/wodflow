@@ -1,114 +1,150 @@
-import { createClient } from "@/lib/supabase/server";
-import { Logo } from "@/components/Logo";
-import { BrandKitLogo } from "@/components/BrandKitLogo";
-import { brandKitStyle } from "@/lib/brandKit";
+import type { Metadata } from "next";
+import { getRumbleHubData } from "@/lib/rumbleHub";
 
-export default async function Home() {
-  const supabase = await createClient();
-  const { data: events } = await supabase
-    .from("events")
-    .select(
-      "id, name, start_date, end_date, venue_name, description, poster_url, brand_kits(name, logo_url, color_primary, tagline)"
-    )
-    .in("status", ["published", "live"])
-    .order("start_date", { ascending: true });
+export const metadata: Metadata = {
+  title: "Rumble Series | Against The Grain Fitness",
+  description: "Yeeeah! Get Some! The Big One, Oct 2-4 2026 — leaderboard, heats, news and more from the Rumble Series.",
+};
+
+// Otherwise Next prerenders this once at build time and never again —
+// new hub photos, milestone changes, and the live/teaser leaderboard
+// switch on event day would all need a redeploy to show up.
+export const revalidate = 60;
+
+function formatDateRange(start: string, end: string | null): string {
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+  const startDate = new Date(`${start}T00:00:00`);
+  const startStr = startDate.toLocaleDateString("en-ZA", opts).toUpperCase();
+  if (!end || end === start) {
+    return `${startStr}, ${startDate.getFullYear()}`;
+  }
+  const endDate = new Date(`${end}T00:00:00`);
+  const endStr = endDate.toLocaleDateString("en-ZA", opts).toUpperCase();
+  return `${startStr} – ${endStr}, ${endDate.getFullYear()}`;
+}
+
+export default async function RumbleHubPage() {
+  const { event, divisions, isLive, milestones, photos } = await getRumbleHubData();
 
   return (
-    <main className="graffiti-page min-h-screen flex flex-col items-center px-4 py-12">
-      <div className="graffiti-photos" aria-hidden="true">
-        {/* eslint-disable @next/next/no-img-element */}
-        {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
-          <img key={n} src={`/mural/action-${n}.jpg`} alt="" />
-        ))}
-        {/* eslint-enable @next/next/no-img-element */}
-      </div>
-      <div className="graffiti-hex" aria-hidden="true" />
-      <div className="text-center max-w-sm mb-10 py-6">
-        <h1 className="text-3xl font-semibold"><Logo /></h1>
-        <p className="text-script text-2xl mt-3 text-accent">Feel the flow. Chase the clock.</p>
-        <p className="mt-2 text-paper/60 text-sm font-semibold">Competition management for CrossFit events.</p>
-      </div>
+    <main className="rumble-page">
+      <div className="rumble-texture" aria-hidden="true" />
 
-      <div className="w-full max-w-sm space-y-3 mb-10">
-        <h2 className="sticker text-sm">Upcoming events</h2>
-        {(events ?? []).length === 0 && (
-          <p className="text-paper/70 text-sm">No events open for registration right now.</p>
+      {/* ---------- Hero ---------- */}
+      <section className="rumble-hero">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/rumble/series-logo.png" alt="Rumble Series" className="rumble-hero-logo" />
+        <p className="rumble-tagline">Yeeeah! Get Some!</p>
+        {event && (
+          <p className="rumble-dates">
+            {event.name} · {formatDateRange(event.start_date, event.end_date)}
+            {event.venue_name ? ` · ${event.venue_name}` : ""}
+          </p>
         )}
-        {(events ?? []).map((e) => {
-          const kit = Array.isArray(e.brand_kits) ? e.brand_kits[0] : e.brand_kits;
+        <a href="/all-events" className="rumble-cta rumble-display">
+          Rumble Series →
+        </a>
+      </section>
 
-          if (!e.poster_url) {
-            return (
-              <a
-                key={e.id}
-                href={`/register/${e.id}`}
-                style={brandKitStyle(kit)}
-                className="flex items-center gap-3 bg-white text-ink border-2 border-ink rounded-xl px-4 py-3 hover-lift"
-              >
-                {kit?.logo_url && <BrandKitLogo kit={kit} className="h-8 shrink-0" />}
-                <div className="flex-1">
-                  <p className="font-semibold">{e.name}</p>
-                  <p className="text-ink/60 text-sm">
-                    {e.start_date}
-                    {e.end_date ? ` – ${e.end_date}` : ""}
-                    {e.venue_name ? ` · ${e.venue_name}` : ""}
-                  </p>
-                  {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
+      {/* ---------- Leaderboard / Heats ---------- */}
+      <section className="rumble-section">
+        <h2 className="rumble-section-title">Leaderboard &amp; Heats</h2>
+        {isLive && event && divisions.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3">
+            {divisions.map((d) => (
+              <div key={d.id} className="rumble-card flex items-center justify-between gap-3">
+                <span className="font-semibold">{d.name}</span>
+                <div className="flex gap-2 shrink-0">
+                  <a
+                    href={`/leaderboard/${d.id}`}
+                    className="rumble-display text-sm px-3 py-1.5 rounded-full"
+                    style={{ background: "var(--rumble-blue-bright)", color: "#0a0b10" }}
+                  >
+                    Leaderboard
+                  </a>
+                  <a
+                    href={`/heats/${d.id}`}
+                    className="rumble-display text-sm px-3 py-1.5 rounded-full border"
+                    style={{ borderColor: "var(--rumble-blue-bright)", color: "var(--rumble-blue-bright)" }}
+                  >
+                    Heats
+                  </a>
                 </div>
-                <span className="shrink-0 bg-accent text-white text-xs font-semibold uppercase tracking-wider rounded-full px-3 py-1.5">
-                  Enter now →
-                </span>
-              </a>
-            );
-          }
-
-          return (
-            <a
-              key={e.id}
-              href={`/register/${e.id}`}
-              style={brandKitStyle(kit)}
-              className="block bg-white text-ink border-2 border-ink rounded-xl overflow-hidden hover-lift animate-settle-in"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={e.poster_url} alt={e.name} className="w-full aspect-video object-cover" />
-              <div className="px-4 py-3">
-                <p className="font-semibold">{e.name}</p>
-                <p className="text-ink/60 text-sm font-data">
-                  {e.start_date}
-                  {e.end_date ? ` – ${e.end_date}` : ""}
-                  {e.venue_name ? ` · ${e.venue_name}` : ""}
-                </p>
-                {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
-                {e.description && <p className="text-ink/70 text-sm mt-2 line-clamp-3">{e.description}</p>}
-                <span className="mt-3 inline-block bg-accent text-white text-xs font-semibold uppercase tracking-wider rounded-full px-3 py-1.5">
-                  Enter now →
-                </span>
               </div>
-            </a>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rumble-card text-center">
+            <p className="rumble-display text-xl" style={{ color: "var(--rumble-blue-bright)" }}>
+              {event ? `Leaderboard opens ${formatDateRange(event.start_date, null)}` : "Leaderboard opens soon"}
+            </p>
+            <p className="text-sm mt-2 opacity-70">Check back once The Big One kicks off.</p>
+          </div>
+        )}
+      </section>
 
-      <div className="w-full max-w-sm flex flex-col gap-2">
-        <a
-          href="/athlete-login"
-          className="bg-accent text-white rounded-lg py-3 text-sm font-semibold hover-lift text-center border-2 border-paper"
-        >
-          Athlete sign-in
-        </a>
-        <a
-          href="/judge-login"
-          className="bg-cobalt text-white rounded-lg py-3 text-sm font-semibold hover-lift text-center border-2 border-paper"
-        >
-          Judge sign-in
-        </a>
-        <a
-          href="/login"
-          className="bg-white text-ink border-2 border-paper rounded-lg py-3 text-sm font-semibold hover-lift text-center"
-        >
+      {/* ---------- News ---------- */}
+      <section className="rumble-section">
+        <h2 className="rumble-section-title">News</h2>
+        <ul className="space-y-2">
+          {milestones.registrationOpen && (
+            <li className="rumble-card">Registration is open — grab your team's spot.</li>
+          )}
+          {milestones.heatsReleased && <li className="rumble-card">Heats have been released.</li>}
+          {milestones.resultsLive && <li className="rumble-card">Results are live on the leaderboard.</li>}
+          {!milestones.registrationOpen && (
+            <li className="rumble-card opacity-70">No news yet — check back closer to the event.</li>
+          )}
+        </ul>
+      </section>
+
+      {/* ---------- Photo carousel ---------- */}
+      {photos.length > 0 && (
+        <section className="rumble-section">
+          <h2 className="rumble-section-title">From the Floor</h2>
+          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1">
+            {photos.map((p) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={p.id}
+                src={p.image_url}
+                alt={p.caption ?? ""}
+                className="h-56 w-auto rounded-xl object-cover snap-center shrink-0"
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ---------- Social ---------- */}
+      <section className="rumble-section text-center">
+        <h2 className="rumble-section-title">Follow the Rumble</h2>
+        <div className="flex justify-center gap-3">
+          <a
+            href="https://instagram.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rumble-card px-5 py-2.5 text-sm font-semibold"
+          >
+            Instagram
+          </a>
+          <a
+            href="https://facebook.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rumble-card px-5 py-2.5 text-sm font-semibold"
+          >
+            Facebook
+          </a>
+        </div>
+      </section>
+
+      {/* ---------- Footer ---------- */}
+      <footer className="rumble-section text-center text-xs opacity-50 pb-10">
+        <a href="/login" className="underline">
           Organizer sign-in
         </a>
-      </div>
+      </footer>
     </main>
   );
 }
