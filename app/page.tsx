@@ -49,7 +49,7 @@ export default async function RumbleHubPage() {
           </p>
         )}
         <a href="/all-events" className="rumble-cta rumble-display">
-          Rumble Series →
+          Enter Rumble Series →
         </a>
       </section>
 

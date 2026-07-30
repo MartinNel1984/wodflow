@@ -446,12 +446,12 @@ button:hover, .hover-lift:hover {
 .rumble-cta {
   display: inline-block;
   margin-top: 2.5rem;
-  padding: 1rem 2.5rem;
+  padding: 1.25rem 3rem;
   border-radius: 999px;
   background: var(--rumble-blue-bright);
   color: #0a0b10;
   font-family: var(--font-rumble-display), sans-serif;
-  font-size: 1.25rem;
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   box-shadow: 0 0 40px color-mix(in srgb, var(--rumble-blue-bright) 55%, transparent);
