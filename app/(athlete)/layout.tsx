@@ -37,7 +37,7 @@ export default async function AthleteLayout({ children }: { children: React.Reac
       <AthleteNav />
       <div className="flex justify-center pt-2 pb-6">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/rumble/series-logo.png" alt="Rumble Series" className="rumble-hero-logo-sm" />
+        <img src="/rumble/series-logo-v2.png" alt="Rumble Series" className="rumble-hero-logo-sm" />
       </div>
       <main className="p-4 sm:p-6 lg:p-8">{children}</main>
     </div>

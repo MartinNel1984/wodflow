@@ -126,7 +126,7 @@ export default function LeaderboardView({
   if (isBigOne) {
     return (
       <RumbleBackdrop
-        logoSrc={brandKit?.logo_url || "/rumble/series-logo.png"}
+        logoSrc={brandKit?.logo_url || "/rumble/series-logo-v2.png"}
         logoAlt={brandKit?.name || "Rumble Big One"}
       >
         <div className="w-full bg-white text-ink rounded-2xl shadow-xl">{content}</div>

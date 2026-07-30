@@ -40,7 +40,7 @@ export default async function RumbleHubPage() {
       {/* ---------- Hero ---------- */}
       <section className="rumble-hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/rumble/series-logo.png" alt="Rumble Series" className="rumble-hero-logo" />
+        <img src="/rumble/series-logo-v2.png" alt="Rumble Series" className="rumble-hero-logo" />
         <p className="rumble-tagline">Yeeeah! Get Some!</p>
         {event && (
           <p className="rumble-dates">

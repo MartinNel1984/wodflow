@@ -38,7 +38,7 @@ function AthleteLoginForm() {
   }
 
   return (
-    <RumbleBackdrop logoSrc="/rumble/series-logo.png" logoAlt="Rumble Series">
+    <RumbleBackdrop logoSrc="/rumble/series-logo-v2.png" logoAlt="Rumble Series">
       <div className="w-full max-w-sm px-4">
         <div className="mb-8 text-center">
           <p className="rumble-headline text-xl" style={{ color: "var(--rumble-blue-bright)" }}>
