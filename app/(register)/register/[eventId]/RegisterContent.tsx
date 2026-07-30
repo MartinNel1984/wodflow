@@ -239,7 +239,7 @@ export default function RegisterContent() {
 
   const content = (
     <div className="max-w-xl mx-auto px-4 py-10 space-y-8" style={brandKitStyle(brandKit)}>
-      {posterUrl && (
+      {posterUrl && !isBigOne && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={posterUrl}
