@@ -28,6 +28,7 @@ jobs:
               "profiles",
               "events",
               "brand_kits",
+              "hub_photos",
               "series",
               "series_events",
               "divisions",
