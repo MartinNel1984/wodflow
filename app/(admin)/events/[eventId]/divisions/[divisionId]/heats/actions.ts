@@ -124,7 +124,12 @@ export async function moveAssignment(formData: FormData) {
     .from("heat_assignments")
     .update({ heat_id: newHeatId, lane_number: newLaneNumber })
     .eq("id", assignmentId);
-  if (error) throw error;
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error(`Lane ${newLaneNumber} is already taken in that heat — pick a free lane.`);
+    }
+    throw error;
+  }
 
   revalidatePath(`/events/${eventId}/divisions/${divisionId}/heats`);
 }

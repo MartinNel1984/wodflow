@@ -214,7 +214,17 @@ export default async function HeatsPage({
                           <input type="hidden" name="eventId" value={eventId} />
                           <input type="hidden" name="divisionId" value={divisionId} />
                           <input type="hidden" name="assignmentId" value={a.id} />
-                          <input type="hidden" name="heatId" value={heat.id} />
+                          <select
+                            name="heatId"
+                            defaultValue={heat.id}
+                            className="text-xs border border-ink/10 rounded px-1 py-0.5"
+                          >
+                            {allHeats.map((h) => (
+                              <option key={h.id} value={h.id}>
+                                Heat {h.heat_number}
+                              </option>
+                            ))}
+                          </select>
                           <input
                             type="number"
                             name="laneNumber"
