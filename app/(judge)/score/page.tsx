@@ -55,7 +55,6 @@ export default function ScorePage() {
   const [freeTextWorkoutId, setFreeTextWorkoutId] = useState("WOD1");
   const [values, setValues] = useState<Record<string, string>>({});
   const [tiebreakValues, setTiebreakValues] = useState<Record<string, string>>({});
-  const [rxScaledByLane, setRxScaledByLane] = useState<Record<string, "rx" | "scaled">>({});
   // For time-scored divisions: whether the judge is recording a finish
   // time or a rep count for an athlete who was capped out before finishing.
   const [modeByLane, setModeByLane] = useState<Record<string, "finished" | "capped">>({});
@@ -261,7 +260,7 @@ export default function ScorePage() {
       const supabase = createClient();
       const { data } = await supabase
         .from("latest_scores")
-        .select("heat_assignment_id, value_raw, rx_or_scaled, tiebreak_value")
+        .select("heat_assignment_id, value_raw, tiebreak_value")
         .eq("workout_id", workoutLabel)
         .in(
           "heat_assignment_id",
@@ -270,7 +269,6 @@ export default function ScorePage() {
 
       const nextValues: Record<string, string> = {};
       const nextTiebreak: Record<string, string> = {};
-      const nextRx: Record<string, "rx" | "scaled"> = {};
       const nextMode: Record<string, "finished" | "capped"> = {};
       const scored = new Set<string>();
 
@@ -288,7 +286,6 @@ export default function ScorePage() {
         scored.add(row.heat_assignment_id);
         nextValues[row.heat_assignment_id] = formatted.display;
         nextMode[row.heat_assignment_id] = formatted.mode;
-        if (row.rx_or_scaled) nextRx[row.heat_assignment_id] = row.rx_or_scaled;
         if (row.tiebreak_value) {
           const tb = formatRaw(row.tiebreak_value as { time_seconds?: number; reps?: number });
           if (tb) nextTiebreak[row.heat_assignment_id] = tb.display;
@@ -297,7 +294,6 @@ export default function ScorePage() {
 
       setValues(nextValues);
       setTiebreakValues(nextTiebreak);
-      setRxScaledByLane(nextRx);
       setModeByLane(nextMode);
       setSavedLanes(new Set(scored));
       setScoredLanes(scored);
@@ -345,7 +341,7 @@ export default function ScorePage() {
       heatAssignmentId: lane.heatAssignmentId,
       workoutId: selectedWorkout?.name ?? freeTextWorkoutId,
       workoutRefId: selectedWorkout?.id ?? null,
-      rxOrScaled: rxScaledByLane[lane.heatAssignmentId] ?? "rx",
+      rxOrScaled: null,
       tiebreakValue,
       valueRaw,
     });
@@ -454,24 +450,6 @@ export default function ScorePage() {
                         >
                           {scoredLanes.has(lane.heatAssignmentId) ? "Scored" : "No score yet"}
                         </p>
-                      </div>
-                      <div className="flex text-xs border border-ink/10 rounded-lg overflow-hidden">
-                        {(["rx", "scaled"] as const).map((opt) => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() =>
-                              setRxScaledByLane((prev) => ({ ...prev, [lane.heatAssignmentId]: opt }))
-                            }
-                            className={`px-2 py-1 ${
-                              (rxScaledByLane[lane.heatAssignmentId] ?? "rx") === opt
-                                ? "bg-accent text-white"
-                                : "bg-white text-ink/60"
-                            }`}
-                          >
-                            {opt === "rx" ? "RX" : "Scaled"}
-                          </button>
-                        ))}
                       </div>
                     </div>
 

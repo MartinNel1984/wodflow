@@ -71,7 +71,7 @@ export default async function HeatsPage({
   const { data: latestScoreRows } = allAssignmentIds.length
     ? await supabase
         .from("latest_scores")
-        .select("id, heat_assignment_id, workout_id, workout_ref_id, value_raw, rx_or_scaled, submitted_at")
+        .select("id, heat_assignment_id, workout_id, workout_ref_id, value_raw, submitted_at")
         .in("heat_assignment_id", allAssignmentIds)
     : { data: [] as never[] };
   const scoreByAssignment = new Map(
@@ -262,14 +262,6 @@ export default async function HeatsPage({
                                 defaultValue={score ? scoreInputDefault(score.value_raw as ValueRaw, scoringType) : ""}
                                 className="w-20 border border-ink/10 rounded px-2 py-1 text-xs"
                               />
-                              <select
-                                name="rxOrScaled"
-                                defaultValue={score?.rx_or_scaled ?? "rx"}
-                                className="border border-ink/10 rounded px-1 py-1 text-xs"
-                              >
-                                <option value="rx">RX</option>
-                                <option value="scaled">Scaled</option>
-                              </select>
                               <button type="submit" className="text-xs bg-accent text-white rounded px-2 py-1 font-semibold">
                                 Save
                               </button>

@@ -150,7 +150,6 @@ export async function correctScore(formData: FormData) {
   const workoutRefId = String(formData.get("workoutRefId") ?? "") || null;
   const scoringType = String(formData.get("scoringType") ?? "time");
   const rawValue = String(formData.get("value") ?? "").trim();
-  const rxOrScaled = String(formData.get("rxOrScaled") ?? "rx");
   if (!heatAssignmentId || !workoutId || !rawValue || !user) return;
 
   let valueRaw: Record<string, unknown>;
@@ -168,7 +167,6 @@ export async function correctScore(formData: FormData) {
     heat_assignment_id: heatAssignmentId,
     workout_id: workoutId,
     workout_ref_id: workoutRefId,
-    rx_or_scaled: rxOrScaled,
     value_raw: valueRaw,
     submitted_by: user.id,
     client_submission_id: crypto.randomUUID(),

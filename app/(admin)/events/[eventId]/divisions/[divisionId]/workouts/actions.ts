@@ -33,8 +33,13 @@ export async function createWorkout(formData: FormData) {
   const pointsMethod = String(formData.get("pointsMethod") ?? "");
   const winnerPoints = num("winnerPoints");
   const gapPoints = num("gapPoints");
+  // Typing a points value is itself the signal to override — the
+  // pointsMethod dropdown alone used to gate this, so an admin who
+  // filled in "Points for 1st" but forgot to also flip the dropdown
+  // had their number silently discarded in favor of the division
+  // default, with no error or feedback.
   const scoringConfig =
-    pointsMethod === "gap_formula"
+    pointsMethod === "gap_formula" || winnerPoints != null || gapPoints != null
       ? {
           method: "gap_formula",
           ...(winnerPoints != null ? { winner_points: winnerPoints } : {}),
@@ -89,8 +94,13 @@ export async function updateWorkout(formData: FormData) {
   const pointsMethod = String(formData.get("pointsMethod") ?? "");
   const winnerPoints = num("winnerPoints");
   const gapPoints = num("gapPoints");
+  // Typing a points value is itself the signal to override — the
+  // pointsMethod dropdown alone used to gate this, so an admin who
+  // filled in "Points for 1st" but forgot to also flip the dropdown
+  // had their number silently discarded in favor of the division
+  // default, with no error or feedback.
   const scoringConfig =
-    pointsMethod === "gap_formula"
+    pointsMethod === "gap_formula" || winnerPoints != null || gapPoints != null
       ? {
           method: "gap_formula",
           ...(winnerPoints != null ? { winner_points: winnerPoints } : {}),
