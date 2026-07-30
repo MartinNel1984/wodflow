@@ -120,7 +120,7 @@ export default async function RumbleHubPage() {
         <h2 className="rumble-section-title">Follow the Rumble</h2>
         <div className="flex justify-center gap-3">
           <a
-            href="https://instagram.com"
+            href="https://www.instagram.com/rumble_inrandburg/"
             target="_blank"
             rel="noopener noreferrer"
             className="rumble-card px-5 py-2.5 text-sm font-semibold"
@@ -128,7 +128,7 @@ export default async function RumbleHubPage() {
             Instagram
           </a>
           <a
-            href="https://facebook.com"
+            href="https://www.facebook.com/randburgrumble"
             target="_blank"
             rel="noopener noreferrer"
             className="rumble-card px-5 py-2.5 text-sm font-semibold"
