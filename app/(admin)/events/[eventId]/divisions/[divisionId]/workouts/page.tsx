@@ -339,7 +339,12 @@ export default async function WorkoutsPage({
         <h2 className="font-semibold">New workout</h2>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Name" name="name" required placeholder="Love 8 Relationship" />
-          <Field label="Order" name="sequence" type="number" defaultValue="1" />
+          <Field
+            label="Order"
+            name="sequence"
+            type="number"
+            defaultValue={String(((workouts ?? []).at(-1)?.sequence ?? 0) + 1)}
+          />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Time cap (minutes)" name="capMinutes" type="number" placeholder="14" />
