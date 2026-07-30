@@ -1,4 +1,4 @@
-import { BackLink } from "@/components/BackLink";
+import { BackLink, BackHistoryLink } from "@/components/BackLink";
 
 // Full-bright Rumble hero treatment, reused across athlete auth/portal
 // pages and any page for an event branded with a Rumble kit — same
@@ -8,23 +8,29 @@ import { BackLink } from "@/components/BackLink";
 //
 // backHref/backLabel are opt-in (not every page using this backdrop
 // should offer one — e.g. register confirmation shouldn't invite
-// backing out of a completed registration).
+// backing out of a completed registration). Pages reachable from
+// several different parents should set useHistoryBack instead, so
+// the button returns to wherever the visitor actually came from
+// rather than always landing on backHref.
 export function RumbleBackdrop({
   logoSrc,
   logoAlt,
   backHref,
   backLabel,
+  useHistoryBack,
   children,
 }: {
   logoSrc: string;
   logoAlt: string;
   backHref?: string;
   backLabel?: string;
+  useHistoryBack?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div className="rumble-page min-h-screen">
-      {backHref && <BackLink href={backHref} label={backLabel} />}
+      {backHref && useHistoryBack && <BackHistoryLink fallbackHref={backHref} label={backLabel} />}
+      {backHref && !useHistoryBack && <BackLink href={backHref} label={backLabel} />}
       <div className="rumble-photos" aria-hidden="true">
         {/* eslint-disable @next/next/no-img-element */}
         {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (

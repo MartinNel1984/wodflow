@@ -129,6 +129,7 @@ export default function LeaderboardView({
         logoSrc={brandKit?.logo_url || "/rumble/series-logo-v2.png"}
         logoAlt={brandKit?.name || "Rumble Big One"}
         backHref="/"
+        useHistoryBack
       >
         <div className="w-full max-w-2xl bg-white text-ink rounded-2xl shadow-xl">{content}</div>
       </RumbleBackdrop>
