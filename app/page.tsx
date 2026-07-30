@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getRumbleHubData } from "@/lib/rumbleHub";
+import { Logo } from "@/components/Logo";
 
 export const metadata: Metadata = {
   title: "Rumble Series | Against The Grain Fitness",
@@ -147,10 +148,14 @@ export default async function RumbleHubPage() {
       </section>
 
       {/* ---------- Footer ---------- */}
-      <footer className="rumble-section text-center text-xs opacity-50 pb-10">
+      <footer className="rumble-section text-center text-xs opacity-50 pb-10 space-y-3">
         <a href="/login" className="underline">
           Organizer sign-in
         </a>
+        <div className="pt-3">
+          <div className="text-base font-semibold opacity-70"><Logo /></div>
+          <p className="mt-1 opacity-70">Infrastructure managed by Wodflow</p>
+        </div>
       </footer>
     </main>
   );
