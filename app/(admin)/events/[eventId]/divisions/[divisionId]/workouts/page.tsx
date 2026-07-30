@@ -106,7 +106,7 @@ export default async function WorkoutsPage({
                     {w.sequence}. {w.name}
                   </p>
                   <p className="text-ink/60 text-sm">
-                    {w.scoring_type === "time" ? "For time" : "Max reps"}
+                    {w.scoring_type === "time" ? "For time" : w.scoring_type === "load" ? "For weight" : "Max reps"}
                     {w.cap_seconds ? ` · ${Math.round(w.cap_seconds / 60)} min cap` : ""}
                     {w.tiebreak_enabled ? " · tiebreak on" : ""}
                     {w.lane_count ? ` · ${w.lane_count} lanes` : ""}
@@ -154,6 +154,7 @@ export default async function WorkoutsPage({
                           >
                             <option value="time">For time</option>
                             <option value="reps">Max reps</option>
+                            <option value="load">For weight</option>
                           </select>
                         </div>
                       </div>
@@ -357,6 +358,7 @@ export default async function WorkoutsPage({
             >
               <option value="time">For time</option>
               <option value="reps">Max reps</option>
+              <option value="load">For weight</option>
             </select>
           </div>
         </div>

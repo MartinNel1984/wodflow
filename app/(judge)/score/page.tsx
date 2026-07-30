@@ -19,7 +19,7 @@ type HeatOption = {
 type Workout = {
   id: string;
   name: string;
-  scoringType: "time" | "reps";
+  scoringType: "time" | "reps" | "load";
   tiebreakEnabled: boolean;
 };
 
@@ -514,7 +514,9 @@ export default function ScorePage() {
                         <span className="text-xs text-ink/50">Tiebreak</span>
                         <input
                           type="text"
-                          placeholder={activeScoringType === "time" ? "mm:ss" : "reps"}
+                          placeholder={
+                            activeScoringType === "time" ? "mm:ss" : activeScoringType === "load" ? "kg" : "reps"
+                          }
                           value={tiebreakValues[lane.heatAssignmentId] ?? ""}
                           onChange={(e) =>
                             setTiebreakValues((prev) => ({ ...prev, [lane.heatAssignmentId]: e.target.value }))
