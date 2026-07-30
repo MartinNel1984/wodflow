@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BrandKitLogo } from "@/components/BrandKitLogo";
 import { RumbleBackdrop } from "@/components/RumbleBackdrop";
+import { BackLink } from "@/components/BackLink";
 import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 import { currentPrice } from "@/lib/pricing";
 
@@ -437,13 +438,19 @@ export default function RegisterContent() {
       <RumbleBackdrop
         logoSrc={brandKit?.logo_url || "/rumble/series-logo-v2.png"}
         logoAlt={brandKit?.name || "Rumble Big One"}
+        backHref="/all-events"
       >
         <div className="w-full max-w-xl bg-white text-ink rounded-2xl shadow-xl">{content}</div>
       </RumbleBackdrop>
     );
   }
 
-  return content;
+  return (
+    <>
+      <BackLink href="/all-events" />
+      {content}
+    </>
+  );
 }
 
 function Field({

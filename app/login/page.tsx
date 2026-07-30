@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
+import { BackLink } from "@/components/BackLink";
 
 // Organizer login. Athletes don't use this page — they sign up as
 // part of the registration wizard instead.
@@ -39,6 +40,7 @@ export default function LoginPage() {
 
   return (
     <div className="graffiti-page min-h-screen flex items-center justify-center">
+      <BackLink href="/all-events" />
       <div className="graffiti-photos" aria-hidden="true">
         {/* eslint-disable @next/next/no-img-element */}
         {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (

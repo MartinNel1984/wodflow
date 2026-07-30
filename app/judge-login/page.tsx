@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
+import { BackLink } from "@/components/BackLink";
 
 type Judge = {
   id: string;
@@ -88,6 +89,7 @@ export default function JudgeLoginPage() {
 
   return (
     <div className="graffiti-page min-h-screen flex items-center justify-center">
+      <BackLink href="/all-events" />
       <div className="graffiti-photos" aria-hidden="true">
         {/* eslint-disable @next/next/no-img-element */}
         {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (

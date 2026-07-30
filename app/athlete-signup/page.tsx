@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/Logo";
+import { BackLink } from "@/components/BackLink";
 
 export default function AthleteSignupPage() {
   return (
@@ -50,6 +51,7 @@ function AthleteSignupForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-paper py-10">
+      <BackLink href="/athlete-login" />
       <div className="w-full max-w-sm px-4">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-semibold"><Logo /></h1>
