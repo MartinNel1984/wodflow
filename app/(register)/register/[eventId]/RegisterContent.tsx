@@ -438,7 +438,7 @@ export default function RegisterContent() {
         logoSrc={brandKit?.logo_url || "/rumble/series-logo-v2.png"}
         logoAlt={brandKit?.name || "Rumble Big One"}
       >
-        <div className="w-full bg-white text-ink rounded-2xl shadow-xl">{content}</div>
+        <div className="w-full max-w-xl bg-white text-ink rounded-2xl shadow-xl">{content}</div>
       </RumbleBackdrop>
     );
   }

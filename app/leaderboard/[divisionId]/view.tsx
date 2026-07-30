@@ -130,7 +130,7 @@ export default function LeaderboardView({
         logoAlt={brandKit?.name || "Rumble Big One"}
         backHref="/"
       >
-        <div className="w-full bg-white text-ink rounded-2xl shadow-xl">{content}</div>
+        <div className="w-full max-w-2xl bg-white text-ink rounded-2xl shadow-xl">{content}</div>
       </RumbleBackdrop>
     );
   }
