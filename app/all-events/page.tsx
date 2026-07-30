@@ -31,13 +31,8 @@ export default async function EventsPage() {
         {/* eslint-enable @next/next/no-img-element */}
       </div>
       <div className="rumble-texture" aria-hidden="true" />
-      <div className="text-center max-w-sm mb-10 py-6">
-        <h1 className="text-3xl font-semibold"><Logo /></h1>
-        <p className="text-script text-2xl mt-3 text-accent">Feel the flow. Chase the clock.</p>
-        <p className="mt-2 text-paper/60 text-sm font-semibold">Competition management for CrossFit events.</p>
-      </div>
 
-      <div className="w-full max-w-sm space-y-3 mb-10">
+      <div className="w-full max-w-sm space-y-3 mb-10 mt-6">
         <h2 className="sticker text-sm">Upcoming events</h2>
         {(events ?? []).length === 0 && (
           <p className="text-paper/70 text-sm">No events open for registration right now.</p>
@@ -116,6 +111,11 @@ export default async function EventsPage() {
         >
           Organizer sign-in
         </a>
+      </div>
+
+      <div className="text-center mt-auto pt-10">
+        <div className="text-base font-semibold opacity-60"><Logo /></div>
+        <p className="mt-1 text-paper/40 text-xs">Infrastructure managed by Wodflow</p>
       </div>
     </main>
   );
