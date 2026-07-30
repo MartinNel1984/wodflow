@@ -375,7 +375,7 @@ button:hover, .hover-lift:hover {
   opacity: 0.5;
   pointer-events: none;
   background-image: url("/rumble/texture-smiley-tile.png");
-  background-size: 240px 274px;
+  background-size: 480px 548px;
 }
 
 /* Faint real event-photo collage behind everything, the way an actual
