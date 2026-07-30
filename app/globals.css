@@ -360,17 +360,18 @@ button:hover, .hover-lift:hover {
   filter: blur(90px) saturate(1.2);
 }
 
-/* Rumble's own crown + "XX" tag-marks tiled as faint background
-   linework — hand-traced from the CI artwork's own crown motif, not
-   wodflow's hex/kettlebell icon. */
+/* Rumble's own winking-smiley mascot (from the CI doc's crown/smiley
+   lockup, minus the crown so it reads clean at tile scale) tiled as
+   faint background linework — replaces the earlier crown + "XX"
+   tag-mark tile with the mascot itself. */
 .rumble-texture {
   position: absolute;
   inset: 0;
   z-index: -1;
   opacity: 0.8;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='220'%3E%3Cg fill='none' stroke='%2300aeef' stroke-opacity='0.28' stroke-width='3' stroke-linejoin='round'%3E%3Cpath d='M30 90 L20 40 L45 62 L60 30 L75 62 L100 40 L90 90 Z'/%3E%3Cpath d='M60 96 h30'/%3E%3C/g%3E%3Cg fill='none' stroke='%2300aeef' stroke-opacity='0.22' stroke-width='4' stroke-linecap='round'%3E%3Cpath d='M175 150 L195 170 M195 150 L175 170'/%3E%3Cpath d='M210 145 L230 165 M230 145 L210 165'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 260px 220px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg fill='none' stroke='%2300aeef' stroke-opacity='0.26' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='100' cy='100' r='36'/%3E%3Cellipse cx='85' cy='90' rx='5' ry='9'/%3E%3Cpath d='M108 83 Q124 78 133 89'/%3E%3Cpath d='M72 108 Q100 134 128 105'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 200px 200px;
 }
 
 /* Faint real event-photo collage behind everything, the way an actual
