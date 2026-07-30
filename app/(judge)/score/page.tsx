@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { enqueueScore, syncPendingScores, getAllPending, type PendingScore } from "@/lib/offline-queue";
-import { parseTime } from "@/lib/scoring";
+import { parseTime, formatTime } from "@/lib/scoring";
 import { setHeatStatus } from "./actions";
 
 type HeatOption = {
@@ -60,6 +60,7 @@ export default function ScorePage() {
   // time or a rep count for an athlete who was capped out before finishing.
   const [modeByLane, setModeByLane] = useState<Record<string, "finished" | "capped">>({});
   const [savedLanes, setSavedLanes] = useState<Set<string>>(new Set());
+  const [scoredLanes, setScoredLanes] = useState<Set<string>>(new Set());
   const [confirmingLanes, setConfirmingLanes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -202,6 +203,7 @@ export default function ScorePage() {
       setValues({});
       setTiebreakValues({});
       setSavedLanes(new Set());
+      setScoredLanes(new Set());
 
       const mappedWorkouts: Workout[] = (workoutRows ?? []).map((w) => ({
         id: w.id,
@@ -242,6 +244,66 @@ export default function ScorePage() {
   // to the division default only when no specific workout is selected yet
   // (the free-text workout-label path).
   const activeScoringType = selectedWorkout?.scoringType ?? selectedHeat?.scoringType ?? "time";
+  const workoutLabel = selectedWorkout?.name ?? freeTextWorkoutId;
+
+  // Pull any already-recorded score per lane for the current heat +
+  // workout so the head judge can see (and correct) an existing entry
+  // instead of a blank form, and so lanes with nothing entered yet are
+  // visibly flagged as missing. latest_scores is keyed by
+  // (heat_assignment_id, workout_id) — workout_id is the free-text
+  // label, matching what submitLane below writes.
+  useEffect(() => {
+    async function loadExistingScores() {
+      if (!selectedHeatId || lanes.length === 0) {
+        setScoredLanes(new Set());
+        return;
+      }
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("latest_scores")
+        .select("heat_assignment_id, value_raw, rx_or_scaled, tiebreak_value")
+        .eq("workout_id", workoutLabel)
+        .in(
+          "heat_assignment_id",
+          lanes.map((l) => l.heatAssignmentId)
+        );
+
+      const nextValues: Record<string, string> = {};
+      const nextTiebreak: Record<string, string> = {};
+      const nextRx: Record<string, "rx" | "scaled"> = {};
+      const nextMode: Record<string, "finished" | "capped"> = {};
+      const scored = new Set<string>();
+
+      function formatRaw(raw: { time_seconds?: number; reps?: number; load_kg?: number }) {
+        if (raw.time_seconds != null) return { display: formatTime(raw.time_seconds), mode: "finished" as const };
+        if (raw.reps != null) return { display: String(raw.reps), mode: "capped" as const };
+        if (raw.load_kg != null) return { display: String(raw.load_kg), mode: "finished" as const };
+        return null;
+      }
+
+      for (const row of data ?? []) {
+        const raw = row.value_raw as { time_seconds?: number; reps?: number; load_kg?: number };
+        const formatted = formatRaw(raw);
+        if (!formatted) continue;
+        scored.add(row.heat_assignment_id);
+        nextValues[row.heat_assignment_id] = formatted.display;
+        nextMode[row.heat_assignment_id] = formatted.mode;
+        if (row.rx_or_scaled) nextRx[row.heat_assignment_id] = row.rx_or_scaled;
+        if (row.tiebreak_value) {
+          const tb = formatRaw(row.tiebreak_value as { time_seconds?: number; reps?: number });
+          if (tb) nextTiebreak[row.heat_assignment_id] = tb.display;
+        }
+      }
+
+      setValues(nextValues);
+      setTiebreakValues(nextTiebreak);
+      setRxScaledByLane(nextRx);
+      setModeByLane(nextMode);
+      setSavedLanes(new Set(scored));
+      setScoredLanes(scored);
+    }
+    loadExistingScores();
+  }, [selectedHeatId, lanes, workoutLabel]);
 
   function parseValueForType(raw: string, scoringType: string, mode: "finished" | "capped") {
     if (scoringType === "time") {
@@ -367,6 +429,13 @@ export default function ScorePage() {
                 />
               )}
 
+              {lanes.length > 0 && (
+                <p className="text-center text-xs text-ink/50">
+                  {scoredLanes.size} of {lanes.length} scored
+                  {scoredLanes.size < lanes.length ? ` — ${lanes.length - scoredLanes.size} missing` : ""}
+                </p>
+              )}
+
               <div className="space-y-3">
                 {lanes.map((lane, i) => (
                   <div
@@ -378,6 +447,13 @@ export default function ScorePage() {
                       <div>
                         <p className="font-data font-bold text-sm text-accent">Lane {lane.laneNumber}</p>
                         <p className="text-ink/60 text-sm">{lane.displayName}</p>
+                        <p
+                          className={`text-[10px] uppercase tracking-wide font-semibold ${
+                            scoredLanes.has(lane.heatAssignmentId) ? "text-emerald-600" : "text-red-500"
+                          }`}
+                        >
+                          {scoredLanes.has(lane.heatAssignmentId) ? "Scored" : "No score yet"}
+                        </p>
                       </div>
                       <div className="flex text-xs border border-ink/10 rounded-lg overflow-hidden">
                         {(["rx", "scaled"] as const).map((opt) => (
