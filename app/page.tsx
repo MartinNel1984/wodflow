@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getRumbleHubData } from "@/lib/rumbleHub";
 import { Logo } from "@/components/Logo";
+import { PhotoCarousel } from "@/components/PhotoCarousel";
 
 export const metadata: Metadata = {
   title: "Rumble Series | Against The Grain Fitness",
@@ -110,17 +111,7 @@ export default async function RumbleHubPage() {
       {photos.length > 0 && (
         <section className="rumble-section">
           <h2 className="rumble-section-title">From the Floor</h2>
-          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1">
-            {photos.map((p) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={p.id}
-                src={p.image_url}
-                alt={p.caption ?? ""}
-                className="h-56 w-auto rounded-xl object-cover snap-center shrink-0"
-              />
-            ))}
-          </div>
+          <PhotoCarousel photos={photos} />
         </section>
       )}
 
