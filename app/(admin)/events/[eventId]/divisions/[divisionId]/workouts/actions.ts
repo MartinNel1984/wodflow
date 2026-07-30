@@ -150,6 +150,22 @@ export async function deleteWorkout(formData: FormData) {
   const workoutId = String(formData.get("workoutId") ?? "");
   if (!workoutId) return;
 
+  // Freeze this workout's scoring config onto its already-recorded scores
+  // before the delete detaches workout_ref_id (set null) — otherwise a
+  // workout with its own winner_points/gap_points override would silently
+  // fall back to the division default for historical scores once deleted.
+  const { data: workout } = await supabase
+    .from("workouts")
+    .select("scoring_config")
+    .eq("id", workoutId)
+    .single();
+  if (workout?.scoring_config) {
+    await supabase
+      .from("scores")
+      .update({ workout_scoring_config_snapshot: workout.scoring_config })
+      .eq("workout_ref_id", workoutId);
+  }
+
   const { error } = await supabase.from("workouts").delete().eq("id", workoutId);
   if (error) {
     redirect(pathWithError(eventId, divisionId, "Could not delete workout — please try again."));

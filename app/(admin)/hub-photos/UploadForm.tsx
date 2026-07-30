@@ -6,7 +6,7 @@ import { addHubPhoto } from "./actions";
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 
-export function UploadForm() {
+export function UploadForm({ organizationId }: { organizationId: string }) {
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -30,7 +30,7 @@ export function UploadForm() {
     try {
       const supabase = createClient();
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `hub-${Date.now()}.${ext}`;
+      const path = `${organizationId}/hub-${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage.from("hub-photos").upload(path, file);
       if (uploadError) {
         setError(uploadError.message);

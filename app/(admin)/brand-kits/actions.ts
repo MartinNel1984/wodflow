@@ -3,6 +3,7 @@
 import { requireOrganizer } from "@/lib/auth";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export async function createBrandKit(formData: FormData) {
   const { supabase, organizationId } = await requireOrganizer();
@@ -25,6 +26,18 @@ export async function deleteBrandKit(formData: FormData) {
   const { supabase } = await requireOrganizer();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
-  await supabase.from("brand_kits").delete().eq("id", id);
+
+  const { error } = await supabase.from("brand_kits").delete().eq("id", id);
+  if (error) {
+    // events.brand_kit_id has no cascade — a kit still assigned to an
+    // event fails to delete at the DB level (23503). Surface that
+    // instead of silently discarding the error and looking like it worked.
+    redirect(
+      `/brand-kits?error=${encodeURIComponent(
+        "Could not delete brand kit — it's still assigned to an event. Unassign it first."
+      )}`
+    );
+  }
   revalidatePath("/brand-kits");
+  redirect("/brand-kits");
 }

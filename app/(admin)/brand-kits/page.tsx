@@ -1,7 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { createBrandKit, deleteBrandKit } from "./actions";
 
-export default async function BrandKitsPage() {
+export default async function BrandKitsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
   const supabase = await createClient();
   const { data: kits } = await supabase
     .from("brand_kits")
@@ -16,6 +21,12 @@ export default async function BrandKitsPage() {
           Create once, assign to any event — reused year over year (e.g. Rumble Indy, Rumble Remix).
         </p>
       </div>
+
+      {error && (
+        <p className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+          {error}
+        </p>
+      )}
 
       <div className="space-y-3">
         {(kits ?? []).map((k) => (

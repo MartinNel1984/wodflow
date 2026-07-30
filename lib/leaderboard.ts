@@ -4,7 +4,7 @@ export type LeaderboardRow = {
   heat_assignment_id: string;
   workout_id: string;
   value_raw: { time_seconds?: number; reps?: number; load_kg?: number; no_rep?: boolean };
-  tiebreak_value: { time_seconds?: number; reps?: number } | null;
+  tiebreak_value: { time_seconds?: number; reps?: number; load_kg?: number } | null;
   registration_id: string;
   display_name: string;
   workout_name?: string;
@@ -60,7 +60,10 @@ export function pointsForPosition(position: number, entrants: number, config: Sc
   return entrants - position + 1;
 }
 
-function tiebreakOf(row: { tiebreak_value: LeaderboardRow["tiebreak_value"] }, key: "time_seconds" | "reps") {
+function tiebreakOf(
+  row: { tiebreak_value: LeaderboardRow["tiebreak_value"] },
+  key: "time_seconds" | "reps" | "load_kg"
+) {
   return row.tiebreak_value?.[key];
 }
 
@@ -101,7 +104,7 @@ export function computeWorkoutResults(
       registrationId: r.registration_id,
       value: (r.value_raw.reps ?? r.value_raw.load_kg)!,
       unit: r.value_raw.reps != null ? "reps" : "kg",
-      tiebreak: tiebreakOf(r, "reps"),
+      tiebreak: tiebreakOf(r, r.value_raw.reps != null ? "reps" : "load_kg"),
     }))
     .sort((a, b) => b.value - a.value || (b.tiebreak ?? -Infinity) - (a.tiebreak ?? -Infinity));
 

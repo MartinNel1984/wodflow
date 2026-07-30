@@ -1,9 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { requireOrganizer } from "@/lib/auth";
 import { deleteHubPhoto } from "./actions";
 import { UploadForm } from "./UploadForm";
 
 export default async function HubPhotosPage() {
-  const supabase = await createClient();
+  const { supabase, organizationId } = await requireOrganizer();
   const { data: photos } = await supabase
     .from("hub_photos")
     .select("id, image_url, caption, sort_order")
@@ -39,7 +39,7 @@ export default async function HubPhotosPage() {
         )}
       </div>
 
-      <UploadForm />
+      <UploadForm organizationId={organizationId} />
     </div>
   );
 }
