@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Anton, Hanken_Grotesk, Space_Mono, Permanent_Marker } from "next/font/google";
 import localFont from "next/font/local";
+import Script from "next/script";
 import "./globals.css";
 
 // Font pairing chosen for this app specifically, not reused from other
@@ -51,7 +52,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${display.variable} ${sans.variable} ${mono.variable} ${script.variable} ${rumbleDisplay.variable} ${rumbleHeadline.variable} ${rumbleAccent.variable} ${rumbleOptional.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-0EW1XBW8X3"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-0EW1XBW8X3');
+          `}
+        </Script>
+      </body>
     </html>
   );
 }

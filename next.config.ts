@@ -11,7 +11,7 @@ const securityHeaders = [
   { key: "Permissions-Policy", value: "geolocation=(self), camera=(), microphone=()" },
   {
     key: "Content-Security-Policy",
-    value: `default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: ${supabaseUrl}; connect-src 'self' ${supabaseUrl} ${supabaseWsUrl} https://payments.yoco.com https://cloudflareinsights.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests`,
+    value: `default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: ${supabaseUrl} https://www.google-analytics.com; connect-src 'self' ${supabaseUrl} ${supabaseWsUrl} https://payments.yoco.com https://cloudflareinsights.com https://www.google-analytics.com https://region1.google-analytics.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests`,
   },
 ];
 
