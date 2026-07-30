@@ -266,6 +266,36 @@ button:hover, .hover-lift:hover {
   box-shadow: 3px 3px 0 var(--color-ink);
 }
 
+/* Back button for pages one hop from a landing page (hub, all-events).
+   Fixed top-left so it's reachable without scrolling on mobile;
+   safe-area-aware for notch/home-indicator devices. Uses
+   --color-accent so it themes itself under both .graffiti-page
+   (flame-orange) and .rumble-page (rumble blue) without a prop. */
+.back-link {
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top));
+  left: max(1rem, env(safe-area-inset-left));
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, #0a0b10 65%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+  color: var(--color-paper);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.back-link svg {
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
 /* Waiver print/export view — hide the admin chrome, keep just the
    signed document, so "Print > Save as PDF" produces a clean record. */
 @media print {

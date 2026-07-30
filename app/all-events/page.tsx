@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
 import { BrandKitLogo } from "@/components/BrandKitLogo";
+import { BackLink } from "@/components/BackLink";
 import { brandKitStyle } from "@/lib/brandKit";
 
 export const metadata: Metadata = {
@@ -21,6 +22,7 @@ export default async function EventsPage() {
 
   return (
     <main className="graffiti-page min-h-screen flex flex-col items-center px-4 py-12">
+      <BackLink href="/" />
       <div className="graffiti-photos" aria-hidden="true">
         {/* eslint-disable @next/next/no-img-element */}
         {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
