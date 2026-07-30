@@ -23,14 +23,14 @@ export default async function EventsPage() {
   return (
     <main className="graffiti-page min-h-screen flex flex-col items-center px-4 py-12">
       <BackLink href="/" />
-      <div className="graffiti-photos" aria-hidden="true">
+      <div className="rumble-photos" aria-hidden="true">
         {/* eslint-disable @next/next/no-img-element */}
         {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
-          <img key={n} src={`/mural/action-${n}.jpg`} alt="" />
+          <img key={n} src={`/rumble/photos/photo-${n}.jpg`} alt="" />
         ))}
         {/* eslint-enable @next/next/no-img-element */}
       </div>
-      <div className="graffiti-hex" aria-hidden="true" />
+      <div className="rumble-texture" aria-hidden="true" />
       <div className="text-center max-w-sm mb-10 py-6">
         <h1 className="text-3xl font-semibold"><Logo /></h1>
         <p className="text-script text-2xl mt-3 text-accent">Feel the flow. Chase the clock.</p>
