@@ -103,7 +103,8 @@ export default function RegisterContent() {
       const kit = Array.isArray(event?.brand_kits) ? event.brand_kits[0] : event?.brand_kits;
       setBrandKit(kit ?? null);
       setWaiverText(event?.waiver_text ?? "");
-      setDivisions(divs ?? []);
+      // "RX Test" is leftover rehearsal data on the real Big One event — same exclusion as lib/rumbleHub.ts
+      setDivisions((divs ?? []).filter((d) => d.name !== "RX Test"));
       setLoading(false);
     }
     load();
