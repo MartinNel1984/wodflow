@@ -61,6 +61,45 @@ jobs:
           check_table_has_rows "events" "&status=in.(published,live,archived)"
           check_table_has_rows "divisions" ""
 
+          # Regression guard for the 2026-07-31 Score Entry bug: a judge
+          # could submit a score against a different workout than the one
+          # actually being scored, and the leaderboard used to group by a
+          # mutable free-text label — so two genuinely different workouts
+          # sharing a label silently merged/dropped each other's scores.
+          # migration-042 keys public_leaderboard by the stable workout id
+          # instead, but if that ever regresses (or a future bug
+          # reintroduces label reuse), the tell-tale sign is the SAME
+          # workout name resolving to MORE THAN ONE distinct workout_id
+          # within a single division. Catch that here, read-only, off the
+          # public view (scores itself isn't anon-readable).
+          check_no_workout_name_collision() {
+            local rows
+            rows=$(curl -s --max-time 15 \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              "$SUPABASE_URL/rest/v1/public_leaderboard?select=division_id,workout_id,workout_name")
+            if [ -z "$rows" ] || [ "$rows" = "[]" ]; then
+              echo "OK: workout-name collision check -> no leaderboard rows yet, nothing to check"
+              return
+            fi
+            local collisions
+            collisions=$(echo "$rows" | jq -r '
+              group_by(.division_id + "|" + .workout_name)
+              | map({key: (.[0].division_id + "|" + .[0].workout_name), ids: ([.[].workout_id] | unique)})
+              | map(select(.ids | length > 1))
+              | .[]
+              | "\(.key) -> \(.ids | join(", "))"
+            ')
+            if [ -n "$collisions" ]; then
+              failures="${failures}Workout name collision(s) on public_leaderboard: ${collisions}. "
+              echo "FAIL: workout-name collision(s) found:"
+              echo "$collisions"
+            else
+              echo "OK: workout-name collision check -> no collisions"
+            fi
+          }
+
+          check_no_workout_name_collision
+
           if [ -n "$failures" ]; then
             echo "HEALTH CHECK FAILED: $failures"
             echo "FAILURES=$failures" >> "$GITHUB_ENV"
