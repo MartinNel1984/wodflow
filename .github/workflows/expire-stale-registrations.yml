@@ -1,0 +1,59 @@
+name: Expire Stale Pending Registrations
+
+# Abandoned checkouts (registration created, payment never completed)
+# still count toward a division's max_entries cap — enforce_division_
+# max_entries only excludes 'refunded'. With no cleanup, repeatedly
+# starting and abandoning checkout for a capped division can fill every
+# slot with unpaid rows and permanently block real, paying entrants.
+# Registrations older than 24h with payment_status still 'pending' are
+# genuinely abandoned (PayFast/Yoco checkouts complete in minutes), so
+# deleting them is safe — registration_athletes/team_invites cascade-
+# delete cleanly (on delete cascade), freeing the slot.
+
+on:
+  schedule:
+    - cron: "0 */6 * * *" # every 6 hours
+  workflow_dispatch: {}
+
+jobs:
+  expire:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete pending registrations older than 24h
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -e
+          cutoff=$(date -u -d '24 hours ago' +"%Y-%m-%dT%H:%M:%SZ")
+          echo "Deleting pending registrations created before ${cutoff}"
+
+          response=$(curl -s -w "\n%{http_code}" -X DELETE \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Prefer: return=representation" \
+            "${SUPABASE_URL}/rest/v1/registrations?payment_status=eq.pending&created_at=lt.${cutoff}")
+
+          code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+            count=$(echo "$body" | jq 'length' 2>/dev/null || echo "unknown")
+            echo "Deleted ${count} stale pending registration(s)."
+          else
+            echo "FAIL: delete request returned HTTP ${code}: ${body}"
+            exit 1
+          fi
+
+      - name: Send WhatsApp alert on failure
+        if: failure()
+        env:
+          CALLMEBOT_API_KEY: ${{ secrets.CALLMEBOT_API_KEY }}
+          NOTIFY_WHATSAPP_NUMBER: ${{ secrets.NOTIFY_WHATSAPP_NUMBER }}
+        run: |
+          if [ -n "$CALLMEBOT_API_KEY" ] && [ -n "$NOTIFY_WHATSAPP_NUMBER" ]; then
+            curl -s -G "https://api.callmebot.com/whatsapp.php" \
+              --data-urlencode "phone=${NOTIFY_WHATSAPP_NUMBER}" \
+              --data-urlencode "text=Wodflow: expire-stale-registrations job FAILED — check GitHub Actions log" \
+              --data-urlencode "apikey=${CALLMEBOT_API_KEY}"
+          fi

@@ -5,6 +5,13 @@ import { createHmac, timingSafeEqual } from "crypto";
 // the whsec_... secret, base64-encoded, and compared against one of the
 // space-delimited "v1,<sig>" values in the webhook-signature header.
 // Ported verbatim from nudgepay's lib/yoco-webhook.ts.
+// Standard Webhooks spec recommends a tolerance window on the timestamp
+// so a captured, valid payload can't be replayed indefinitely — the
+// idempotency guard on payment_status already stops a replay from
+// double-processing, but this closes the gap for good instead of
+// depending on that as the only defense.
+const TIMESTAMP_TOLERANCE_SECONDS = 5 * 60;
+
 export function verifyYocoWebhookSignature(params: {
   rawBody: string;
   webhookId: string;
@@ -13,6 +20,11 @@ export function verifyYocoWebhookSignature(params: {
   secret: string;
 }): boolean {
   const { rawBody, webhookId, webhookTimestamp, webhookSignature, secret } = params;
+
+  const timestampSeconds = Number(webhookTimestamp);
+  if (!Number.isFinite(timestampSeconds)) return false;
+  const skewSeconds = Math.abs(Date.now() / 1000 - timestampSeconds);
+  if (skewSeconds > TIMESTAMP_TOLERANCE_SECONDS) return false;
 
   const secretBytes = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
   const signedContent = `${webhookId}.${webhookTimestamp}.${rawBody}`;

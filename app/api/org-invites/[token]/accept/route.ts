@@ -66,10 +66,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return NextResponse.json({ error: "Account created, but profile setup failed." }, { status: 500 });
   }
 
+  // Conditional update + rowcount check, same pattern as team_invites'
+  // accept route — closes the TOCTOU window where two concurrent
+  // accepts could both pass the earlier plain status === "pending"
+  // check before either writes. In practice createUser's unique-email
+  // constraint already stops this from producing a duplicate account,
+  // but the status write itself should follow the same safe pattern
+  // used elsewhere rather than a bare unconditional update.
   await svc
     .from("org_invites")
     .update({ status: "accepted", accepted_at: new Date().toISOString() })
-    .eq("id", invite.id);
+    .eq("id", invite.id)
+    .eq("status", "pending");
 
   const supabase = await createServerClient();
   const { error: signInError } = await supabase.auth.signInWithPassword({

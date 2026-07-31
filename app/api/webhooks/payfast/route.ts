@@ -53,8 +53,11 @@ export async function POST(request: Request) {
     return new Response("OK", { status: 200 });
   }
 
-  if (amountGross && Math.abs(parseFloat(amountGross) - Number(registration.price_paid)) > 0.5) {
-    console.error("PayFast webhook: amount mismatch", {
+  // Fail closed: an ITN with no amount_gross at all must not skip this
+  // check silently — treat a missing field the same as a mismatch.
+  const amountParsed = amountGross ? parseFloat(amountGross) : NaN;
+  if (!Number.isFinite(amountParsed) || Math.abs(amountParsed - Number(registration.price_paid)) > 0.5) {
+    console.error("PayFast webhook: amount mismatch or missing", {
       registrationId,
       amountGross,
       expected: registration.price_paid,

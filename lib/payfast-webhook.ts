@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { createHash, timingSafeEqual } from "crypto";
 
 function encode(value: string) {
   return encodeURIComponent(value).replace(/%20/g, "+");
@@ -24,7 +24,13 @@ export function verifyPayfastSignature(rawBody: string): boolean {
   if (passphrase) base += `&passphrase=${encode(passphrase)}`;
 
   const expected = createHash("md5").update(base).digest("hex");
-  return expected === received;
+  // timingSafeEqual throws (not returns false) on a length mismatch, so
+  // the length check has to come first — `received` is attacker-supplied
+  // and won't always be a 32-char hex string.
+  const expectedBuf = Buffer.from(expected);
+  const receivedBuf = Buffer.from(received);
+  if (expectedBuf.length !== receivedBuf.length) return false;
+  return timingSafeEqual(expectedBuf, receivedBuf);
 }
 
 // Second, independent check per PayFast's own integration guide: post the
