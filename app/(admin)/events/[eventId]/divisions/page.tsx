@@ -59,27 +59,30 @@ export default async function DivisionsPage({
                 Manage heats
               </Link>
             </div>
-            <form action={updateScoringConfig} className="flex items-center gap-2 mb-3">
-              <input type="hidden" name="eventId" value={eventId} />
-              <input type="hidden" name="divisionId" value={d.id} />
-              <span className="text-xs text-ink/50">Scoring:</span>
-              <select
-                name="scoringMethod"
-                defaultValue={(d.scoring_config as ScoringConfig | null)?.method ?? "rank_sum"}
-                className="text-xs border border-ink/10 rounded-lg px-2 py-1"
-              >
-                <option value="rank_sum">Rank sum (entrants − position + 1)</option>
-                <option value="gap_formula">Gap formula (100, decreasing gap)</option>
-              </select>
-              <button type="submit" className="text-xs text-accent font-semibold">
-                Save
-              </button>
-            </form>
-
             <details>
               <summary className="text-xs text-accent font-semibold cursor-pointer">
                 Edit division
               </summary>
+
+              <form action={updateScoringConfig} className="flex items-center gap-2 mt-3">
+                <input type="hidden" name="eventId" value={eventId} />
+                <input type="hidden" name="divisionId" value={d.id} />
+                <span className="text-xs text-ink/50">
+                  Default scoring for workouts (used unless a workout sets its own):
+                </span>
+                <select
+                  name="scoringMethod"
+                  defaultValue={(d.scoring_config as ScoringConfig | null)?.method ?? "rank_sum"}
+                  className="text-xs border border-ink/10 rounded-lg px-2 py-1"
+                >
+                  <option value="rank_sum">Rank sum (entrants − position + 1)</option>
+                  <option value="gap_formula">Gap formula (100, decreasing gap)</option>
+                </select>
+                <button type="submit" className="text-xs text-accent font-semibold">
+                  Save
+                </button>
+              </form>
+
               <form action={updateDivision} className="mt-3 space-y-4">
                 <input type="hidden" name="eventId" value={eventId} />
                 <input type="hidden" name="divisionId" value={d.id} />
