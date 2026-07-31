@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireOrganizer } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -16,20 +17,32 @@ function csvEscape(value: string) {
   return v;
 }
 
-// Organizer-only — auth enforced here, not just RLS, since the response
-// is a raw CSV rather than a page a route guard could redirect away
-// from.
+// Organizer-only, scoped to the caller's OWN organization — auth
+// enforced here, not just RLS, since the response is a raw CSV rather
+// than a page a route guard could redirect away from. Previously only
+// checked "is this user an organizer" with no org-ownership check on
+// eventId; RLS on registrations/registration_athletes happened to save
+// it in practice (they're org-scoped since the multi-tenancy migration),
+// but requireOrganizer() here makes that guarantee explicit instead of
+// silently depending on RLS shape never changing under this route.
 export async function GET(_request: Request, { params }: { params: Promise<{ eventId: string }> }) {
   const { eventId } = await params;
+  let organizationId: string;
+  try {
+    ({ organizationId } = await requireOrganizer());
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Not authorised." }, { status: 403 });
+  }
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "organizer") return NextResponse.json({ error: "Not authorised." }, { status: 403 });
 
-  const { data: event } = await supabase.from("events").select("name").eq("id", eventId).single();
+  const { data: event } = await supabase
+    .from("events")
+    .select("name, organization_id")
+    .eq("id", eventId)
+    .single();
+  if (!event || event.organization_id !== organizationId) {
+    return NextResponse.json({ error: "Event not found." }, { status: 404 });
+  }
 
   const { data: registrations } = await supabase
     .from("registrations")

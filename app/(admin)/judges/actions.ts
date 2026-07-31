@@ -56,13 +56,29 @@ export async function createJudge(formData: FormData) {
 }
 
 export async function assignJudgeToHeat(formData: FormData) {
-  await requireOrganizer();
+  const { supabase, organizationId } = await requireOrganizer();
   const profileId = String(formData.get("profileId") ?? "");
   const heatId = String(formData.get("heatId") ?? "");
   if (!profileId || !heatId) return;
 
-  const svc = createServiceClient();
-  const { error } = await svc
+  // The judge being assigned must be this organizer's own judge — RLS on
+  // judge_assignments_write only checks the HEAT's org (via heats ->
+  // events), not the profile being assigned, so a foreign/arbitrary
+  // profileId would otherwise slip through even on the session client.
+  const { data: judgeProfile } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", profileId)
+    .single();
+  if (judgeProfile?.organization_id !== organizationId) return;
+
+  // Session-scoped client (not the service-role client used before) so
+  // judge_assignments_write RLS — which verifies the heat belongs to an
+  // event in the caller's own org — actually runs. The previous
+  // service-role client bypassed RLS entirely, letting any organizer
+  // assign a judge to another organization's heat by just knowing its
+  // id (heat ids are guessable off the public heat sheet).
+  const { error } = await supabase
     .from("judge_assignments")
     .upsert({ profile_id: profileId, heat_id: heatId }, { onConflict: "profile_id,heat_id" });
   if (error) throw error;

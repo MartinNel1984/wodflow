@@ -4,9 +4,14 @@ import { UploadForm } from "./UploadForm";
 
 export default async function HubPhotosPage() {
   const { supabase, organizationId } = await requireOrganizer();
+  // hub_photos' read policy is deliberately public (backs the public
+  // marketing carousel), so this admin listing must filter to the
+  // caller's own org itself — otherwise every organizer sees (and can
+  // see a delete button next to) every other org's photos here.
   const { data: photos } = await supabase
     .from("hub_photos")
     .select("id, image_url, caption, sort_order")
+    .eq("organization_id", organizationId)
     .order("sort_order", { ascending: true });
 
   return (
@@ -14,7 +19,7 @@ export default async function HubPhotosPage() {
       <div>
         <h1 className="text-2xl font-semibold">Rumble hub photos</h1>
         <p className="text-ink/60 text-sm mt-1">
-          The "From the Floor" carousel on wodflow.co.za. Added in order — newest goes last.
+          The &ldquo;From the Floor&rdquo; carousel on wodflow.co.za. Added in order — newest goes last.
         </p>
       </div>
 
