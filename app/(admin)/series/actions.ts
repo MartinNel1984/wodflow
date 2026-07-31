@@ -15,10 +15,19 @@ export async function createSeries(formData: FormData) {
 }
 
 export async function addSeriesEvent(formData: FormData) {
-  const { supabase } = await requireOrganizer();
+  const { supabase, organizationId } = await requireOrganizer();
   const seriesId = String(formData.get("seriesId") ?? "");
   const eventId = String(formData.get("eventId") ?? "");
   if (!seriesId || !eventId) return;
+
+  // series_events' RLS only verifies the caller owns the SERIES, not
+  // that the event being linked belongs to the same org — without this
+  // check here, any organizer could add another org's event to their
+  // own series, pulling that org's athlete names/results onto their
+  // public season standings. The events table itself is properly
+  // org-scoped, so this is the only place that needed the extra check.
+  const { data: event } = await supabase.from("events").select("organization_id").eq("id", eventId).single();
+  if (event?.organization_id !== organizationId) return;
 
   const { count } = await supabase
     .from("series_events")

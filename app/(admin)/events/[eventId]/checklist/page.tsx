@@ -247,7 +247,7 @@ export default async function ChecklistPage({
         <div key={d.id} className="bg-white border border-ink/10 rounded-xl p-4 space-y-2">
           <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">{d.name}</h2>
           {divisionChecks
-            .filter((c) => c.divisionName === d.name)
+            .filter((c) => c.divisionId === d.id)
             .map((c) => (
               <CheckRow key={`${d.id}-${c.label}`} item={c} />
             ))}

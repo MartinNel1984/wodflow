@@ -51,11 +51,35 @@ export async function generateHeatsForDivision(formData: FormData) {
     );
   }
 
-  const roster: RosterEntry[] = (registrations ?? []).map((r) => ({
-    registrationId: r.id,
-    registrationOrder: r.registration_order,
-    seedRank: null,
-  }));
+  // Exclude registrations already locked into an in-progress/completed
+  // heat for THIS workout. Only 'scheduled' heats/assignments get wiped
+  // above, so without this exclusion an athlete already scored in a
+  // completed heat would also get a fresh assignment in a new heat here
+  // — two heat_assignments rows for the same registration+workout, which
+  // computeWorkoutResults/computeStandings would then rank and count
+  // twice, silently corrupting the leaderboard.
+  const { data: lockedHeats } = await supabase
+    .from("heats")
+    .select("id")
+    .eq("workout_id", workoutId)
+    .neq("status", "scheduled");
+  const lockedHeatIds = (lockedHeats ?? []).map((h) => h.id);
+  const alreadyAssignedIds = new Set<string>();
+  if (lockedHeatIds.length > 0) {
+    const { data: lockedAssignments } = await supabase
+      .from("heat_assignments")
+      .select("registration_id")
+      .in("heat_id", lockedHeatIds);
+    for (const a of lockedAssignments ?? []) alreadyAssignedIds.add(a.registration_id);
+  }
+
+  const roster: RosterEntry[] = (registrations ?? [])
+    .filter((r) => !alreadyAssignedIds.has(r.id))
+    .map((r) => ({
+      registrationId: r.id,
+      registrationOrder: r.registration_order,
+      seedRank: null,
+    }));
 
   const { heats, assignments } = generateHeats({
     laneCount,

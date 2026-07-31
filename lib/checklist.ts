@@ -36,15 +36,20 @@ export function computeEventChecks(event: ChecklistEvent | null, divisions: Chec
   ];
 }
 
+// Grouped by divisionId (stable), not name — two divisions in the same
+// event sharing a display name (a duplicate, or one renamed to match
+// another) would otherwise merge/duplicate each other's checklist items
+// under a name-based filter, giving a false "ready to go" or wrong
+// missing-item picture right before an event.
 export function computeDivisionChecks(
   divisions: ChecklistDivision[]
-): (CheckItem & { divisionName: string })[] {
+): (CheckItem & { divisionId: string })[] {
   return divisions.flatMap((d) => [
-    { divisionName: d.name, label: "Price set", ok: d.price_normal > 0, detail: `R${d.price_normal}` },
-    { divisionName: d.name, label: "At least one workout exists", ok: d.workouts.length > 0 },
+    { divisionId: d.id, label: "Price set", ok: d.price_normal > 0, detail: `R${d.price_normal}` },
+    { divisionId: d.id, label: "At least one workout exists", ok: d.workouts.length > 0 },
     ...d.workouts.flatMap((w) => [
-      { divisionName: d.name, label: `${w.name}: lane count set`, ok: !!w.lane_count },
-      { divisionName: d.name, label: `${w.name}: heat duration set`, ok: !!w.heat_duration_minutes },
+      { divisionId: d.id, label: `${w.name}: lane count set`, ok: !!w.lane_count },
+      { divisionId: d.id, label: `${w.name}: heat duration set`, ok: !!w.heat_duration_minutes },
     ]),
   ]);
 }

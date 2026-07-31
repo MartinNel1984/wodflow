@@ -12,6 +12,25 @@ function slugify(name: string) {
     .replace(/(^-|-$)/g, "");
 }
 
+// brand_kits are readable platform-wide (public event pages need to
+// render any org's kit), so nothing stops an organizer from picking
+// another org's brand_kit_id off the "New event"/"Edit brand kit"
+// dropdown unless the write path itself checks ownership — verify it
+// belongs to the caller's own org before ever attaching it to an event.
+async function ownedBrandKitId(
+  supabase: Awaited<ReturnType<typeof requireOrganizer>>["supabase"],
+  organizationId: string,
+  rawBrandKitId: string
+): Promise<string | null> {
+  if (!rawBrandKitId) return null;
+  const { data: kit } = await supabase
+    .from("brand_kits")
+    .select("id, organization_id")
+    .eq("id", rawBrandKitId)
+    .single();
+  return kit?.organization_id === organizationId ? rawBrandKitId : null;
+}
+
 export async function createEvent(formData: FormData) {
   const { supabase, organizationId } = await requireOrganizer();
   const name = String(formData.get("name") ?? "").trim();
@@ -19,6 +38,11 @@ export async function createEvent(formData: FormData) {
   if (!name || !startDate) return;
 
   const defaultPrice = Number(formData.get("defaultPrice"));
+  const brandKitId = await ownedBrandKitId(
+    supabase,
+    organizationId,
+    String(formData.get("brandKitId") ?? "").trim()
+  );
 
   await supabase.from("events").insert({
     name,
@@ -31,7 +55,7 @@ export async function createEvent(formData: FormData) {
     contact_phone: String(formData.get("contactPhone") ?? "").trim() || null,
     waiver_text: String(formData.get("waiverText") ?? "").trim() || null,
     default_price: Number.isNaN(defaultPrice) ? 500 : defaultPrice,
-    brand_kit_id: String(formData.get("brandKitId") ?? "").trim() || null,
+    brand_kit_id: brandKitId,
     organization_id: organizationId,
   });
   revalidatePath("/events");
@@ -48,10 +72,14 @@ export async function updateEventStatus(formData: FormData) {
 }
 
 export async function updateEventBrandKit(formData: FormData) {
-  const { supabase } = await requireOrganizer();
+  const { supabase, organizationId } = await requireOrganizer();
   const id = String(formData.get("id") ?? "");
-  const brandKitId = String(formData.get("brandKitId") ?? "").trim() || null;
   if (!id) return;
+  const brandKitId = await ownedBrandKitId(
+    supabase,
+    organizationId,
+    String(formData.get("brandKitId") ?? "").trim()
+  );
 
   await supabase.from("events").update({ brand_kit_id: brandKitId, updated_at: new Date().toISOString() }).eq("id", id);
   revalidatePath("/events");

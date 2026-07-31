@@ -4,12 +4,25 @@ import Link from "next/link";
 
 export default async function EventsPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", user!.id)
+    .single();
+
   const [{ data: events }, { data: brandKits }] = await Promise.all([
     supabase
       .from("events")
       .select("id, name, slug, start_date, end_date, status, brand_kit_id")
       .order("start_date", { ascending: true }),
-    supabase.from("brand_kits").select("id, name").order("name"),
+    // brand_kits' read policy is deliberately public (public event pages
+    // render any org's kit), so this admin picker must filter to the
+    // caller's own org itself — otherwise the dropdown lists every
+    // organization's brand kits by name.
+    supabase.from("brand_kits").select("id, name").eq("organization_id", profile?.organization_id).order("name"),
   ]);
 
   return (

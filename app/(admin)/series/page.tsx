@@ -4,9 +4,23 @@ import Link from "next/link";
 
 export default async function SeriesListPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", user!.id)
+    .single();
+
+  // series' RLS read policy is deliberately authenticated-wide (an
+  // athlete needs to read their own org's season points), so this admin
+  // listing must filter to the caller's own org itself — otherwise
+  // every organizer on the platform sees every other org's series here.
   const { data: series } = await supabase
     .from("series")
     .select("id, name, year, series_events(id)")
+    .eq("organization_id", profile?.organization_id)
     .order("year", { ascending: false });
 
   return (

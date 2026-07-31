@@ -8,9 +8,23 @@ export default async function BrandKitsPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", user!.id)
+    .single();
+
+  // brand_kits' read policy is deliberately public (public event pages
+  // render any org's kit), so this admin listing must filter to the
+  // caller's own org itself — otherwise every organizer sees every other
+  // org's brand kits here.
   const { data: kits } = await supabase
     .from("brand_kits")
     .select("id, name, logo_url, color_primary, color_secondary, color_accent, tagline")
+    .eq("organization_id", profile?.organization_id)
     .order("name");
 
   return (

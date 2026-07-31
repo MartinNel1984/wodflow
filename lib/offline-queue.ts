@@ -75,7 +75,19 @@ export async function enqueueScore(input: {
 
 export async function getAllPending(): Promise<PendingScore[]> {
   const all = await withStore<PendingScore[]>("readonly", (store) => store.getAll());
-  return all.filter((item) => item.syncStatus === "pending" || item.syncStatus === "failed");
+  // IndexedDB's getAll() returns rows in primary-key (clientSubmissionId,
+  // a random UUID) order, NOT insertion order. The server stamps
+  // scores.submitted_at at actual insert time and the leaderboard picks
+  // the highest submitted_at as authoritative per lane/workout — so
+  // syncing out of chronological order can post a judge's correction
+  // BEFORE the original mistaken value, letting the stale entry win as
+  // "latest" with no visible error. Sorting by the client-side
+  // submittedAt here keeps sync order matching entry order, so earlier
+  // entries always land in the DB (and get their submitted_at stamped)
+  // before later ones.
+  return all
+    .filter((item) => item.syncStatus === "pending" || item.syncStatus === "failed")
+    .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
 }
 
 export async function getAll(): Promise<PendingScore[]> {
