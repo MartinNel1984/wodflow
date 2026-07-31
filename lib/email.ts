@@ -23,8 +23,8 @@ declare global {
 
 const FROM = { email: "noreply@wodflow.co.za", name: "Wodflow" };
 
-// Fired once a registration is confirmed paid (from the Yoco/PayFast
-// webhooks, not at registration creation — a checkout can be abandoned).
+// Fired once a registration is confirmed paid (from the PayFast
+// webhook, not at registration creation — a checkout can be abandoned).
 // Sends the athlete a confirmation and the organizer a notification, to
 // events.contact_email (already the field organizers fill in on event
 // setup, e.g. Tjokkie's info@atgfitness.co.za) rather than a hardcoded

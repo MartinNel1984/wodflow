@@ -1,7 +1,7 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 // Service-role client — bypasses RLS. Server-side only, for trusted
-// system writes (e.g. PIN login lookups, Yoco webhook handling).
+// system writes (e.g. PIN login lookups, PayFast webhook handling).
 export function createServiceClient() {
   return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

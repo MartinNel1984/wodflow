@@ -1,6 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { createYocoCheckout } from "@/lib/yoco";
 import { createPayfastCheckout } from "@/lib/payfast";
 import { currentPrice } from "@/lib/pricing";
 import { NextResponse } from "next/server";
@@ -81,7 +80,7 @@ export async function POST(request: Request) {
 
   const { data: event } = await supabase
     .from("events")
-    .select("waiver_text, status, payment_provider")
+    .select("waiver_text, status")
     .eq("id", division.event_id)
     .single();
 
@@ -172,32 +171,16 @@ export async function POST(request: Request) {
   const captain = teammates.find((t) => t.isCaptain) ?? teammates[0];
 
   try {
-    if (event.payment_provider === "payfast") {
-      const { payUrl } = createPayfastCheckout({
-        amountRands: price,
-        registrationId: registration.id,
-        divisionName: division.name,
-        teamOrAthleteName: teamName ?? captain.fullName,
-        athleteEmail: captain.email,
-        siteOrigin: new URL(request.url).origin,
-      });
-
-      await supabase.from("registrations").update({ pay_url: payUrl }).eq("id", registration.id);
-
-      return NextResponse.json({ registrationId: registration.id, payUrl });
-    }
-
-    const { checkoutId, payUrl } = await createYocoCheckout({
+    const { payUrl } = createPayfastCheckout({
       amountRands: price,
       registrationId: registration.id,
       divisionName: division.name,
       teamOrAthleteName: teamName ?? captain.fullName,
+      athleteEmail: captain.email,
+      siteOrigin: new URL(request.url).origin,
     });
 
-    await supabase
-      .from("registrations")
-      .update({ yoco_checkout_id: checkoutId, pay_url: payUrl })
-      .eq("id", registration.id);
+    await supabase.from("registrations").update({ pay_url: payUrl }).eq("id", registration.id);
 
     return NextResponse.json({ registrationId: registration.id, payUrl });
   } catch (err) {

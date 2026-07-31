@@ -6,7 +6,7 @@ name: Expire Stale Pending Registrations
 # starting and abandoning checkout for a capped division can fill every
 # slot with unpaid rows and permanently block real, paying entrants.
 # Registrations older than 24h with payment_status still 'pending' are
-# genuinely abandoned (PayFast/Yoco checkouts complete in minutes), so
+# genuinely abandoned (PayFast checkouts complete in minutes), so
 # deleting them is safe — registration_athletes/team_invites cascade-
 # delete cleanly (on delete cascade), freeing the slot.
 

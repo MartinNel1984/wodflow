@@ -102,7 +102,6 @@ create table if not exists public.registrations (
   payment_status     text not null default 'pending'
                        check (payment_status in ('pending', 'paid', 'waived', 'refunded')),
   pay_url            text,
-  yoco_checkout_id   text,
   paid_at            timestamptz,
   paid_via           text,
   created_at         timestamptz not null default now()

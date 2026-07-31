@@ -7,8 +7,10 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 PIN_LOGIN_SECRET=
-YOCO_SECRET_KEY=
-YOCO_WEBHOOK_SECRET=
+PAYFAST_MERCHANT_ID=
+PAYFAST_MERCHANT_KEY=
+PAYFAST_PASSPHRASE=
+PAYFAST_MODE=
 ```
 
 ## Production (Cloudflare)
@@ -21,7 +23,12 @@ Build-time (GitHub Actions repo secrets, injected during `npx @opennextjs/cloudf
 Runtime secrets (set once via `wrangler secret put <NAME>`, never as build-time env — these must not appear in the GitHub Actions build step):
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `PIN_LOGIN_SECRET`
-- `YOCO_SECRET_KEY`
-- `YOCO_WEBHOOK_SECRET`
+- `PAYFAST_MERCHANT_ID`
+- `PAYFAST_MERCHANT_KEY`
+- `PAYFAST_PASSPHRASE`
+- `PAYFAST_MODE` (`sandbox` or unset/`live`)
 
-Build and test the Yoco flow entirely against Yoco's test-mode webhook simulator first — swap `YOCO_SECRET_KEY`/`YOCO_WEBHOOK_SECRET` for live keys only after the full registration→payment→webhook rehearsal passes (see design doc, Milestone 7).
+Wodflow is PayFast-only — Yoco was removed (migration-043) after never
+being used in production. If a second provider is ever needed again,
+build and test it entirely against that provider's test-mode webhook
+simulator before going live, same as PayFast was.

@@ -49,7 +49,7 @@ export default function ConfirmationPage() {
       if (data.registration) {
         setRegistration(data.registration);
         setLoading(false);
-        // Yoco's webhook can land a few seconds after redirect — keep
+        // PayFast's webhook can land a few seconds after redirect — keep
         // polling gently until we see it, rather than telling the athlete
         // their payment "failed" when it's just still confirming.
         if (data.registration.payment_status === "pending") {
