@@ -73,11 +73,20 @@ jobs:
           # within a single division. Catch that here, read-only, off the
           # public view (scores itself isn't anon-readable).
           check_no_workout_name_collision() {
-            local rows
-            rows=$(curl -s --max-time 15 \
+            local code rows
+            code=$(curl -s --max-time 15 -o /tmp/leaderboard_rows.json -w "%{http_code}" \
               -H "apikey: $SUPABASE_ANON_KEY" \
               "$SUPABASE_URL/rest/v1/public_leaderboard?select=division_id,workout_id,workout_name")
-            if [ -z "$rows" ] || [ "$rows" = "[]" ]; then
+            rows=$(cat /tmp/leaderboard_rows.json 2>/dev/null)
+            # A non-2xx or a curl/network failure (empty body, non-array
+            # response) must fail loud, not read as "no rows yet" — those
+            # look identical to an empty array unless checked separately.
+            if [ "$code" -lt 200 ] || [ "$code" -ge 300 ] || ! echo "$rows" | jq -e 'type == "array"' >/dev/null 2>&1; then
+              failures="${failures}Workout-name collision check could not read public_leaderboard (HTTP ${code}). "
+              echo "FAIL: workout-name collision check -> HTTP ${code}, response: ${rows:0:200}"
+              return
+            fi
+            if [ "$rows" = "[]" ]; then
               echo "OK: workout-name collision check -> no leaderboard rows yet, nothing to check"
               return
             fi
@@ -88,11 +97,10 @@ jobs:
               | map(select(.ids | length > 1))
               | .[]
               | "\(.key) -> \(.ids | join(", "))"
-            ')
+            ' | tr '\n' '; ')
             if [ -n "$collisions" ]; then
               failures="${failures}Workout name collision(s) on public_leaderboard: ${collisions}. "
-              echo "FAIL: workout-name collision(s) found:"
-              echo "$collisions"
+              echo "FAIL: workout-name collision(s) found: ${collisions}"
             else
               echo "OK: workout-name collision check -> no collisions"
             fi
