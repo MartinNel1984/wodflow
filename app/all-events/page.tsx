@@ -44,7 +44,7 @@ export default async function EventsPage() {
             return (
               <a
                 key={e.id}
-                href={`/register/${e.id}`}
+                href={`/events/${e.id}`}
                 style={brandKitStyle(kit)}
                 className="flex items-center gap-3 bg-white text-ink border-2 border-ink rounded-xl px-4 py-3 hover-lift"
               >
@@ -68,7 +68,7 @@ export default async function EventsPage() {
           return (
             <a
               key={e.id}
-              href={`/register/${e.id}`}
+              href={`/events/${e.id}`}
               style={brandKitStyle(kit)}
               className="block bg-white text-ink border-2 border-ink rounded-xl overflow-hidden hover-lift animate-settle-in"
             >

@@ -186,7 +186,7 @@ export default async function PortalPage() {
         {registerableEvents.map((e) => (
           <a
             key={e.id}
-            href={`/register/${e.id}`}
+            href={`/events/${e.id}`}
             className="block bg-white text-ink border-2 border-ink rounded-xl px-4 py-3 hover-lift"
           >
             <p className="font-semibold">{e.name}</p>
