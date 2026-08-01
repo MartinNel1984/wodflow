@@ -86,3 +86,65 @@ export async function sendRegistrationEmails(registrationId: string) {
 
   await Promise.all(sends);
 }
+
+// Fired once a ticket purchase is confirmed paid (from the PayFast
+// webhook, not at ticket-row creation — same timing as
+// sendRegistrationEmails, and for the same reason: a checkout can be
+// abandoned). Links to the ticket page rather than embedding the QR
+// inline, since SVG/canvas renders unreliably across email clients —
+// the QR itself is rendered client-side on /tickets/[qr_token].
+export async function sendTicketConfirmationEmail(ticketId: string) {
+  const supabase = createServiceClient();
+
+  const { data: ticket } = await supabase
+    .from("event_tickets")
+    .select("id, buyer_name, buyer_email, ticket_type, quantity, price_paid, qr_token, events(name, contact_email)")
+    .eq("id", ticketId)
+    .single();
+  if (!ticket) return;
+
+  const event = Array.isArray(ticket.events) ? ticket.events[0] : ticket.events;
+  const firstName = ticket.buyer_name.split(" ")[0];
+  const typeLabel = ticket.ticket_type === "vendor" ? "Vendor pass" : "Spectator pass";
+
+  let env;
+  try {
+    ({ env } = getCloudflareContext());
+  } catch (err) {
+    console.error("sendTicketConfirmationEmail: could not get Cloudflare context", err);
+    return;
+  }
+
+  // Matches the hardcoded SITE_URL pattern already used in
+  // app/platform/control/page.tsx — no NEXT_PUBLIC_SITE_URL env var
+  // exists in this project to read instead.
+  const ticketUrl = `https://wodflow.co.za/tickets/${ticket.qr_token}`;
+
+  const sends: Promise<unknown>[] = [];
+
+  if (ticket.buyer_email) {
+    sends.push(
+      env.EMAIL.send({
+        to: ticket.buyer_email,
+        from: FROM,
+        subject: `Your ${typeLabel.toLowerCase()} — ${event?.name ?? "Wodflow"}`,
+        html: `<p>Hi ${firstName},</p><p>Your <strong>${typeLabel}</strong> (×${ticket.quantity}) for <strong>${event?.name}</strong> is confirmed. R${ticket.price_paid} paid.</p><p><a href="${ticketUrl}">View your ticket and QR code</a> — show this at the gate to check in.</p>`,
+        text: `Hi ${firstName}, your ${typeLabel.toLowerCase()} (x${ticket.quantity}) for ${event?.name} is confirmed. R${ticket.price_paid} paid. View your ticket and QR code: ${ticketUrl} — show this at the gate to check in.`,
+      }).catch((err) => console.error("Ticket buyer confirmation email failed", ticket.buyer_email, err))
+    );
+  }
+
+  if (event?.contact_email) {
+    sends.push(
+      env.EMAIL.send({
+        to: event.contact_email,
+        from: FROM,
+        subject: `New ${typeLabel.toLowerCase()} sale — ${ticket.buyer_name} (×${ticket.quantity})`,
+        html: `<p>${ticket.buyer_name} just bought a <strong>${typeLabel}</strong> (×${ticket.quantity}) for <strong>${event?.name}</strong>.</p><p>R${ticket.price_paid} paid.</p>`,
+        text: `${ticket.buyer_name} just bought a ${typeLabel.toLowerCase()} (x${ticket.quantity}) for ${event?.name}. R${ticket.price_paid} paid.`,
+      }).catch((err) => console.error("Organizer ticket notification email failed", err))
+    );
+  }
+
+  await Promise.all(sends);
+}

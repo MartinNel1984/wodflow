@@ -46,6 +46,10 @@ export default async function EventsPage() {
               <Link href={`/events/${e.id}/checklist`} className="text-accent text-xs hover:underline">
                 Pre-event checklist
               </Link>
+              {" · "}
+              <Link href={`/events/${e.id}/checkin`} className="text-accent text-xs hover:underline">
+                Gate check-in
+              </Link>
             </div>
             <div className="flex flex-col items-end gap-2">
               <form action={updateEventStatus} className="flex items-center gap-2">

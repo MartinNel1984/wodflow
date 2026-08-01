@@ -42,6 +42,7 @@ export default function RegisterContent() {
   const [brandKit, setBrandKit] = useState<BrandKit | null>(null);
   const [waiverText, setWaiverText] = useState("");
   const [divisions, setDivisions] = useState<Division[]>([]);
+  const [ticketsAvailable, setTicketsAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [divisionId, setDivisionId] = useState("");
@@ -87,7 +88,7 @@ export default function RegisterContent() {
         supabase
           .from("events")
           .select(
-            "name, waiver_text, description, poster_url, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline)"
+            "name, waiver_text, description, poster_url, spectator_price, vendor_price, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline)"
           )
           .eq("id", eventId)
           .single(),
@@ -103,6 +104,7 @@ export default function RegisterContent() {
       const kit = Array.isArray(event?.brand_kits) ? event.brand_kits[0] : event?.brand_kits;
       setBrandKit(kit ?? null);
       setWaiverText(event?.waiver_text ?? "");
+      setTicketsAvailable(event?.spectator_price != null || event?.vendor_price != null);
       // "RX Test" is leftover rehearsal data on the real Big One event — same exclusion as lib/rumbleHub.ts
       setDivisions((divs ?? []).filter((d) => d.name !== "RX Test"));
       setLoading(false);
@@ -255,6 +257,13 @@ export default function RegisterContent() {
         <p className="text-ink/60 text-sm mt-1">Register</p>
         {eventDescription && (
           <p className="text-ink/70 text-sm mt-3 max-w-md mx-auto">{eventDescription}</p>
+        )}
+        {ticketsAvailable && (
+          <p className="mt-2">
+            <a href={`/events/${eventId}/tickets`} className="text-accent text-sm font-semibold hover:underline">
+              Not competing? Get a spectator or vendor pass →
+            </a>
+          </p>
         )}
         {athleteProfile ? (
           <p className="text-accent text-xs mt-2">Signed in as {athleteProfile.fullName} — details pre-filled</p>

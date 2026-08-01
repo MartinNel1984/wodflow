@@ -28,34 +28,45 @@ function buildQueryString(fields: Record<string, string>) {
     .join("&");
 }
 
+// Generic checkout params — id is the m_payment_id PayFast will hand back
+// on the webhook (registrations pass their raw registration id; tickets
+// prefix theirs with "ticket_" so the webhook can branch on which table
+// to look the payment up in, see app/api/webhooks/payfast/route.ts).
+// returnUrl/cancelUrl default to a registration-confirmation URL built
+// from id for back-compat with the one existing call site, but callers
+// should pass their own — kept optional only so this change is additive.
 export function createPayfastCheckout(params: {
   amountRands: number;
-  registrationId: string;
-  divisionName: string;
-  teamOrAthleteName: string;
-  athleteEmail: string;
+  id: string;
+  itemName: string;
+  buyerName: string;
+  buyerEmail: string;
   siteOrigin: string;
+  returnUrl?: string;
+  cancelUrl?: string;
 }) {
   const merchantId = process.env.PAYFAST_MERCHANT_ID;
   const merchantKey = process.env.PAYFAST_MERCHANT_KEY;
   const passphrase = process.env.PAYFAST_PASSPHRASE;
   if (!merchantId || !merchantKey) throw new Error("PAYFAST_MERCHANT_ID/PAYFAST_MERCHANT_KEY is not set");
 
-  const [firstName, ...rest] = params.teamOrAthleteName.trim().split(/\s+/);
+  const [firstName, ...rest] = params.buyerName.trim().split(/\s+/);
   const lastName = rest.join(" ") || firstName;
+
+  const defaultReturnUrl = `${params.siteOrigin}/register/confirmation/${params.id}`;
 
   const fields: Record<string, string> = {
     merchant_id: merchantId,
     merchant_key: merchantKey,
-    return_url: `${params.siteOrigin}/register/confirmation/${params.registrationId}`,
-    cancel_url: `${params.siteOrigin}/register/confirmation/${params.registrationId}`,
+    return_url: params.returnUrl ?? defaultReturnUrl,
+    cancel_url: params.cancelUrl ?? defaultReturnUrl,
     notify_url: `${params.siteOrigin}/api/webhooks/payfast`,
-    name_first: firstName || "Athlete",
-    name_last: lastName || "Athlete",
-    email_address: params.athleteEmail,
-    m_payment_id: params.registrationId,
+    name_first: firstName || "Guest",
+    name_last: lastName || "Guest",
+    email_address: params.buyerEmail,
+    m_payment_id: params.id,
     amount: params.amountRands.toFixed(2),
-    item_name: params.divisionName.slice(0, 100),
+    item_name: params.itemName.slice(0, 100),
   };
 
   let signatureBase = buildQueryString(fields);

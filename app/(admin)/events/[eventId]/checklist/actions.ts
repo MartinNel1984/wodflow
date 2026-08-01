@@ -43,6 +43,31 @@ export async function updateEventContactInfo(formData: FormData) {
   revalidatePath(`/events/${eventId}/checklist`);
 }
 
+export async function updateTicketPrices(formData: FormData) {
+  const { supabase } = await requireOrganizer();
+  const eventId = String(formData.get("eventId") ?? "");
+  if (!eventId) return;
+
+  // Blank = that ticket type is disabled for this event — no forced
+  // default (design doc's "opt-in per event" decision), so an empty
+  // field must write null, not 0 or an omitted update.
+  const parsePrice = (key: string) => {
+    const raw = String(formData.get(key) ?? "").trim();
+    if (!raw) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  };
+
+  await supabase
+    .from("events")
+    .update({
+      spectator_price: parsePrice("spectatorPrice"),
+      vendor_price: parsePrice("vendorPrice"),
+    })
+    .eq("id", eventId);
+  revalidatePath(`/events/${eventId}/checklist`);
+}
+
 export async function updateEventDetails(formData: FormData) {
   const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
