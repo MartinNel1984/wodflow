@@ -45,21 +45,21 @@ export default async function EventDetailPage({
     | null
     | undefined;
 
-  // spectator_price / vendor_price belong to the in-flight ticket-sales
-  // feature, built on a separate worktree branch — they likely don't exist
-  // on this branch's `events` table yet. Probe for them defensively so a
-  // missing column errors this query alone, not the whole page, and the
-  // "Buy tickets" link simply never renders until both features merge and
-  // an organizer actually sets pricing.
+  // spectator_price belongs to the in-flight ticket-sales feature, built
+  // on a separate worktree branch — it likely doesn't exist on this
+  // branch's `events` table yet. Probe for it defensively so a missing
+  // column errors this query alone, not the whole page, and the "Buy
+  // tickets" link simply never renders until both features merge and an
+  // organizer actually sets pricing.
   let hasTicketPricing = false;
   try {
     const { data: pricing, error } = await supabase
       .from("events")
-      .select("spectator_price, vendor_price")
+      .select("spectator_price")
       .eq("id", eventId)
       .single();
-    const priced = pricing as { spectator_price?: number | null; vendor_price?: number | null } | null;
-    if (!error && priced && (priced.spectator_price || priced.vendor_price)) {
+    const priced = pricing as { spectator_price?: number | null } | null;
+    if (!error && priced && priced.spectator_price) {
       hasTicketPricing = true;
     }
   } catch {
