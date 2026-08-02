@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import { createPublicClient } from "@/lib/supabase/public";
 import { BrandKitLogo } from "@/components/BrandKitLogo";
 import { BackLink } from "@/components/BackLink";
+import { RumbleBackdrop } from "@/components/RumbleBackdrop";
 import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 
 export async function generateMetadata({
@@ -66,11 +67,11 @@ export default async function EventDetailPage({
     hasTicketPricing = false;
   }
 
-  return (
-    <div className="max-w-xl mx-auto px-4 py-10 space-y-8" style={brandKitStyle(brandKit)}>
-      <BackLink href="/all-events" />
+  const isBigOne = brandKit?.name === "Rumble Big One";
 
-      {event.poster_url && (
+  const content = (
+    <div className="max-w-xl mx-auto px-4 py-10 space-y-8" style={brandKitStyle(brandKit)}>
+      {event.poster_url && !isBigOne && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={event.poster_url}
@@ -149,5 +150,20 @@ export default async function EventDetailPage({
         </a>
       </div>
     </div>
+  );
+
+  if (isBigOne) {
+    return (
+      <RumbleBackdrop logoSrc={brandKit?.logo_url || "/rumble/series-logo-v2.png"} logoAlt={brandKit?.name || "Rumble Big One"} backHref="/all-events">
+        <div className="w-full max-w-xl bg-white text-ink rounded-2xl shadow-xl">{content}</div>
+      </RumbleBackdrop>
+    );
+  }
+
+  return (
+    <>
+      <BackLink href="/all-events" />
+      {content}
+    </>
   );
 }
