@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { computeEventChecks, computeDivisionChecks, type CheckItem } from "@/lib/checklist";
 import { updateWaiverText, updateJudgingMode, updateEventContactInfo, updateTicketPrices } from "./actions";
@@ -18,7 +19,7 @@ export default async function ChecklistPage({
     supabase
       .from("events")
       .select(
-        "name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status, judging_mode, description, poster_url, spectator_price"
+        "name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status, judging_mode, description, poster_url, spectator_price, spectator_capacity"
       )
       .eq("id", eventId)
       .single(),
@@ -57,9 +58,9 @@ export default async function ChecklistPage({
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <div>
-        <a href="/events" className="text-accent text-sm hover:underline">
+        <Link href="/events" className="text-accent text-sm hover:underline">
           ← Events
-        </a>
+        </Link>
         <h1 className="text-2xl font-semibold mt-1">{event?.name ?? "Event"} — Pre-event checklist</h1>
         <p className="text-ink/60 text-sm mt-1">
           Run this the day before — this is exactly what was missing on the ScoreIT event that
@@ -203,11 +204,11 @@ export default async function ChecklistPage({
           <div>
             <p className="text-sm font-semibold">Spectator tickets</p>
             <p className="text-ink/60 text-xs">
-              Blank = tickets are off. Set a price to open{" "}
+              Blank price = tickets are off. Set a price to open{" "}
               <a href={`/events/${eventId}/tickets`} className="text-accent hover:underline" target="_blank">
                 the public tickets page
               </a>
-              .
+              . Blank capacity = unlimited.
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -219,6 +220,17 @@ export default async function ChecklistPage({
                 min={0}
                 step="0.01"
                 defaultValue={event?.spectator_price ?? ""}
+                className="w-20 ml-1 text-sm border border-ink/10 rounded-lg px-2 py-1.5"
+              />
+            </label>
+            <label className="text-xs text-ink/60">
+              Capacity
+              <input
+                type="number"
+                name="spectatorCapacity"
+                min={1}
+                step="1"
+                defaultValue={event?.spectator_capacity ?? ""}
                 className="w-20 ml-1 text-sm border border-ink/10 rounded-lg px-2 py-1.5"
               />
             </label>

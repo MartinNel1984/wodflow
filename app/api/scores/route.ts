@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { validateScoreValue, validateTiebreakValue } from "@/lib/scoreValidation";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,19 @@ export async function POST(request: Request) {
 
   if (!heatAssignmentId || !workoutId || !valueRaw || !clientSubmissionId) {
     return NextResponse.json({ error: "Missing required score fields." }, { status: 400 });
+  }
+
+  // Reject implausible/malformed values before they reach the DB — an
+  // unvalidated negative time would sort first on the leaderboard.
+  // 400 (not 403) so the offline queue treats it as a permanent failure
+  // to drop rather than a transient one to retry forever.
+  const valueError = validateScoreValue(valueRaw);
+  if (valueError) {
+    return NextResponse.json({ error: valueError }, { status: 400 });
+  }
+  const tiebreakError = validateTiebreakValue(tiebreakValue);
+  if (tiebreakError) {
+    return NextResponse.json({ error: `Tiebreak: ${tiebreakError}` }, { status: 400 });
   }
 
   const supabase = await createClient();

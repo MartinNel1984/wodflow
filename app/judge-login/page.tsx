@@ -29,9 +29,19 @@ export default function JudgeLoginPage() {
   }, [judges, query]);
 
   useEffect(() => {
-    fetch("/api/auth/judge-list")
+    // The judge list is organization-scoped. ?org=<slug> is passed
+    // straight through; without it the API resolves the org itself when
+    // the platform has only one, and otherwise returns needsOrg so we
+    // can say so rather than silently showing an empty picker.
+    const org = new URLSearchParams(window.location.search).get("org");
+    fetch(`/api/auth/judge-list${org ? `?org=${encodeURIComponent(org)}` : ""}`)
       .then((r) => r.json())
-      .then((d) => setJudges(d.judges ?? []))
+      .then((d) => {
+        setJudges(d.judges ?? []);
+        if (d.needsOrg) {
+          setError("Open the judge link your organiser sent you — it identifies your organisation.");
+        }
+      })
       .catch(() => setJudges([]))
       .finally(() => setLoadingJudges(false));
   }, []);

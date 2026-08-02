@@ -8,6 +8,13 @@ import { sendRegistrationEmails, sendTicketConfirmationEmail } from "@/lib/email
 // m_payment_id PayFast has ever been sent by this app pre-tickets.
 const TICKET_ID_PREFIX = "ticket_";
 
+// Both registrations and event_tickets key off a uuid primary key.
+// Querying `.eq("id", "not-a-uuid")` doesn't return zero rows — Postgres
+// raises 22P02 (invalid input syntax for type uuid), which the handlers
+// below would otherwise surface as a 500, making PayFast retry a
+// malformed ITN indefinitely. Shape-check first and ack instead.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function POST(request: Request) {
   // Must read the raw body before parsing — signature is computed over the
   // exact bytes PayFast sent, not our re-serialized form data.
@@ -38,10 +45,19 @@ export async function POST(request: Request) {
     return new Response("OK", { status: 200 });
   }
 
-  if (paymentId.startsWith(TICKET_ID_PREFIX)) {
-    return handleTicketPayment(paymentId.slice(TICKET_ID_PREFIX.length), amountGross, pfPaymentId);
+  const isTicket = paymentId.startsWith(TICKET_ID_PREFIX);
+  const recordId = isTicket ? paymentId.slice(TICKET_ID_PREFIX.length) : paymentId;
+
+  if (!UUID_RE.test(recordId)) {
+    console.error("PayFast webhook: m_payment_id is not a uuid", { paymentId });
+    // Ack — this is not a payment we can ever match, so retrying is pointless.
+    return new Response("OK", { status: 200 });
   }
-  return handleRegistrationPayment(paymentId, amountGross, pfPaymentId);
+
+  if (isTicket) {
+    return handleTicketPayment(recordId, amountGross, pfPaymentId);
+  }
+  return handleRegistrationPayment(recordId, amountGross, pfPaymentId);
 }
 
 async function handleRegistrationPayment(

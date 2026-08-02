@@ -230,7 +230,10 @@ export default function RegisterContent() {
         setSubmitting(false);
         return;
       }
-      window.location.href = data.payUrl;
+      // .assign() rather than `location.href = …` — same full-page
+      // navigation to PayFast, but not an assignment to an external
+      // binding, which the react-hooks/immutability rule flags.
+      window.location.assign(data.payUrl);
     } catch {
       setError("Network error. Please try again.");
       setSubmitting(false);

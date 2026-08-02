@@ -111,7 +111,7 @@ export default async function RumbleHubPage() {
         <h2 className="rumble-section-title">News</h2>
         <ul className="space-y-2">
           {milestones.registrationOpen && (
-            <li className="rumble-card">Registration is open — grab your team's spot.</li>
+            <li className="rumble-card">Registration is open — grab your team&apos;s spot.</li>
           )}
           {milestones.heatsReleased && <li className="rumble-card">Heats have been released.</li>}
           {milestones.resultsLive && <li className="rumble-card">Results are live on the leaderboard.</li>}

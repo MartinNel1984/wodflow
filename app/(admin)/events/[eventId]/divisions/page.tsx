@@ -28,9 +28,9 @@ export default async function DivisionsPage({
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <div>
-        <a href="/events" className="text-accent text-sm hover:underline">
+        <Link href="/events" className="text-accent text-sm hover:underline">
           ← Events
-        </a>
+        </Link>
         <h1 className="text-2xl font-semibold mt-1">{event?.name ?? "Event"} — Divisions</h1>
       </div>
 

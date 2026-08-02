@@ -7,6 +7,10 @@ import { BrandKitLogo } from "@/components/BrandKitLogo";
 import { BackLink } from "@/components/BackLink";
 import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 
+// Mirrors events.max_tickets_per_order's default (migration-046). The
+// server reads the real per-event value; this is the UI's safe default.
+const MAX_PER_ORDER = 20;
+
 type EventInfo = {
   name: string;
   description: string | null;
@@ -79,7 +83,7 @@ export default function TicketsContent() {
         setSubmitting(false);
         return;
       }
-      window.location.href = data.payUrl;
+      window.location.assign(data.payUrl);
     } catch {
       setError("Network error. Please try again.");
       setSubmitting(false);
@@ -116,11 +120,18 @@ export default function TicketsContent() {
 
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Quantity</label>
+            {/* Clamped to MAX_PER_ORDER so a typo (100 instead of 10)
+                can't silently become a five-figure checkout. The server
+                and the enforce_spectator_capacity trigger both re-check
+                this — the clamp here is just immediate feedback. */}
             <input
               type="number"
               min={1}
+              max={MAX_PER_ORDER}
               value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, Math.floor(Number(e.target.value) || 1)))}
+              onChange={(e) =>
+                setQuantity(Math.min(MAX_PER_ORDER, Math.max(1, Math.floor(Number(e.target.value) || 1))))
+              }
               className="w-24 bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
             />
           </div>

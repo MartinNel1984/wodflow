@@ -44,3 +44,6 @@ supabase/.temp/
 
 # wrangler local state
 .wrangler/
+
+# Agent worktrees / local session state — never part of the repo.
+.claude/

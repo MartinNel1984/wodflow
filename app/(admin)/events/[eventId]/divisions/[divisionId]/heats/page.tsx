@@ -163,6 +163,23 @@ export default async function HeatsPage({
           <Field label="First heat date" name="startDate" type="date" required />
           <Field label="First heat time" name="startTimeOfDay" type="time" required />
         </div>
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-ink/50 mb-1">
+            Lane order
+          </label>
+          <select
+            name="seedMode"
+            defaultValue="standings"
+            className="w-full text-sm border border-ink/10 rounded-lg px-3 py-2"
+          >
+            <option value="standings">Seed by standings — leaders in the last heat</option>
+            <option value="registration">Registration order</option>
+          </select>
+          <p className="text-ink/50 text-xs mt-1">
+            Seeding uses the cumulative standings from earlier workouts in this division. The first
+            workout has no earlier results, so it always falls back to registration order.
+          </p>
+        </div>
         <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
           Generate
         </button>

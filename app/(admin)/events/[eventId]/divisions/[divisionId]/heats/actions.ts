@@ -5,6 +5,8 @@ import { requireOrganizer, requirePrivileged } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { generateHeats, type RosterEntry } from "@/lib/heats";
 import { parseTime } from "@/lib/scoring";
+import { validateScoreValue } from "@/lib/scoreValidation";
+import { computeStandings, type LeaderboardRow, type ScoringConfig } from "@/lib/leaderboard";
 
 // Whole-workout regeneration. Only ever touches heats/assignments in
 // 'scheduled' status — heats already 'in_progress' or 'completed' are
@@ -73,12 +75,76 @@ export async function generateHeatsForDivision(formData: FormData) {
     for (const a of lockedAssignments ?? []) alreadyAssignedIds.add(a.registration_id);
   }
 
+  // ---- Re-seeding by prior standings -------------------------------
+  // lib/heats.ts has always supported seedRank (worst-seed-first, so the
+  // strongest athletes land in the final heat — standard competition
+  // convention), but nothing ever populated it: every workout's heats
+  // were generated in registration order. For a multi-WOD event that
+  // means identical heat composition all weekend.
+  //
+  // Ranks come from computeStandings over every workout in this division
+  // with a LOWER sequence than the one being generated — i.e. cumulative
+  // standings going into this workout, not just the previous WOD's
+  // result. Reusing the leaderboard's own function (rather than a
+  // parallel ranking) means heat seeding and the public leaderboard can
+  // never disagree about who's winning.
+  //
+  // Workout 1 has no prior workouts, so this no-ops and behaviour is
+  // unchanged there. "registration" mode is the organizer's manual
+  // override for when they want registration order regardless.
+  const seedMode = String(formData.get("seedMode") ?? "standings");
+  const seedRankByRegistration = new Map<string, number>();
+
+  if (seedMode === "standings") {
+    const { data: targetWorkout } = await supabase
+      .from("workouts")
+      .select("sequence")
+      .eq("id", workoutId)
+      .single();
+
+    if (targetWorkout?.sequence != null) {
+      const { data: priorWorkouts } = await supabase
+        .from("workouts")
+        .select("id")
+        .eq("division_id", divisionId)
+        .lt("sequence", targetWorkout.sequence);
+
+      const priorIds = new Set((priorWorkouts ?? []).map((w) => w.id as string));
+      if (priorIds.size > 0) {
+        const [{ data: division }, { data: rows }] = await Promise.all([
+          supabase.from("divisions").select("scoring_config").eq("id", divisionId).single(),
+          supabase
+            .from("public_leaderboard")
+            .select(
+              "heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value, workout_name, workout_scoring_config"
+            )
+            .eq("division_id", divisionId),
+        ]);
+
+        // public_leaderboard.workout_id is coalesce(workout_ref_id::text,
+        // legacy text label) per migration-042, so comparing against
+        // workouts.id as text is the correct join for any modern score.
+        const priorRows = ((rows ?? []) as LeaderboardRow[]).filter((r) => priorIds.has(r.workout_id));
+
+        if (priorRows.length > 0) {
+          const scoringConfig = (division?.scoring_config ?? { method: "rank_sum" }) as ScoringConfig;
+          const { standings } = computeStandings(priorRows, scoringConfig);
+          // standings is sorted best-first, so index 0 is rank 1.
+          standings.forEach((s, i) => seedRankByRegistration.set(s.registrationId, i + 1));
+        }
+      }
+    }
+  }
+
   const roster: RosterEntry[] = (registrations ?? [])
     .filter((r) => !alreadyAssignedIds.has(r.id))
     .map((r) => ({
       registrationId: r.id,
       registrationOrder: r.registration_order,
-      seedRank: null,
+      // null for anyone with no prior score (a late entry joining at WOD
+      // 3, say) — orderRoster puts unseeded athletes in the earliest
+      // heats, which is the right place for them.
+      seedRank: seedRankByRegistration.get(r.id) ?? null,
     }));
 
   const { heats, assignments } = generateHeats({
@@ -186,6 +252,11 @@ export async function correctScore(formData: FormData) {
   } else {
     valueRaw = { load_kg: Number(rawValue) };
   }
+
+  // Same validator the /api/scores path uses — a correction typed as
+  // "-5" or "abc" would otherwise land straight in the leaderboard.
+  const valueError = validateScoreValue(valueRaw);
+  if (valueError) throw new Error(valueError);
 
   const { error } = await supabase.from("scores").insert({
     heat_assignment_id: heatAssignmentId,

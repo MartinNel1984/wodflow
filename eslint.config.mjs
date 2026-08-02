@@ -15,6 +15,12 @@ const eslintConfig = defineConfig([
     // Generated Cloudflare build output — not source code.
     ".open-next/**",
     ".wrangler/**",
+    // Parked agent worktrees are full checkouts (source + their own
+    // .next build output), so linting them double-reports this repo's
+    // own files and buries real errors under tens of thousands of
+    // generated-code warnings. Each worktree lints itself when it's
+    // the active checkout; from here they're not source.
+    ".claude/**",
   ]),
 ]);
 
