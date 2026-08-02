@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import jsQR from "jsqr";
 import { createClient } from "@/lib/supabase/client";
 import { lookupTicket, confirmCheckin } from "./actions";
 
@@ -14,26 +15,10 @@ type Ticket = {
   payment_status: "pending" | "paid" | "refunded";
 };
 
-// BarcodeDetector is Chrome/Android-only as of this writing (no Safari/
-// iOS support) — see the manual-entry fallback below for the documented
-// gap rather than pulling in a full JS-decode library (jsQR etc.) for
-// what's a stopgap until wider browser support lands.
-declare global {
-  interface Window {
-    BarcodeDetector?: new (options: { formats: string[] }) => {
-      detect(source: CanvasImageSource): Promise<{ rawValue: string }[]>;
-    };
-  }
-}
-
 export default function CheckinPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const [role, setRole] = useState<string>("");
   const [authorized, setAuthorized] = useState<boolean | null>(null);
-  // Doesn't change after mount — a lazy initializer avoids the
-  // render-then-immediately-setState-in-an-effect pattern for a value
-  // that's static for the life of the page.
-  const [cameraSupported] = useState(() => typeof window !== "undefined" && "BarcodeDetector" in window);
   const [scanning, setScanning] = useState(false);
   const [manualToken, setManualToken] = useState("");
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -41,8 +26,9 @@ export default function CheckinPage() {
   const [confirming, setConfirming] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     async function loadRole() {
@@ -67,8 +53,8 @@ export default function CheckinPage() {
   }, []);
 
   const stopScanning = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = null;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setScanning(false);
@@ -91,34 +77,60 @@ export default function CheckinPage() {
   );
 
   async function startScanning() {
-    if (!window.BarcodeDetector) return;
     setMessage("");
     setTicket(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+      // The <video> element only mounts once `scanning` is true, so
+      // videoRef.current is still null here right after getUserMedia
+      // resolves — attaching the stream has to wait for the effect below
+      // to run post-render, once the element actually exists in the DOM.
       setScanning(true);
-      intervalRef.current = setInterval(async () => {
-        if (!videoRef.current) return;
-        try {
-          const codes = await detector.detect(videoRef.current);
-          if (codes.length > 0) {
-            handleScanValue(codes[0].rawValue);
-          }
-        } catch {
-          // transient decode error on a mid-motion frame — ignore, next tick retries
-        }
-      }, 400);
     } catch (err) {
       console.error("Camera access failed", err);
       setMessage("Could not access the camera — check permissions, or use manual entry below.");
     }
   }
+
+  useEffect(() => {
+    if (!scanning || !streamRef.current || !videoRef.current) return;
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    video.srcObject = stream;
+    video.play().catch((err) => console.error("video.play() failed", err));
+
+    if (!canvasRef.current) canvasRef.current = document.createElement("canvas");
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+    // jsQR decodes a raw ImageData frame in pure JS, so it works on any
+    // browser with getUserMedia — unlike the native BarcodeDetector API,
+    // which has no Safari/iOS support and would silently strand gate
+    // staff on iPhones (the actual devices most likely at a real event).
+    const tick = () => {
+      if (!ctx || video.readyState !== video.HAVE_ENOUGH_DATA) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(frame.data, frame.width, frame.height, { inversionAttempts: "dontInvert" });
+      if (code?.data) {
+        handleScanValue(code.data);
+        return;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, [scanning, handleScanValue]);
 
   useEffect(() => stopScanning, [stopScanning]);
 
@@ -157,35 +169,28 @@ export default function CheckinPage() {
     <div className="max-w-md mx-auto space-y-6">
       <h1 className="text-xl font-semibold text-center">Gate check-in</h1>
 
-      {cameraSupported ? (
-        <div className="space-y-3">
-          {scanning ? (
-            <>
-              <video ref={videoRef} muted playsInline className="w-full rounded-xl bg-black aspect-square object-cover" />
-              <button
-                type="button"
-                onClick={stopScanning}
-                className="w-full bg-ink/10 text-ink rounded-lg py-2.5 text-sm font-semibold"
-              >
-                Stop camera
-              </button>
-            </>
-          ) : (
+      <div className="space-y-3">
+        {scanning ? (
+          <>
+            <video ref={videoRef} muted playsInline className="w-full rounded-xl bg-black aspect-square object-cover" />
             <button
               type="button"
-              onClick={startScanning}
-              className="w-full bg-accent text-white rounded-lg py-3 text-sm font-semibold"
+              onClick={stopScanning}
+              className="w-full bg-ink/10 text-ink rounded-lg py-2.5 text-sm font-semibold"
             >
-              Start scanning
+              Stop camera
             </button>
-          )}
-        </div>
-      ) : (
-        <p className="text-center text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
-          Camera scanning isn&apos;t supported in this browser (BarcodeDetector requires Chrome/Android — no
-          Safari/iOS support yet). Use manual entry below instead.
-        </p>
-      )}
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={startScanning}
+            className="w-full bg-accent text-white rounded-lg py-3 text-sm font-semibold"
+          >
+            Start scanning
+          </button>
+        )}
+      </div>
 
       <form onSubmit={submitManualToken} className="flex gap-2">
         <input
