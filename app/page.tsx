@@ -51,19 +51,11 @@ export default async function RumbleHubPage() {
             {event.venue_name ? ` · ${event.venue_name}` : ""}
           </p>
         )}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center mt-2">
-          <a
-            href="/all-events"
-            className="rumble-display text-sm px-6 py-3 rounded-full"
-            style={{ background: "var(--rumble-blue-bright)", color: "#0a0b10" }}
-          >
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-6">
+          <Link href="/all-events" className="rumble-cta-fork rumble-cta-fork--blue hover-lift">
             I&apos;m Competing →
-          </a>
-          <Link
-            href="/tickets"
-            className="rumble-display text-sm px-6 py-3 rounded-full border"
-            style={{ borderColor: "var(--rumble-blue-bright)", color: "var(--rumble-blue-bright)" }}
-          >
+          </Link>
+          <Link href="/tickets" className="rumble-cta-fork rumble-cta-fork--volt hover-lift">
             I&apos;m Spectating →
           </Link>
         </div>
