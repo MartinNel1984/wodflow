@@ -461,15 +461,20 @@ button:hover, .hover-lift:hover {
    original single CTA) but sized to sit side by side, in two distinct
    on-brand colors — blue (already the site's primary accent) and volt
    (the lime already used for the "Yeeeah! Get Some!" sticker) — so
-   neither reads as more "official" than the other. */
+   neither reads as more "official" than the other. Uses the clean
+   interface sans (not the punk/brush display fonts used for headlines)
+   because these are the two most important actionable links on the
+   page — Martin found the display font genuinely hard to read at
+   button size on a real device, 2026-08-02. */
 .rumble-cta-fork {
   display: inline-block;
   padding: 1.1rem 2.25rem;
   border-radius: 999px;
-  font-family: var(--font-rumble-display), sans-serif;
-  font-size: clamp(1.15rem, 1rem + 0.8vw, 1.5rem);
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  font-family: var(--font-sans), sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.05rem, 0.95rem + 0.6vw, 1.3rem);
+  letter-spacing: 0.01em;
+  text-transform: none;
   text-align: center;
 }
 
