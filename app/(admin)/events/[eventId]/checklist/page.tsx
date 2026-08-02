@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeEventChecks, computeDivisionChecks, type CheckItem } from "@/lib/checklist";
-import { updateWaiverText, updateJudgingMode, updateEventContactInfo } from "./actions";
+import { updateWaiverText, updateJudgingMode, updateEventContactInfo, updateTicketPrices } from "./actions";
 import { EventDetailsForm } from "./EventDetailsForm";
 
 export default async function ChecklistPage({
@@ -18,7 +18,7 @@ export default async function ChecklistPage({
     supabase
       .from("events")
       .select(
-        "name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status, judging_mode, description, poster_url"
+        "name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status, judging_mode, description, poster_url, spectator_price"
       )
       .eq("id", eventId)
       .single(),
@@ -196,6 +196,36 @@ export default async function ChecklistPage({
           <button type="submit" className="text-sm text-accent font-semibold shrink-0">
             Save
           </button>
+        </form>
+
+        <form action={updateTicketPrices} className="flex items-center justify-between gap-3 pt-1">
+          <input type="hidden" name="eventId" value={eventId} />
+          <div>
+            <p className="text-sm font-semibold">Spectator tickets</p>
+            <p className="text-ink/60 text-xs">
+              Blank = tickets are off. Set a price to open{" "}
+              <a href={`/events/${eventId}/tickets`} className="text-accent hover:underline" target="_blank">
+                the public tickets page
+              </a>
+              .
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <label className="text-xs text-ink/60">
+              Spectator R
+              <input
+                type="number"
+                name="spectatorPrice"
+                min={0}
+                step="0.01"
+                defaultValue={event?.spectator_price ?? ""}
+                className="w-20 ml-1 text-sm border border-ink/10 rounded-lg px-2 py-1.5"
+              />
+            </label>
+            <button type="submit" className="text-sm text-accent font-semibold">
+              Save
+            </button>
+          </div>
         </form>
       </div>
 

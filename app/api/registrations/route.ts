@@ -173,10 +173,10 @@ export async function POST(request: Request) {
   try {
     const { payUrl } = createPayfastCheckout({
       amountRands: price,
-      registrationId: registration.id,
-      divisionName: division.name,
-      teamOrAthleteName: teamName ?? captain.fullName,
-      athleteEmail: captain.email,
+      id: registration.id,
+      itemName: division.name,
+      buyerName: teamName ?? captain.fullName,
+      buyerEmail: captain.email,
       siteOrigin: new URL(request.url).origin,
     });
 
