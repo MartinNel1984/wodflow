@@ -480,3 +480,53 @@ button:hover, .hover-lift:hover {
   border-radius: 1rem;
   padding: 1.25rem;
 }
+
+/* Minimal markdown styling for the public event detail page's rendered
+   `description` — no Tailwind typography plugin, just enough so headings,
+   bold text, and lists read as structure instead of raw markdown syntax. */
+.event-markdown h1,
+.event-markdown h2,
+.event-markdown h3 {
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.375rem;
+}
+.event-markdown h1:first-child,
+.event-markdown h2:first-child,
+.event-markdown h3:first-child {
+  margin-top: 0;
+}
+.event-markdown h1 {
+  font-size: 1.125rem;
+}
+.event-markdown h2 {
+  font-size: 1.0625rem;
+}
+.event-markdown h3 {
+  font-size: 1rem;
+}
+.event-markdown p {
+  margin-bottom: 0.75rem;
+}
+.event-markdown ul,
+.event-markdown ol {
+  margin: 0 0 0.75rem 1.25rem;
+}
+.event-markdown ul {
+  list-style: disc;
+}
+.event-markdown ol {
+  list-style: decimal;
+}
+.event-markdown li {
+  margin-bottom: 0.25rem;
+}
+.event-markdown a {
+  text-decoration: underline;
+}
+.event-markdown strong {
+  font-weight: 600;
+}
+.event-markdown > *:last-child {
+  margin-bottom: 0;
+}
