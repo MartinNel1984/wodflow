@@ -15,7 +15,7 @@ export async function generateMetadata({
 
   return {
     title: `Tickets — ${event.name}`,
-    description: `Buy a spectator or vendor pass for ${event.name} on Wodflow.`,
+    description: `Buy a spectator pass for ${event.name} on Wodflow.`,
   };
 }
 
@@ -24,16 +24,16 @@ export default async function TicketsPage({ params }: { params: Promise<{ eventI
   const supabase = createPublicClient();
   const { data: event } = await supabase
     .from("events")
-    .select("id, status, spectator_price, vendor_price")
+    .select("id, status, spectator_price")
     .eq("id", eventId)
     .single();
 
-  // 404 cleanly when neither ticket type is configured — matches the
+  // 404 cleanly when spectator tickets aren't configured — matches the
   // "opt-in per event" design decision (blank price = disabled, no
-  // forced default) and the event page only links here when at least
-  // one price is set.
+  // forced default) and the event page only links here when the price
+  // is set.
   if (!event || !["published", "live"].includes(event.status)) notFound();
-  if (event.spectator_price == null && event.vendor_price == null) notFound();
+  if (event.spectator_price == null) notFound();
 
   return <TicketsContent />;
 }

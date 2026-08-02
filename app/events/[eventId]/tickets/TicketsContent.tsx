@@ -13,17 +13,13 @@ type EventInfo = {
   posterUrl: string | null;
   brandKit: BrandKit | null;
   spectatorPrice: number | null;
-  vendorPrice: number | null;
 };
-
-type TicketType = "spectator" | "vendor";
 
 export default function TicketsContent() {
   const { eventId } = useParams<{ eventId: string }>();
   const [loading, setLoading] = useState(true);
   const [event, setEvent] = useState<EventInfo | null>(null);
 
-  const [ticketType, setTicketType] = useState<TicketType | "">("");
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -36,7 +32,7 @@ export default function TicketsContent() {
       const { data } = await supabase
         .from("events")
         .select(
-          "name, description, poster_url, spectator_price, vendor_price, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline)"
+          "name, description, poster_url, spectator_price, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline)"
         )
         .eq("id", eventId)
         .single();
@@ -49,24 +45,17 @@ export default function TicketsContent() {
           posterUrl: data.poster_url,
           brandKit: kit ?? null,
           spectatorPrice: data.spectator_price,
-          vendorPrice: data.vendor_price,
         });
-        // Default to whichever single type is available so the buyer
-        // doesn't have to pick when there's only one real option.
-        if (data.spectator_price != null && data.vendor_price == null) setTicketType("spectator");
-        else if (data.vendor_price != null && data.spectator_price == null) setTicketType("vendor");
       }
       setLoading(false);
     }
     load();
   }, [eventId]);
 
-  const unitPrice =
-    ticketType === "spectator" ? event?.spectatorPrice : ticketType === "vendor" ? event?.vendorPrice : null;
+  const unitPrice = event?.spectatorPrice ?? null;
   const total = unitPrice != null ? unitPrice * quantity : 0;
 
-  const canSubmit =
-    !!ticketType && buyerName.trim().length > 0 && buyerEmail.trim().includes("@") && quantity >= 1 && !submitting;
+  const canSubmit = buyerName.trim().length > 0 && buyerEmail.trim().includes("@") && quantity >= 1 && !submitting;
 
   async function submit() {
     if (!canSubmit) return;
@@ -78,7 +67,7 @@ export default function TicketsContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventId,
-          ticketType,
+          ticketType: "spectator",
           buyerName: buyerName.trim(),
           buyerEmail: buyerEmail.trim(),
           quantity,
@@ -100,8 +89,6 @@ export default function TicketsContent() {
   if (loading) return <p className="text-center py-20 text-ink/50">Loading…</p>;
   if (!event) return <p className="text-center py-20 text-ink/50">Event not found.</p>;
 
-  const bothAvailable = event.spectatorPrice != null && event.vendorPrice != null;
-
   return (
     <>
       <BackLink href={`/register/${eventId}`} />
@@ -119,31 +106,11 @@ export default function TicketsContent() {
 
         <div className="text-center">
           <h1 className="text-2xl font-semibold">{event.name}</h1>
-          <p className="text-ink/60 text-sm mt-1">Spectator &amp; vendor tickets</p>
+          <p className="text-ink/60 text-sm mt-1">Spectator tickets</p>
           {event.description && <p className="text-ink/70 text-sm mt-3 max-w-md mx-auto">{event.description}</p>}
         </div>
 
         <div className="space-y-5 bg-white border border-ink/10 rounded-xl p-5">
-          {bothAvailable && (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider">Ticket type</p>
-              <div className="grid grid-cols-2 gap-3">
-                <TypeButton
-                  label="Spectator"
-                  price={event.spectatorPrice}
-                  selected={ticketType === "spectator"}
-                  onClick={() => setTicketType("spectator")}
-                />
-                <TypeButton
-                  label="Vendor"
-                  price={event.vendorPrice}
-                  selected={ticketType === "vendor"}
-                  onClick={() => setTicketType("vendor")}
-                />
-              </div>
-            </div>
-          )}
-
           <Field label="Full name" value={buyerName} onChange={setBuyerName} />
           <Field label="Email" value={buyerEmail} onChange={setBuyerEmail} type="email" />
 
@@ -179,32 +146,6 @@ export default function TicketsContent() {
         </div>
       </div>
     </>
-  );
-}
-
-function TypeButton({
-  label,
-  price,
-  selected,
-  onClick,
-}: {
-  label: string;
-  price: number | null;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  if (price == null) return null;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`text-left rounded-xl px-4 py-3 border-2 transition-colors ${
-        selected ? "border-accent bg-accent/5" : "border-ink/10 hover:border-ink/30"
-      }`}
-    >
-      <p className="font-semibold">{label}</p>
-      <p className="text-ink/60 text-sm">R{price} each</p>
-    </button>
   );
 }
 

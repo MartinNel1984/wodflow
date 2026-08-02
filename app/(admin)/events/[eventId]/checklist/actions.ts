@@ -48,7 +48,7 @@ export async function updateTicketPrices(formData: FormData) {
   const eventId = String(formData.get("eventId") ?? "");
   if (!eventId) return;
 
-  // Blank = that ticket type is disabled for this event — no forced
+  // Blank = spectator tickets are disabled for this event — no forced
   // default (design doc's "opt-in per event" decision), so an empty
   // field must write null, not 0 or an omitted update.
   const parsePrice = (key: string) => {
@@ -62,7 +62,6 @@ export async function updateTicketPrices(formData: FormData) {
     .from("events")
     .update({
       spectator_price: parsePrice("spectatorPrice"),
-      vendor_price: parsePrice("vendorPrice"),
     })
     .eq("id", eventId);
   revalidatePath(`/events/${eventId}/checklist`);

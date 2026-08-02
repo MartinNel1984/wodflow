@@ -7,7 +7,7 @@ import { lookupTicket, confirmCheckin } from "./actions";
 
 type Ticket = {
   id: string;
-  ticket_type: "spectator" | "vendor";
+  ticket_type: "spectator";
   buyer_name: string;
   quantity: number;
   checked_in_count: number;
@@ -208,7 +208,7 @@ export default function CheckinPage() {
         <div className="bg-white border border-ink/10 rounded-xl p-5 space-y-3 animate-settle-in">
           <div>
             <p className="text-xs uppercase tracking-wider text-ink/50">
-              {ticket.ticket_type === "vendor" ? "Vendor pass" : "Spectator pass"}
+              Spectator pass
             </p>
             <p className="text-lg font-semibold">{ticket.buyer_name}</p>
             <p className="text-ink/60 text-sm">

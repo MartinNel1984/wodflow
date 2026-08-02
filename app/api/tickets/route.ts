@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   if (!eventId || !buyerName || !buyerEmail || !buyerEmail.includes("@")) {
     return NextResponse.json({ error: "Missing required ticket fields." }, { status: 400 });
   }
-  if (ticketType !== "spectator" && ticketType !== "vendor") {
+  if (ticketType !== "spectator") {
     return NextResponse.json({ error: "Invalid ticket type." }, { status: 400 });
   }
   if (!Number.isInteger(quantity) || quantity < 1) {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
   const { data: event, error: eventError } = await supabase
     .from("events")
-    .select("id, name, status, spectator_price, vendor_price, contact_email")
+    .select("id, name, status, spectator_price, contact_email")
     .eq("id", eventId)
     .single();
 
@@ -43,16 +43,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Tickets for this event aren't on sale." }, { status: 403 });
   }
 
-  const unitPrice = ticketType === "spectator" ? event.spectator_price : event.vendor_price;
-  // Blank price = that ticket type is disabled for this event (opt-in
-  // per event, no forced default — matches the design doc's scope
-  // decision) rather than falling back to some default price.
+  const unitPrice = event.spectator_price;
+  // Blank price = spectator tickets are disabled for this event
+  // (opt-in per event, no forced default — matches the design doc's
+  // scope decision) rather than falling back to some default price.
   if (unitPrice == null) {
     return NextResponse.json({ error: "This ticket type isn't available for this event." }, { status: 400 });
   }
 
   const pricePaid = Number((unitPrice * quantity).toFixed(2));
-  const typeLabel = ticketType === "spectator" ? "Spectator pass" : "Vendor pass";
+  const typeLabel = "Spectator pass";
 
   const { data: ticket, error: insertError } = await supabase
     .from("event_tickets")

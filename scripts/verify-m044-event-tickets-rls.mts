@@ -1,4 +1,4 @@
-// One-off verification for migration-044 (spectator + vendor tickets).
+// One-off verification for migration-044 (spectator tickets).
 // NOT YET RUN — migration-044-event-tickets.sql has not been applied to
 // the live database (no Supabase CLI/psql access from this environment,
 // see docs/plans/2026-08-01-spectator-vendor-tickets-design.md). Apply
@@ -6,7 +6,7 @@
 // verify-m039-storage-scoping.mts are run.
 //
 // Creates two throwaway orgs + organizer/head_judge pairs, an event with
-// spectator/vendor pricing in Org A, and a paid test ticket. Confirms:
+// spectator pricing in Org A, and a paid test ticket. Confirms:
 //   - Org A organizer/head_judge CAN read + write the ticket
 //   - Org B organizer/head_judge CANNOT read or write Org A's ticket
 //   - anon CANNOT read event_tickets at all (no anon policy exists)
@@ -100,7 +100,6 @@ async function main() {
         status: "published",
         organization_id: orgAOrganizer.org.id,
         spectator_price: 70,
-        vendor_price: 500,
       },
       { onConflict: "slug" }
     )

@@ -1,21 +1,24 @@
--- Wodflow — migration 044: spectator + vendor ticket sales
+-- Wodflow — migration 044: spectator ticket sales
 --
 -- See docs/plans/2026-08-01-spectator-vendor-tickets-design.md for the
--- full design. New table event_tickets — one row per *purchase* (not per
--- attendee), since we don't collect per-attendee names (flat pricing, no
--- cart, no waiver — this is a day-pass, not an athlete registration).
+-- full design (vendor tickets were dropped after Tjokkie's 2026-08-02
+-- feedback — he wants to vet/limit vendors himself, not sell open
+-- self-serve vendor passes; see project memory for detail). New table
+-- event_tickets — one row per *purchase* (not per attendee), since we
+-- don't collect per-attendee names (flat pricing, no cart, no waiver —
+-- this is a day-pass, not an athlete registration).
 --
--- Two new nullable columns on events: blank price = that ticket type is
--- disabled for the event, matching the "opt-in per event" scope decision.
+-- One new nullable column on events: blank price = spectator tickets
+-- are disabled for the event, matching the "opt-in per event" scope
+-- decision.
 
 alter table public.events
-  add column if not exists spectator_price numeric(10,2),
-  add column if not exists vendor_price     numeric(10,2);
+  add column if not exists spectator_price numeric(10,2);
 
 create table if not exists public.event_tickets (
   id                  uuid primary key default gen_random_uuid(),
   event_id            uuid not null references public.events(id) on delete cascade,
-  ticket_type         text not null check (ticket_type in ('spectator', 'vendor')),
+  ticket_type         text not null check (ticket_type in ('spectator')),
   buyer_name          text not null,
   buyer_email         text not null,
   quantity            int not null check (quantity > 0),

@@ -105,7 +105,7 @@ export async function sendTicketConfirmationEmail(ticketId: string) {
 
   const event = Array.isArray(ticket.events) ? ticket.events[0] : ticket.events;
   const firstName = ticket.buyer_name.split(" ")[0];
-  const typeLabel = ticket.ticket_type === "vendor" ? "Vendor pass" : "Spectator pass";
+  const typeLabel = "Spectator pass";
 
   let env;
   try {

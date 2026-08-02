@@ -18,7 +18,7 @@ export default async function ChecklistPage({
     supabase
       .from("events")
       .select(
-        "name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status, judging_mode, description, poster_url, spectator_price, vendor_price"
+        "name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status, judging_mode, description, poster_url, spectator_price"
       )
       .eq("id", eventId)
       .single(),
@@ -201,9 +201,9 @@ export default async function ChecklistPage({
         <form action={updateTicketPrices} className="flex items-center justify-between gap-3 pt-1">
           <input type="hidden" name="eventId" value={eventId} />
           <div>
-            <p className="text-sm font-semibold">Spectator / vendor tickets</p>
+            <p className="text-sm font-semibold">Spectator tickets</p>
             <p className="text-ink/60 text-xs">
-              Blank = that ticket type is off. Set a price to open{" "}
+              Blank = tickets are off. Set a price to open{" "}
               <a href={`/events/${eventId}/tickets`} className="text-accent hover:underline" target="_blank">
                 the public tickets page
               </a>
@@ -219,17 +219,6 @@ export default async function ChecklistPage({
                 min={0}
                 step="0.01"
                 defaultValue={event?.spectator_price ?? ""}
-                className="w-20 ml-1 text-sm border border-ink/10 rounded-lg px-2 py-1.5"
-              />
-            </label>
-            <label className="text-xs text-ink/60">
-              Vendor R
-              <input
-                type="number"
-                name="vendorPrice"
-                min={0}
-                step="0.01"
-                defaultValue={event?.vendor_price ?? ""}
                 className="w-20 ml-1 text-sm border border-ink/10 rounded-lg px-2 py-1.5"
               />
             </label>

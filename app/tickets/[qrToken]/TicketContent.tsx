@@ -5,7 +5,7 @@ import QRCode from "qrcode";
 import { BackLink } from "@/components/BackLink";
 
 type TicketInfo = {
-  ticketType: "spectator" | "vendor";
+  ticketType: "spectator";
   buyerName: string;
   quantity: number;
   paymentStatus: "pending" | "paid" | "refunded";
@@ -59,7 +59,7 @@ export default function TicketContent({ qrToken }: { qrToken: string }) {
   }
   if (!ticket) return <p className="text-center py-20 text-ink/50">Something went wrong.</p>;
 
-  const typeLabel = ticket.ticketType === "vendor" ? "Vendor pass" : "Spectator pass";
+  const typeLabel = "Spectator pass";
   const remaining = Math.max(0, ticket.quantity - ticket.checkedInCount);
 
   return (

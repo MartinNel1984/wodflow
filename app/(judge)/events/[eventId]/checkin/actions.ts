@@ -4,7 +4,7 @@ import { requirePrivileged } from "@/lib/auth";
 
 type TicketRow = {
   id: string;
-  ticket_type: "spectator" | "vendor";
+  ticket_type: "spectator";
   buyer_name: string;
   quantity: number;
   checked_in_count: number;
