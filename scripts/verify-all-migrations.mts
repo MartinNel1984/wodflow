@@ -10,8 +10,16 @@
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
+// .env.local is developer-machine only (gitignored). Fall back to real
+// environment variables so this can also run in CI / a cloud agent,
+// where the file won't exist but the secrets can be injected.
 function loadEnv(path: string) {
-  const text = readFileSync(path, "utf8");
+  let text: string;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch {
+    return; // no local file — rely on process.env
+  }
   for (const line of text.split("\n")) {
     const m = line.match(/^\s*([\w.]+)\s*=\s*(.*)\s*$/);
     if (!m) continue;
@@ -19,6 +27,16 @@ function loadEnv(path: string) {
   }
 }
 loadEnv(new URL("../.env.local", import.meta.url).pathname);
+
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error(
+    "\nNEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are not set, and no\n" +
+      ".env.local was found. This audit talks to the live database, so it cannot\n" +
+      "run without them. On a dev machine that means running it from the repo\n" +
+      "root; in CI it means injecting both as secrets.\n"
+  );
+  process.exit(2);
+}
 
 const svc = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
   auth: { autoRefreshToken: false, persistSession: false },
