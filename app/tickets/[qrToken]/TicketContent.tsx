@@ -97,8 +97,22 @@ export default function TicketContent({ qrToken }: { qrToken: string }) {
           {ticket.paymentStatus === "paid" && (
             <>
               {qrDataUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={qrDataUrl} alt="Entry QR code" className="mx-auto rounded-lg" width={280} height={280} />
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={qrDataUrl} alt="Entry QR code" className="mx-auto rounded-lg" width={280} height={280} />
+                  {/* A plain data-URL <a download> — works on iOS Safari and
+                      Android Chrome without any JS beyond what's already
+                      needed to generate the QR, so a spectator who bought
+                      weeks ahead can save it to their photo gallery instead
+                      of relying on finding the confirmation email again. */}
+                  <a
+                    href={qrDataUrl}
+                    download={`wodflow-ticket-${qrToken}.png`}
+                    className="inline-block bg-ink/5 text-ink rounded-lg px-4 py-2 text-sm font-semibold hover-lift"
+                  >
+                    Save QR code to your phone
+                  </a>
+                </>
               ) : (
                 <p className="text-ink/50 text-sm py-10">Generating QR code…</p>
               )}
