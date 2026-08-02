@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getRumbleHubData } from "@/lib/rumbleHub";
 import { Logo } from "@/components/Logo";
 import { PhotoCarousel } from "@/components/PhotoCarousel";
@@ -50,9 +51,30 @@ export default async function RumbleHubPage() {
             {event.venue_name ? ` · ${event.venue_name}` : ""}
           </p>
         )}
-        <a href="/all-events" className="rumble-cta rumble-display">
-          Enter Rumble Series →
-        </a>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center mt-2">
+          <a
+            href="/all-events"
+            className="rumble-display text-sm px-6 py-3 rounded-full"
+            style={{ background: "var(--rumble-blue-bright)", color: "#0a0b10" }}
+          >
+            I&apos;m Competing →
+          </a>
+          <Link
+            href="/tickets"
+            className="rumble-display text-sm px-6 py-3 rounded-full border"
+            style={{ borderColor: "var(--rumble-blue-bright)", color: "var(--rumble-blue-bright)" }}
+          >
+            I&apos;m Spectating →
+          </Link>
+        </div>
+        <div className="flex justify-center gap-4 mt-4 text-xs opacity-70">
+          <a href="/judge-login" className="underline">
+            Judge sign-in
+          </a>
+          <a href="/login" className="underline">
+            Organizer sign-in
+          </a>
+        </div>
       </section>
 
       {/* ---------- Leaderboard / Heats ---------- */}
@@ -140,13 +162,8 @@ export default async function RumbleHubPage() {
 
       {/* ---------- Footer ---------- */}
       <footer className="rumble-section text-center text-xs opacity-50 pb-10 space-y-3">
-        <a href="/login" className="underline">
-          Organizer sign-in
-        </a>
-        <div className="pt-3">
-          <div className="text-base font-semibold opacity-70"><Logo /></div>
-          <p className="mt-1 opacity-70">Infrastructure managed by Wodflow</p>
-        </div>
+        <div className="text-base font-semibold opacity-70"><Logo /></div>
+        <p className="mt-1 opacity-70">Infrastructure managed by Wodflow</p>
       </footer>
     </main>
   );
