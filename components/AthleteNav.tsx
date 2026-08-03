@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Logo } from "@/components/Logo";
 
 export default function AthleteNav({ currentDivisionId }: { currentDivisionId: string | null }) {
   const router = useRouter();
@@ -23,8 +22,9 @@ export default function AthleteNav({ currentDivisionId }: { currentDivisionId: s
   return (
     <nav className="relative flex flex-col gap-3 border-b border-paper/10 px-4 sm:px-6 lg:px-8 py-4 mb-4">
       <div className="flex items-center justify-between">
-        <div className="text-lg font-semibold">
-          <Logo />
+        <div className="leading-tight">
+          <p className="text-lg sm:text-xl font-bold uppercase tracking-wide text-paper">Rumble Series</p>
+          <p className="text-xs uppercase tracking-widest text-paper/50">Athlete Portal</p>
         </div>
         <button onClick={signOut} className="text-sm text-paper/60 hover:text-paper">
           Sign out

@@ -46,6 +46,7 @@ export default async function AthleteLayout({ children }: { children: React.Reac
         <img src="/rumble/series-logo-v2.png" alt="Rumble Series" className="rumble-hero-logo-sm" />
       </div>
       <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+      <footer className="text-center text-xs opacity-40 pb-8">Managed by Wodflow</footer>
     </div>
   );
 }
