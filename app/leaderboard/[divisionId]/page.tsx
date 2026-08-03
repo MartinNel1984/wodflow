@@ -61,12 +61,29 @@ export default async function LeaderboardPage({
     | null
     | undefined;
 
+  // Team rosters for the "tap a team name" expand — only fetched for the
+  // registrations actually on this leaderboard, so a solo division pays
+  // no extra query cost.
+  const registrationIds = [...new Set((rows ?? []).map((r) => r.registration_id))];
+  const teamMembers: Record<string, string[]> = {};
+  if (registrationIds.length > 0) {
+    const { data: athletes } = await supabase
+      .from("registration_athletes")
+      .select("registration_id, full_name, is_captain")
+      .in("registration_id", registrationIds)
+      .order("is_captain", { ascending: false });
+    for (const a of athletes ?? []) {
+      (teamMembers[a.registration_id] ??= []).push(a.full_name);
+    }
+  }
+
   return (
     <LeaderboardView
       divisionName={division?.name ?? "Leaderboard"}
       standings={standings}
       workouts={workouts}
       brandKit={brandKit ?? null}
+      teamMembers={teamMembers}
     />
   );
 }

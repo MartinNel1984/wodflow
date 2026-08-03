@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BrandKitLogo } from "@/components/BrandKitLogo";
 import { BackHistoryLink } from "@/components/BackLink";
+import { RumbleBackdrop } from "@/components/RumbleBackdrop";
 import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 
 const TSHIRT_SIZES = ["S", "M", "L", "XL", "XXL"];
@@ -89,12 +90,14 @@ export default function JudgeSignupForm() {
   if (loading) return <p className="text-center py-20 text-ink/50">Loading…</p>;
   if (!event) return <p className="text-center py-20 text-ink/50">Event not found.</p>;
 
-  return (
-    <>
-      <BackHistoryLink fallbackHref="/" />
-      <div className="max-w-xl mx-auto px-4 py-10 space-y-8" style={brandKitStyle(event.brandKit)}>
+  const isBigOne = event.brandKit?.name === "Rumble Big One";
+
+  const content = (
+    <div className="max-w-xl mx-auto px-4 py-10 space-y-8" style={brandKitStyle(event.brandKit)}>
         <div className="text-center">
-          {event.brandKit?.logo_url && <BrandKitLogo kit={event.brandKit} className="h-12 mx-auto mb-3" />}
+          {!isBigOne && event.brandKit?.logo_url && (
+            <BrandKitLogo kit={event.brandKit} className="h-12 mx-auto mb-3" />
+          )}
           <h1 className="text-2xl font-semibold">{event.name}</h1>
           <p className="text-ink/60 text-sm mt-1">Judge signup</p>
         </div>
@@ -150,7 +153,26 @@ export default function JudgeSignupForm() {
             </button>
           </div>
         )}
-      </div>
+    </div>
+  );
+
+  if (isBigOne) {
+    return (
+      <RumbleBackdrop
+        logoSrc={event.brandKit?.logo_url || "/rumble/series-logo-v2.png"}
+        logoAlt={event.brandKit?.name || "Rumble Big One"}
+        backHref="/"
+        useHistoryBack
+      >
+        <div className="w-full max-w-xl bg-white text-ink rounded-2xl shadow-xl">{content}</div>
+      </RumbleBackdrop>
+    );
+  }
+
+  return (
+    <>
+      <BackHistoryLink fallbackHref="/" />
+      {content}
     </>
   );
 }

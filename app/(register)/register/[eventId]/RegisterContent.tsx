@@ -311,7 +311,7 @@ export default function RegisterContent() {
             <div key={i} className="space-y-3 border-b border-ink/10 pb-4 last:border-0">
               <div className="grid grid-cols-2 gap-3">
                 <Field
-                  label={i === 0 ? "Your full name (captain)" : `Teammate ${i + 1} full name`}
+                  label={i === 0 ? "Name & surname (captain)" : `Teammate ${i + 1} name & surname`}
                   value={t.fullName}
                   onChange={(v) => updateTeammate(i, "fullName", v)}
                 />

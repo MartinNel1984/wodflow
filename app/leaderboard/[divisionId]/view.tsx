@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { BrandKitLogo } from "@/components/BrandKitLogo";
 import { RumbleBackdrop } from "@/components/RumbleBackdrop";
 import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
@@ -11,15 +11,45 @@ export default function LeaderboardView({
   standings,
   workouts,
   brandKit,
+  teamMembers,
 }: {
   divisionName: string;
   standings: Standing[];
   workouts: { id: string; name: string; results: WorkoutResult[] }[];
   brandKit?: BrandKit | null;
+  teamMembers?: Record<string, string[]>;
 }) {
   const [view, setView] = useState<string>("overall");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const selectedWorkout = workouts.find((w) => w.id === view);
   const isBigOne = brandKit?.name === "Rumble Big One";
+
+  function toggleExpanded(registrationId: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(registrationId)) next.delete(registrationId);
+      else next.add(registrationId);
+      return next;
+    });
+  }
+
+  // A team name is clickable to reveal its roster; a solo athlete's
+  // "team" is just themselves, so nothing to expand into.
+  function NameCell({ registrationId, displayName, className }: { registrationId: string; displayName: string; className?: string }) {
+    const members = teamMembers?.[registrationId];
+    if (!members || members.length < 2) {
+      return <span className={className}>{displayName}</span>;
+    }
+    return (
+      <button
+        type="button"
+        onClick={() => toggleExpanded(registrationId)}
+        className={`${className ?? ""} underline decoration-dotted underline-offset-2 text-left`}
+      >
+        {displayName}
+      </button>
+    );
+  }
 
   const content = (
     <div className="max-w-2xl mx-auto px-4 py-10 space-y-6" style={brandKitStyle(brandKit)}>
@@ -55,22 +85,34 @@ export default function LeaderboardView({
                 <tr className="bg-ink/5 text-left">
                   <th className="px-4 py-2">Pos</th>
                   <th className="px-4 py-2">Name</th>
-                  <th className="px-4 py-2 text-right">Time / Reps</th>
+                  <th className="px-4 py-2 text-right">Time / Reps / Weight</th>
                   <th className="px-4 py-2 text-right">Points</th>
-                  <th className="px-4 py-2 text-right">Tiebreaker</th>
+                  <th className="px-4 py-2 text-right">Tiebreak</th>
                 </tr>
               </thead>
               <tbody>
                 {selectedWorkout.results.map((r) => (
-                  <tr key={r.registrationId} className="border-t border-ink/10">
-                    <td className="px-4 py-2 font-data font-bold text-accent">{r.position}</td>
-                    <td className="px-4 py-2">{r.displayName}</td>
-                    <td className="px-4 py-2 text-right font-data">{r.display}</td>
-                    <td className="px-4 py-2 text-right font-data">{r.points}</td>
-                    <td className="px-4 py-2 text-right font-data text-ink/50">
-                      {r.capped ? r.display : "—"}
-                    </td>
-                  </tr>
+                  <Fragment key={r.registrationId}>
+                    <tr className="border-t border-ink/10">
+                      <td className="px-4 py-2 font-data font-bold text-accent">{r.position}</td>
+                      <td className="px-4 py-2">
+                        <NameCell registrationId={r.registrationId} displayName={r.displayName} />
+                      </td>
+                      <td className="px-4 py-2 text-right font-data">{r.display}</td>
+                      <td className="px-4 py-2 text-right font-data">{r.points}</td>
+                      <td className="px-4 py-2 text-right font-data text-ink/50">
+                        {r.tiebreakDisplay ?? "—"}
+                      </td>
+                    </tr>
+                    {expanded.has(r.registrationId) && teamMembers?.[r.registrationId] && (
+                      <tr className="border-t border-ink/10 bg-ink/5">
+                        <td />
+                        <td className="px-4 py-2 text-xs text-ink/60" colSpan={4}>
+                          {teamMembers[r.registrationId].join(" · ")}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -95,27 +137,52 @@ export default function LeaderboardView({
                   // and a silver for identical totals.
                   const medal = ["🥇", "🥈", "🥉"][s.place - 1];
                   return (
-                    <tr
-                      key={s.registrationId}
-                      className={`border-t border-ink/10 animate-settle-in ${
-                        s.place === 1 ? "bg-accent/10" : ""
-                      }`}
-                      style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
-                    >
-                      <td className="px-4 py-2 font-data font-bold text-accent text-lg">
-                        {medal ?? s.place}
-                      </td>
-                      <td className={`px-4 py-2 ${s.place === 1 ? "font-semibold" : ""}`}>{s.displayName}</td>
-                      {workouts.map((w) => {
-                        const score = s.workoutScores[w.id];
-                        return (
-                          <td key={w.id} className="px-4 py-2 text-right font-data text-ink/70">
-                            {score ? `${score.display} (${score.points})` : "—"}
+                    <Fragment key={s.registrationId}>
+                      <tr
+                        className={`border-t border-ink/10 animate-settle-in ${
+                          s.place === 1 ? "bg-accent/10" : ""
+                        }`}
+                        style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
+                      >
+                        <td className="px-4 py-2 font-data font-bold text-accent text-lg">
+                          {medal ?? s.place}
+                        </td>
+                        <td className="px-4 py-2">
+                          <NameCell
+                            registrationId={s.registrationId}
+                            displayName={s.displayName}
+                            className={s.place === 1 ? "font-semibold" : ""}
+                          />
+                        </td>
+                        {workouts.map((w) => {
+                          const score = s.workoutScores[w.id];
+                          return (
+                            <td key={w.id} className="px-4 py-2 text-right font-data text-ink/70">
+                              {score ? (
+                                <>
+                                  <div>{score.display}</div>
+                                  <div className="text-xs text-ink/40">
+                                    #{score.position} · {score.points}pts
+                                    {score.tiebreakDisplay ? ` · TB ${score.tiebreakDisplay}` : ""}
+                                  </div>
+                                </>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td className="px-4 py-2 text-right font-data font-bold">{s.totalPoints}</td>
+                      </tr>
+                      {expanded.has(s.registrationId) && teamMembers?.[s.registrationId] && (
+                        <tr className="border-t border-ink/10 bg-ink/5">
+                          <td />
+                          <td className="px-4 py-2 text-xs text-ink/60" colSpan={workouts.length + 2}>
+                            {teamMembers[s.registrationId].join(" · ")}
                           </td>
-                        );
-                      })}
-                      <td className="px-4 py-2 text-right font-data font-bold">{s.totalPoints}</td>
-                    </tr>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })}
               </tbody>

@@ -22,6 +22,7 @@ export type WorkoutResult = {
   capped: boolean; // true when this entry recorded reps instead of a finish time
   position: number;
   points: number;
+  tiebreakDisplay: string | null; // formatted tiebreak_value, when the judge recorded one
 };
 
 export type Standing = {
@@ -29,7 +30,10 @@ export type Standing = {
   displayName: string;
   totalPoints: number;
   place: number;
-  workoutScores: Record<string, { display: string; points: number } | undefined>;
+  workoutScores: Record<
+    string,
+    { display: string; points: number; position: number; tiebreakDisplay: string | null } | undefined
+  >;
 };
 
 // Two point tables, both driven by divisions.scoring_config:
@@ -68,6 +72,17 @@ function tiebreakOf(
   return row.tiebreak_value?.[key];
 }
 
+// Same three shapes a workout score can take (time/reps/load), formatted
+// the same way as the primary display value — shown alongside a result
+// so athletes can see exactly what broke a tie instead of asking.
+function formatTiebreak(value: LeaderboardRow["tiebreak_value"]): string | null {
+  if (!value) return null;
+  if (value.time_seconds != null) return formatTime(value.time_seconds);
+  if (value.reps != null) return `${value.reps} reps`;
+  if (value.load_kg != null) return `${value.load_kg} kg`;
+  return null;
+}
+
 // Competition-standard scoring: within a workout, every athlete who
 // finished (recorded a time) outranks every athlete who was capped out
 // (recorded reps instead) — finishers are ordered by time ascending,
@@ -85,6 +100,7 @@ export function computeWorkoutResults(
   scoringConfig: ScoringConfig = { method: "rank_sum" }
 ): WorkoutResult[] {
   const nameByRegistration = new Map(rows.map((r) => [r.registration_id, r.display_name]));
+  const tiebreakByRegistration = new Map(rows.map((r) => [r.registration_id, formatTiebreak(r.tiebreak_value)]));
 
   const finishers = rows
     .filter((r) => !r.value_raw.no_rep && r.value_raw.time_seconds != null)
@@ -122,6 +138,7 @@ export function computeWorkoutResults(
     capped: entry.capped,
     position: i + 1,
     points: pointsForPosition(i + 1, entrants, scoringConfig),
+    tiebreakDisplay: tiebreakByRegistration.get(entry.registrationId) ?? null,
   }));
 }
 
@@ -161,7 +178,12 @@ export function computeStandings(
     for (const r of results) {
       pointsByRegistration.set(r.registrationId, (pointsByRegistration.get(r.registrationId) ?? 0) + r.points);
       const scores = workoutScoresByRegistration.get(r.registrationId) ?? {};
-      scores[workoutId] = { display: r.display, points: r.points };
+      scores[workoutId] = {
+        display: r.display,
+        points: r.points,
+        position: r.position,
+        tiebreakDisplay: r.tiebreakDisplay,
+      };
       workoutScoresByRegistration.set(r.registrationId, scores);
     }
   }
