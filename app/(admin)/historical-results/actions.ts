@@ -13,6 +13,9 @@ export async function addHistoricalResult(formData: FormData) {
   const athleteEmail = String(formData.get("athleteEmail") ?? "").trim().toLowerCase();
   const position = Number(formData.get("position"));
   const entrants = Number(formData.get("entrants"));
+  const gender = String(formData.get("gender") ?? "").trim() || null;
+  const seasonTierRaw = formData.get("seasonTier");
+  const seasonTier = seasonTierRaw ? Number(seasonTierRaw) : null;
 
   if (!eventName || !divisionName || !athleteName || !athleteEmail) return;
   if (!Number.isInteger(position) || position < 1) return;
@@ -27,6 +30,8 @@ export async function addHistoricalResult(formData: FormData) {
     athlete_email: athleteEmail,
     position,
     entrants,
+    gender,
+    season_tier: seasonTier,
   });
 
   revalidatePath("/historical-results");

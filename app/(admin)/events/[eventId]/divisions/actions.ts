@@ -20,6 +20,7 @@ export async function createDivision(formData: FormData) {
   };
 
   const scoringMethod = String(formData.get("scoringMethod") ?? "rank_sum");
+  const gender = String(formData.get("gender") ?? "").trim() || null;
 
   await supabase.from("divisions").insert({
     event_id: eventId,
@@ -33,6 +34,8 @@ export async function createDivision(formData: FormData) {
     workout_scoring_type: String(formData.get("workoutScoringType") ?? "time"),
     scoring_config: { method: scoringMethod },
     max_entries: num("maxEntries"),
+    gender,
+    season_tier: num("seasonTier"),
   });
   revalidatePath(`/events/${eventId}/divisions`);
 }
@@ -64,6 +67,8 @@ export async function updateDivision(formData: FormData) {
       late_starts: String(formData.get("lateStarts") ?? "").trim() || null,
       workout_scoring_type: String(formData.get("workoutScoringType") ?? "time"),
       max_entries: num("maxEntries"),
+      gender: String(formData.get("gender") ?? "").trim() || null,
+      season_tier: num("seasonTier"),
     })
     .eq("id", divisionId);
   revalidatePath(`/events/${eventId}/divisions`);

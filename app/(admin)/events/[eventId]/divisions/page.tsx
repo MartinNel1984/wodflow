@@ -19,7 +19,7 @@ export default async function DivisionsPage({
     supabase
       .from("divisions")
       .select(
-        "id, name, team_size, price_early, price_normal, price_late, early_bird_ends, late_starts, workout_scoring_type, scoring_config, max_entries"
+        "id, name, team_size, price_early, price_normal, price_late, early_bird_ends, late_starts, workout_scoring_type, scoring_config, max_entries, gender, season_tier"
       )
       .eq("event_id", eventId)
       .order("created_at", { ascending: true }),
@@ -109,6 +109,28 @@ export default async function DivisionsPage({
                     </select>
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+                      Gender (for season ranking)
+                    </label>
+                    <select
+                      name="gender"
+                      defaultValue={d.gender ?? ""}
+                      className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10"
+                    >
+                      <option value="">Not set</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
+                  </div>
+                  <Field
+                    label="Season tier (1 = highest, e.g. RX)"
+                    name="seasonTier"
+                    type="number"
+                    defaultValue={d.season_tier != null ? String(d.season_tier) : undefined}
+                  />
+                </div>
                 <div className="grid grid-cols-3 gap-4">
                   <Field
                     label="Early-bird price"
@@ -193,6 +215,23 @@ export default async function DivisionsPage({
               <option value="gap_formula">Gap formula</option>
             </select>
           </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+              Gender (for season ranking)
+            </label>
+            <select
+              name="gender"
+              defaultValue=""
+              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10"
+            >
+              <option value="">Not set</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <Field label="Season tier (1 = highest, e.g. RX)" name="seasonTier" type="number" />
         </div>
         <div className="grid grid-cols-3 gap-4">
           <Field label="Early-bird price" name="priceEarly" type="number" />

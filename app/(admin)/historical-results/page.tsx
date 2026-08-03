@@ -6,7 +6,9 @@ export default async function HistoricalResultsPage() {
 
   const { data: results } = await supabase
     .from("historical_results")
-    .select("id, event_name, division_name, team_name, athlete_name, athlete_email, position, entrants")
+    .select(
+      "id, event_name, division_name, team_name, athlete_name, athlete_email, position, entrants, gender, season_tier"
+    )
     .eq("organization_id", organizationId)
     .order("event_name", { ascending: true })
     .order("division_name", { ascending: true })
@@ -43,6 +45,33 @@ export default async function HistoricalResultsPage() {
               name="divisionName"
               required
               placeholder="RX"
+              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+              Gender (for season ranking)
+            </label>
+            <select
+              name="gender"
+              defaultValue=""
+              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10"
+            >
+              <option value="">Not set</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+              Season tier (1 = highest, e.g. RX)
+            </label>
+            <input
+              type="number"
+              name="seasonTier"
+              min={1}
               className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
             />
           </div>
@@ -129,6 +158,7 @@ export default async function HistoricalResultsPage() {
                 <td className="px-4 py-2 text-ink/60">
                   {r.division_name}
                   {r.team_name ? ` · ${r.team_name}` : ""}
+                  {r.gender && r.season_tier ? ` · ${r.gender} tier ${r.season_tier}` : ""}
                 </td>
                 <td className="px-4 py-2">{r.athlete_name}</td>
                 <td className="px-4 py-2 text-ink/60 font-data">{r.athlete_email}</td>
