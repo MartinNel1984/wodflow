@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { computeStandings, type LeaderboardRow, type ScoringConfig } from "@/lib/leaderboard";
 import { computeSeriesStandingsForEvents } from "@/lib/seriesStandings";
 import Link from "next/link";
+import AvatarUpload from "./AvatarUpload";
 
 export default async function PortalPage() {
   const supabase = await createClient();
@@ -9,6 +10,12 @@ export default async function PortalPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
+
+  const { data: myProfile } = await supabase
+    .from("profiles")
+    .select("full_name, avatar_url")
+    .eq("id", user.id)
+    .single();
 
   const [{ data: myRows }, { data: upcomingEvents }] = await Promise.all([
     supabase
@@ -129,7 +136,12 @@ export default async function PortalPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
-      <div className="py-2">
+      <div className="py-2 flex flex-col items-center gap-3">
+        <AvatarUpload
+          profileId={user.id}
+          initialAvatarUrl={myProfile?.avatar_url ?? null}
+          fullName={myProfile?.full_name ?? "Athlete"}
+        />
         <h1 className="text-2xl font-semibold">My Wodflow</h1>
       </div>
 
