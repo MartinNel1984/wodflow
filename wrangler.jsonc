@@ -15,6 +15,8 @@
   "workers_dev": true,
   "routes": [
     { "pattern": "wodflow.co.za", "custom_domain": true },
-    { "pattern": "www.wodflow.co.za", "custom_domain": true }
+    { "pattern": "www.wodflow.co.za", "custom_domain": true },
+    { "pattern": "rumbleinrandburg.co.za", "custom_domain": true },
+    { "pattern": "www.rumbleinrandburg.co.za", "custom_domain": true }
   ]
 }
