@@ -60,9 +60,11 @@ export default async function RumbleHubPage() {
           </Link>
         </div>
         <div className="flex justify-center gap-4 mt-4 text-xs opacity-70">
-          <a href="/judge-login" className="underline">
-            Judge sign-in
-          </a>
+          {event && (
+            <a href={`/events/${event.id}/judge-signup`} className="underline">
+              Judges
+            </a>
+          )}
           <a href="/login" className="underline">
             Organizer sign-in
           </a>

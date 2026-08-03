@@ -10,10 +10,12 @@ const links = [
   { href: "/athletes", label: "Athletes" },
   { href: "/score", label: "Score Entry" },
   { href: "/leaderboards", label: "Leaderboard" },
+  { href: "/workouts", label: "Workouts" },
   { href: "/series", label: "Series" },
   { href: "/brand-kits", label: "Brand Kits" },
   { href: "/hub-photos", label: "Hub Photos" },
   { href: "/judges", label: "Judges" },
+  { href: "/judge-applications", label: "Judge Signups" },
   { href: "/settings", label: "Settings" },
 ];
 
