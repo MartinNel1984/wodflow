@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireOrganizer } from "@/lib/auth";
 import AthletesTable, { type AthleteRow } from "./AthletesTable";
@@ -7,7 +8,7 @@ export default async function AthletesDirectoryPage() {
   const supabase = await createClient();
   const { organizationId } = await requireOrganizer();
 
-  const [{ data }, { data: divisionOptions }] = await Promise.all([
+  const [{ data }, { data: divisionOptions }, { data: eventDivisions }] = await Promise.all([
     supabase
       .from("registration_athletes")
       .select(
@@ -19,6 +20,11 @@ export default async function AthletesDirectoryPage() {
       .select("id, name, events!inner(name, organization_id)")
       .eq("events.organization_id", organizationId)
       .order("name", { ascending: true }),
+    supabase
+      .from("events")
+      .select("id, name, start_date, divisions(id, name)")
+      .eq("organization_id", organizationId)
+      .order("start_date", { ascending: false }),
   ]);
 
   const rows: AthleteRow[] = (data ?? [])
@@ -54,6 +60,38 @@ export default async function AthletesDirectoryPage() {
           Every athlete registered across every event — {rows.length} total.
         </p>
       </div>
+
+      {/* Direct jump to a division's own Athletes page — same picker
+          pattern as /leaderboards and /workouts — so manually adding a
+          team (Team name + Athlete 1/2 fields) doesn't require using
+          the flat division dropdown in the form further down. */}
+      <div className="space-y-4">
+        <h2 className="font-semibold">Jump to a division</h2>
+        {(eventDivisions ?? []).map((e) => (
+          <div key={e.id} className="bg-white border border-ink/10 rounded-xl p-4">
+            <p className="font-semibold">{e.name}</p>
+            <p className="text-ink/60 text-sm mb-3">{e.start_date}</p>
+            <div className="flex flex-wrap gap-2">
+              {(e.divisions ?? []).map((d) => (
+                <Link
+                  key={d.id}
+                  href={`/events/${e.id}/divisions/${d.id}/athletes`}
+                  className="bg-paper border border-ink/10 rounded-lg px-3 py-1.5 text-sm hover:bg-ink/5"
+                >
+                  {d.name} →
+                </Link>
+              ))}
+              {(e.divisions ?? []).length === 0 && (
+                <p className="text-ink/40 text-sm">No divisions yet.</p>
+              )}
+            </div>
+          </div>
+        ))}
+        {(!eventDivisions || eventDivisions.length === 0) && (
+          <p className="text-ink/60 text-sm">No events yet.</p>
+        )}
+      </div>
+
       <AthletesTable
         rows={rows}
         divisions={divisions}
