@@ -44,9 +44,12 @@ export default async function DashboardPage() {
       const [{ data: divisions }, { data: registrations }] = await Promise.all([
         supabase
           .from("divisions")
-          .select("id, name, price_normal, workouts(id, name, lane_count, heat_duration_minutes)")
+          .select("id, name, gender, price_normal, max_entries, workouts(id, name, lane_count, heat_duration_minutes)")
           .eq("event_id", event.id),
-        supabase.from("registrations").select("payment_status, price_paid").eq("event_id", event.id),
+        supabase
+          .from("registrations")
+          .select("division_id, payment_status, price_paid")
+          .eq("event_id", event.id),
       ]);
 
       const checks = computeAllChecks(event, divisions ?? []);
@@ -57,6 +60,17 @@ export default async function DashboardPage() {
       const pending = regs.filter((r) => r.payment_status === "pending");
       const revenue = paid.reduce((sum, r) => sum + (r.price_paid ?? 0), 0);
 
+      // Same "filled" definition as the DB-level cap enforcement
+      // (migration-033): every non-refunded registration counts against
+      // the division's max_entries, whether paid or still pending.
+      const divisionCounts = (divisions ?? []).map((d) => ({
+        id: d.id,
+        name: d.name,
+        gender: d.gender as string | null,
+        maxEntries: d.max_entries as number | null,
+        filled: regs.filter((r) => r.division_id === d.id && r.payment_status !== "refunded").length,
+      }));
+
       return {
         event,
         checksTotal: checks.length,
@@ -64,6 +78,7 @@ export default async function DashboardPage() {
         paidCount: paid.length,
         pendingCount: pending.length,
         revenue,
+        divisionCounts,
       };
     })
   );
@@ -82,7 +97,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="space-y-3">
-        {rows.map(({ event, checksTotal, checksFailed, paidCount, pendingCount, revenue }) => (
+        {rows.map(({ event, checksTotal, checksFailed, paidCount, pendingCount, revenue, divisionCounts }) => (
           <div key={event.id} className="bg-white border border-ink/10 rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
               <div>
@@ -118,6 +133,25 @@ export default async function DashboardPage() {
                 {paidCount} paid{pendingCount > 0 ? ` · ${pendingCount} pending` : ""} · R{revenue} revenue
               </span>
             </div>
+            {divisionCounts.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-ink/10">
+                {divisionCounts.map((d) => {
+                  const isFull = d.maxEntries != null && d.filled >= d.maxEntries;
+                  return (
+                    <span
+                      key={d.id}
+                      className={`text-xs font-data px-2 py-1 rounded-full ${
+                        isFull ? "bg-amber-100 text-amber-700" : "bg-ink/5 text-ink/60"
+                      }`}
+                    >
+                      {d.name}
+                      {d.gender ? ` (${d.gender})` : ""}: {d.filled}
+                      {d.maxEntries != null ? `/${d.maxEntries}` : ""}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ))}
         {rows.length === 0 && <p className="text-ink/60 text-sm">No events yet.</p>}

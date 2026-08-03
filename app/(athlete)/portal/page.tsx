@@ -128,7 +128,17 @@ export default async function PortalPage() {
     const pointsConfig = (currentSeries.points_config ?? { method: "gap_formula", winner_points: 100 }) as ScoringConfig;
     const seriesStandings = await computeSeriesStandingsForEvents(supabase, seriesEventIds, pointsConfig);
     const idx = seriesStandings.findIndex((s) => s.profileId === user.id);
-    if (idx !== -1) seasonRank = { position: idx + 1, total: seriesStandings.length };
+    // Male and Female are separate competitions on the admin Season
+    // Leaderboard (they're never ranked against each other), so an
+    // athlete's own rank must be computed within their own gender group
+    // too — ranking against the combined field showed a rank ~2x too
+    // high (e.g. 81 of 154 instead of 45 of 77). Found 2026-08-03.
+    if (idx !== -1) {
+      const myGender = seriesStandings[idx].gender;
+      const genderGroup = seriesStandings.filter((s) => s.gender === myGender);
+      const idxInGroup = genderGroup.findIndex((s) => s.profileId === user.id);
+      seasonRank = { position: idxInGroup + 1, total: genderGroup.length };
+    }
   }
 
   const eventsEntered = new Set(myRegistrations.map((r) => r.eventId)).size;

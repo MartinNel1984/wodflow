@@ -37,6 +37,21 @@ export async function addHistoricalResult(formData: FormData) {
   revalidatePath("/historical-results");
 }
 
+// Athletes sometimes register under two different emails across events
+// (e.g. bev.mpofu5@gmail.com at Indy, bev.mpofu@outlook.com at Remix) —
+// public_historical_placements keys unmatched rows by athlete_email, so
+// two different emails for the same person show up as two separate
+// entries on the season leaderboard. Retyping one row's email to match
+// the other merges them into a single ranked identity on the next read.
+export async function updateHistoricalResultEmail(formData: FormData) {
+  const { supabase } = await requireOrganizer();
+  const id = String(formData.get("id") ?? "");
+  const athleteEmail = String(formData.get("athleteEmail") ?? "").trim().toLowerCase();
+  if (!id || !athleteEmail) return;
+  await supabase.from("historical_results").update({ athlete_email: athleteEmail }).eq("id", id);
+  revalidatePath("/historical-results");
+}
+
 export async function removeHistoricalResult(formData: FormData) {
   const { supabase } = await requireOrganizer();
   const id = String(formData.get("id") ?? "");

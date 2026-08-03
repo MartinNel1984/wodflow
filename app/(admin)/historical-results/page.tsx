@@ -1,5 +1,5 @@
 import { requireOrganizer } from "@/lib/auth";
-import { addHistoricalResult, removeHistoricalResult } from "./actions";
+import { addHistoricalResult, removeHistoricalResult, updateHistoricalResultEmail } from "./actions";
 
 export default async function HistoricalResultsPage() {
   const { supabase, organizationId } = await requireOrganizer();
@@ -161,7 +161,20 @@ export default async function HistoricalResultsPage() {
                   {r.gender && r.season_tier ? ` · ${r.gender} tier ${r.season_tier}` : ""}
                 </td>
                 <td className="px-4 py-2">{r.athlete_name}</td>
-                <td className="px-4 py-2 text-ink/60 font-data">{r.athlete_email}</td>
+                <td className="px-4 py-2">
+                  <form action={updateHistoricalResultEmail} className="flex items-center gap-2">
+                    <input type="hidden" name="id" value={r.id} />
+                    <input
+                      type="email"
+                      name="athleteEmail"
+                      defaultValue={r.athlete_email}
+                      className="w-40 bg-paper rounded px-2 py-1 text-xs font-data border border-ink/10 focus:outline-none focus:border-accent"
+                    />
+                    <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
+                      Save
+                    </button>
+                  </form>
+                </td>
                 <td className="px-4 py-2 font-data">
                   {r.position} / {r.entrants}
                 </td>
