@@ -36,7 +36,7 @@ export default async function TicketsListPage() {
   }
 
   return (
-    <main className="graffiti-page min-h-screen flex flex-col items-center px-4 py-12">
+    <main className="graffiti-page rumble-flat min-h-screen flex flex-col items-center px-4 py-12">
       <BackLink href="/" />
       <div className="rumble-texture" aria-hidden="true" />
 

@@ -373,10 +373,20 @@ button:hover, .hover-lift:hover {
   position: absolute;
   inset: 0;
   z-index: -1;
-  opacity: 0.5;
+  opacity: 0.3;
   pointer-events: none;
   background-image: url("/rumble/texture-smiley-tile.png");
   background-size: 480px 548px;
+}
+
+/* /tickets and /all-events pair .graffiti-page (generic Wodflow wall
+   texture, including its own faint brick-coursing grid) with
+   .rumble-texture (the Rumble smiley/crown tile) — stacking both read
+   as a visible grid laid over the smileys (Martin/Nic). This page
+   family is fully Rumble-branded, so it doesn't need the generic
+   graffiti-page grid underneath the Rumble-specific one. */
+.rumble-flat::before {
+  display: none;
 }
 
 .rumble-hero {
