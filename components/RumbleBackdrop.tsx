@@ -31,13 +31,6 @@ export function RumbleBackdrop({
     <div className="rumble-page min-h-screen">
       {backHref && useHistoryBack && <BackHistoryLink fallbackHref={backHref} label={backLabel} />}
       {backHref && !useHistoryBack && <BackLink href={backHref} label={backLabel} />}
-      <div className="rumble-photos" aria-hidden="true">
-        {/* eslint-disable @next/next/no-img-element */}
-        {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
-          <img key={n} src={`/rumble/photos/photo-${n}.jpg`} alt="" />
-        ))}
-        {/* eslint-enable @next/next/no-img-element */}
-      </div>
       <div className="rumble-texture" aria-hidden="true" />
       <div
         className="relative z-10 flex flex-col items-center px-4 py-10"

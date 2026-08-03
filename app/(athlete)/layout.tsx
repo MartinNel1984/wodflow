@@ -25,13 +25,6 @@ export default async function AthleteLayout({ children }: { children: React.Reac
 
   return (
     <div className="rumble-page min-h-screen" style={{ "--color-accent": "var(--rumble-blue-bright)" } as React.CSSProperties}>
-      <div className="rumble-photos" aria-hidden="true">
-        {/* eslint-disable @next/next/no-img-element */}
-        {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
-          <img key={n} src={`/mural/action-${n}.jpg`} alt="" />
-        ))}
-        {/* eslint-enable @next/next/no-img-element */}
-      </div>
       <div className="rumble-texture" aria-hidden="true" />
       <AthleteRouteGuard role={role} />
       <AthleteNav />

@@ -38,16 +38,14 @@ export default async function TicketsListPage() {
   return (
     <main className="graffiti-page min-h-screen flex flex-col items-center px-4 py-12">
       <BackLink href="/" />
-      <div className="rumble-photos" aria-hidden="true">
-        {/* eslint-disable @next/next/no-img-element */}
-        {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
-          <img key={n} src={`/rumble/photos/photo-${n}.jpg`} alt="" />
-        ))}
-        {/* eslint-enable @next/next/no-img-element */}
-      </div>
       <div className="rumble-texture" aria-hidden="true" />
 
-      <div className="w-full max-w-sm space-y-3 mb-10 mt-6">
+      <div
+        className="w-full max-w-sm space-y-3 mb-10 mt-6"
+        style={brandKitStyle(
+          Array.isArray(events?.[0]?.brand_kits) ? events?.[0]?.brand_kits[0] : events?.[0]?.brand_kits
+        )}
+      >
         <h2 className="sticker text-sm">Buy tickets</h2>
         <p className="text-paper/70 text-sm">Come watch the action — spectator passes for upcoming events.</p>
 
