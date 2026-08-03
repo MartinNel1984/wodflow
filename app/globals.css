@@ -261,8 +261,8 @@ button:hover, .hover-lift:hover {
   border: 2px solid var(--color-ink);
   border-radius: 999px;
   padding: 0.15em 0.75em;
-  background: var(--color-volt);
-  color: var(--color-ink);
+  background: var(--color-accent);
+  color: var(--color-paper);
   box-shadow: 3px 3px 0 var(--color-ink);
 }
 

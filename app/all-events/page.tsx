@@ -32,7 +32,10 @@ export default async function EventsPage() {
       </div>
       <div className="rumble-texture" aria-hidden="true" />
 
-      <div className="w-full max-w-sm space-y-3 mb-10 mt-6">
+      <div
+        className="w-full max-w-sm space-y-3 mb-10 mt-6"
+        style={brandKitStyle(Array.isArray(events?.[0]?.brand_kits) ? events?.[0]?.brand_kits[0] : events?.[0]?.brand_kits)}
+      >
         <h2 className="sticker text-sm">Upcoming events</h2>
         {(events ?? []).length === 0 && (
           <p className="text-paper/70 text-sm">No events open for registration right now.</p>
@@ -58,7 +61,7 @@ export default async function EventsPage() {
                   </p>
                   {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
                 </div>
-                <span className="shrink-0 bg-accent text-white text-xs font-semibold uppercase tracking-wider rounded-full px-3 py-1.5">
+                <span className="shrink-0 bg-accent text-white text-sm font-semibold uppercase tracking-wider rounded-full px-5 py-2.5">
                   Enter now →
                 </span>
               </a>
@@ -83,7 +86,7 @@ export default async function EventsPage() {
                 </p>
                 {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
                 {e.description && <p className="text-ink/70 text-sm mt-2 line-clamp-3">{e.description}</p>}
-                <span className="mt-3 inline-block bg-accent text-white text-xs font-semibold uppercase tracking-wider rounded-full px-3 py-1.5">
+                <span className="mt-4 block text-center bg-accent text-white text-base font-semibold uppercase tracking-wider rounded-full px-6 py-3.5">
                   Enter now →
                 </span>
               </div>
