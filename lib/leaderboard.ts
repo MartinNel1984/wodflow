@@ -28,6 +28,7 @@ export type Standing = {
   registrationId: string;
   displayName: string;
   totalPoints: number;
+  place: number;
   workoutScores: Record<string, { display: string; points: number } | undefined>;
 };
 
@@ -165,7 +166,7 @@ export function computeStandings(
     }
   }
 
-  const standings: Standing[] = registrationIds
+  const sorted = registrationIds
     .map((registrationId) => ({
       registrationId,
       displayName: nameByRegistration.get(registrationId) ?? "Unnamed",
@@ -173,6 +174,19 @@ export function computeStandings(
       workoutScores: workoutScoresByRegistration.get(registrationId) ?? {},
     }))
     .sort((a, b) => b.totalPoints - a.totalPoints);
+
+  // Standard competition ranking (1, 1, 3 — not 1, 1, 2): athletes tied
+  // on total points share the same place, and the next distinct total
+  // resumes at "how many finished ahead of it + 1", not the next
+  // sequential number. Tjokkie flagged this on Rumble Indy's re-scored
+  // leaderboard — two 150-point ties were showing as 11th/12th instead
+  // of both 11th.
+  const standings: Standing[] = sorted.map((s, i) => ({ ...s, place: i + 1 }));
+  for (let i = 1; i < standings.length; i++) {
+    if (standings[i].totalPoints === standings[i - 1].totalPoints) {
+      standings[i].place = standings[i - 1].place;
+    }
+  }
 
   const workouts = workoutIds.map((id) => ({
     id,

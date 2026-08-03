@@ -74,12 +74,12 @@ export default async function PortalPage() {
           .eq("division_id", reg.divisionId);
         if (!rows || rows.length === 0) return null;
         const { standings } = computeStandings(rows as LeaderboardRow[], reg.scoringConfig);
-        const idx = standings.findIndex((s) => s.registrationId === reg.registrationId);
-        if (idx === -1) return null;
+        const mine = standings.find((s) => s.registrationId === reg.registrationId);
+        if (!mine) return null;
         return {
           eventName: reg.eventName,
           divisionName: reg.divisionName,
-          position: idx + 1,
+          position: mine.place,
           total: standings.length,
         };
       })

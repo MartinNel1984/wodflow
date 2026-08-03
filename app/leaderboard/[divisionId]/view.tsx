@@ -90,19 +90,22 @@ export default function LeaderboardView({
               </thead>
               <tbody>
                 {standings.map((s, i) => {
-                  const medal = ["🥇", "🥈", "🥉"][i];
+                  // Medal and highlight follow s.place, not row index, so
+                  // a tie for first shows two golds rather than a gold
+                  // and a silver for identical totals.
+                  const medal = ["🥇", "🥈", "🥉"][s.place - 1];
                   return (
                     <tr
                       key={s.registrationId}
                       className={`border-t border-ink/10 animate-settle-in ${
-                        i === 0 ? "bg-accent/10" : ""
+                        s.place === 1 ? "bg-accent/10" : ""
                       }`}
                       style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
                     >
                       <td className="px-4 py-2 font-data font-bold text-accent text-lg">
-                        {medal ?? i + 1}
+                        {medal ?? s.place}
                       </td>
-                      <td className={`px-4 py-2 ${i === 0 ? "font-semibold" : ""}`}>{s.displayName}</td>
+                      <td className={`px-4 py-2 ${s.place === 1 ? "font-semibold" : ""}`}>{s.displayName}</td>
                       {workouts.map((w) => {
                         const score = s.workoutScores[w.id];
                         return (

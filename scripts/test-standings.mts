@@ -62,6 +62,40 @@ console.log("\n--- points sum across workouts ---\n");
     standings.map((s) => `${s.registrationId}=${s.totalPoints}`).join(" "));
   check("each athlete has a per-workout score entry for both workouts",
     standings.every((s) => Object.keys(s.workoutScores).length === 2));
+  check("a full-field tie all share place 1 (not 1,2,3)",
+    standings.every((s) => s.place === 1),
+    standings.map((s) => `${s.registrationId}=${s.place}`).join(" "));
+}
+
+// ---------------------------------------------------------------
+console.log("\n--- tied totals share a place; the next distinct total skips ahead ---\n");
+{
+  // Tjokkie flagged this on Rumble Indy's re-scored leaderboard: two
+  // athletes tied on total points showed as consecutive placements
+  // (e.g. 11th/12th) instead of both getting the same place. Standard
+  // competition ranking: a mid-field tie should read 1, 2, 2, 4 — the
+  // place after a tie jumps by the number tied, it doesn't just +1.
+  //
+  // A wins both workouts (clear 1st). B and C split 2nd/3rd across the
+  // two workouts and land on the same total (a genuine tie for 2nd). D
+  // is last both times (clear last).
+  const rows = [
+    row("A", "Alice", "w1", { time_seconds: 100 }), // 1st -> 4
+    row("B", "Bob", "w1", { time_seconds: 200 }),   // 2nd -> 3
+    row("C", "Cara", "w1", { time_seconds: 300 }),  // 3rd -> 2
+    row("D", "Dan", "w1", { time_seconds: 400 }),   // 4th -> 1
+    row("A", "Alice", "w2", { time_seconds: 100 }), // 1st -> 4  (total 8)
+    row("C", "Cara", "w2", { time_seconds: 200 }),  // 2nd -> 3  (total 5)
+    row("B", "Bob", "w2", { time_seconds: 300 }),   // 3rd -> 2  (total 5)
+    row("D", "Dan", "w2", { time_seconds: 400 }),   // 4th -> 1  (total 2)
+  ];
+  const { standings } = computeStandings(rows, RANK_SUM);
+  const placeOf = (id: string) => standings.find((s) => s.registrationId === id)!.place;
+  const detail = standings.map((s) => `${s.registrationId}=${s.totalPoints}(place ${s.place})`).join(" ");
+
+  check("the clear winner gets place 1", placeOf("A") === 1, detail);
+  check("both tied athletes get place 2, not 2/3", placeOf("B") === 2 && placeOf("C") === 2, detail);
+  check("the place after a 2-way tie skips to 4, not 3", placeOf("D") === 4, detail);
 }
 
 // ---------------------------------------------------------------

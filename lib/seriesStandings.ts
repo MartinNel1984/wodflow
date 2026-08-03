@@ -37,10 +37,12 @@ export async function computeSeriesStandingsForEvents(
         );
       const profileByRegistration = new Map((registrations ?? []).map((r) => [r.id, r.captain_profile_id]));
 
-      return standings.flatMap((s, i): SeriesEventPlacement[] => {
+      return standings.flatMap((s): SeriesEventPlacement[] => {
         const profileId = profileByRegistration.get(s.registrationId);
         if (!profileId) return [];
-        return [{ profileId, displayName: s.displayName, position: i + 1, entrants: standings.length }];
+        // s.place (not row index) so a tie for e.g. 11th earns both
+        // athletes 11th's season points, matching the event leaderboard.
+        return [{ profileId, displayName: s.displayName, position: s.place, entrants: standings.length }];
       });
     })
   );
