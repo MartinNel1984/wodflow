@@ -22,11 +22,14 @@ export default function AthletesTable({
   removeAthleteAction,
 }: {
   rows: AthleteRow[];
-  divisions: { id: string; label: string }[];
+  divisions: { id: string; label: string; teamSize: number }[];
   addAthleteAction: (formData: FormData) => void;
   removeAthleteAction: (formData: FormData) => void;
 }) {
   const [query, setQuery] = useState("");
+  const [selectedDivisionId, setSelectedDivisionId] = useState("");
+  const selectedDivision = divisions.find((d) => d.id === selectedDivisionId);
+  const teamSize = selectedDivision?.teamSize ?? 1;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -127,7 +130,7 @@ export default function AthletesTable({
         action={addAthleteAction}
         className="bg-white border border-ink/10 rounded-xl p-6 space-y-4"
       >
-        <h2 className="font-semibold">Add athlete manually</h2>
+        <h2 className="font-semibold">{teamSize > 1 ? "Add team manually" : "Add athlete manually"}</h2>
         <p className="text-ink/60 text-sm">
           For walk-up entries who didn&apos;t go through the public registration wizard. Marked as
           waived (no payment).
@@ -137,6 +140,8 @@ export default function AthletesTable({
           <select
             name="divisionId"
             required
+            value={selectedDivisionId}
+            onChange={(e) => setSelectedDivisionId(e.target.value)}
             className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10"
           >
             <option value="">Select a division…</option>
@@ -147,39 +152,68 @@ export default function AthletesTable({
             ))}
           </select>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Full name</label>
-            <input
-              type="text"
-              name="fullName"
-              required
-              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
-            />
+        {teamSize > 1 ? (
+          <>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Team name</label>
+              <input
+                type="text"
+                name="teamName"
+                required
+                className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {Array.from({ length: teamSize }, (_, i) => (
+                <div key={i}>
+                  <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+                    Athlete {i + 1}
+                  </label>
+                  <input
+                    type="text"
+                    name="athleteName"
+                    required
+                    className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+                  />
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Full name</label>
+              <input
+                type="text"
+                name="fullName"
+                required
+                className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+                Email (optional)
+              </label>
+              <input
+                type="email"
+                name="email"
+                className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+                ID number (optional)
+              </label>
+              <input
+                type="text"
+                name="idNumber"
+                className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
-              Email (optional)
-            </label>
-            <input
-              type="email"
-              name="email"
-              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
-              ID number (optional)
-            </label>
-            <input
-              type="text"
-              name="idNumber"
-              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
-            />
-          </div>
-        </div>
+        )}
         <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
-          Add athlete
+          {teamSize > 1 ? "Add team" : "Add athlete"}
         </button>
       </form>
     </div>

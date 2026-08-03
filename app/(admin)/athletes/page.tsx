@@ -17,7 +17,7 @@ export default async function AthletesDirectoryPage() {
       .order("waiver_signed_at", { ascending: false }),
     supabase
       .from("divisions")
-      .select("id, name, events!inner(name, organization_id)")
+      .select("id, name, team_size, events!inner(name, organization_id)")
       .eq("events.organization_id", organizationId)
       .order("name", { ascending: true }),
     supabase
@@ -50,6 +50,7 @@ export default async function AthletesDirectoryPage() {
   const divisions = (divisionOptions ?? []).map((d) => ({
     id: d.id,
     label: `${d.name} (${(d.events as unknown as { name: string })?.name})`,
+    teamSize: d.team_size ?? 1,
   }));
 
   return (

@@ -110,7 +110,9 @@ export default async function AthletesPage({
       >
         <input type="hidden" name="eventId" value={eventId} />
         <input type="hidden" name="divisionId" value={divisionId} />
-        <h2 className="font-semibold">Add athlete manually</h2>
+        <h2 className="font-semibold">
+          {(division?.team_size ?? 1) > 1 ? "Add team manually" : "Add athlete manually"}
+        </h2>
         <p className="text-ink/60 text-sm">
           For walk-up entries who didn&apos;t go through the public registration wizard. Marked as
           waived (no payment).
@@ -176,7 +178,7 @@ export default async function AthletesPage({
           </div>
         )}
         <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
-          Add athlete{(division?.team_size ?? 1) > 1 ? "s" : ""}
+          {(division?.team_size ?? 1) > 1 ? "Add team" : "Add athlete"}
         </button>
       </form>
     </div>
