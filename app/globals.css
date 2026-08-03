@@ -25,6 +25,7 @@
   --color-volt: #d4ff3f;
   --color-cobalt: #1e5bff;
   --color-magenta: #ff2ec4;
+  --color-skyblue: #00aeef;
 }
 
 /* Fonts stay in their own @theme inline block — next/font injects a
@@ -432,6 +433,18 @@ button:hover, .hover-lift:hover {
   font-size: clamp(1.5rem, 1.1rem + 1.8vw, 2.5rem);
   color: var(--rumble-blue-bright);
   margin-top: 1rem;
+}
+
+/* A brand kit's tagline (e.g. "Yeeeah! Get Some!") rendered in the same
+   brush script + blue as the actual logo artwork, instead of a generic
+   sans-font sticker badge — used wherever a tagline shows outside the
+   rumble-page hero itself (all-events, tickets, event detail), so it
+   can't rely on .rumble-page's locally-scoped --rumble-blue-bright. */
+.tagline-script {
+  display: inline-block;
+  font-family: var(--font-rumble-accent), cursive;
+  font-size: 1.35rem;
+  color: #00aeef;
 }
 
 .rumble-dates {

@@ -68,7 +68,7 @@ export default async function EventDetailPage({
           {event.start_date}
           {event.end_date ? ` – ${event.end_date}` : ""}
         </p>
-        {brandKit?.tagline && <span className="sticker text-xs mt-2 inline-block">{brandKit.tagline}</span>}
+        {brandKit?.tagline && <span className="tagline-script mt-2">{brandKit.tagline}</span>}
       </div>
 
       {(event.venue_name || event.venue_address || event.contact_email || event.contact_phone) && (

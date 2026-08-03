@@ -79,7 +79,7 @@ export default async function TicketsListPage() {
                     {e.end_date ? ` – ${e.end_date}` : ""}
                     {e.venue_name ? ` · ${e.venue_name}` : ""}
                   </p>
-                  {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
+                  {kit?.tagline && <span className="tagline-script mt-1">{kit.tagline}</span>}
                 </div>
                 <span className="shrink-0 bg-accent text-white text-xs font-semibold uppercase tracking-wider rounded-full px-3 py-1.5">
                   From R{fromPrice(e)} →
@@ -104,7 +104,7 @@ export default async function TicketsListPage() {
                   {e.end_date ? ` – ${e.end_date}` : ""}
                   {e.venue_name ? ` · ${e.venue_name}` : ""}
                 </p>
-                {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
+                {kit?.tagline && <span className="tagline-script mt-1">{kit.tagline}</span>}
                 <span className="mt-3 inline-block bg-accent text-white text-xs font-semibold uppercase tracking-wider rounded-full px-3 py-1.5">
                   From R{fromPrice(e)} — Buy tickets →
                 </span>

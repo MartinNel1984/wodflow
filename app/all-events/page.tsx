@@ -59,7 +59,7 @@ export default async function EventsPage() {
                     {e.end_date ? ` – ${e.end_date}` : ""}
                     {e.venue_name ? ` · ${e.venue_name}` : ""}
                   </p>
-                  {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
+                  {kit?.tagline && <span className="tagline-script mt-1">{kit.tagline}</span>}
                 </div>
                 <span className="shrink-0 bg-accent text-white text-sm font-semibold uppercase tracking-wider rounded-full px-5 py-2.5">
                   Enter now →
@@ -84,7 +84,7 @@ export default async function EventsPage() {
                   {e.end_date ? ` – ${e.end_date}` : ""}
                   {e.venue_name ? ` · ${e.venue_name}` : ""}
                 </p>
-                {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
+                {kit?.tagline && <span className="tagline-script mt-1">{kit.tagline}</span>}
                 {e.description && <p className="text-ink/70 text-sm mt-2 line-clamp-3">{e.description}</p>}
                 <span className="mt-4 block text-center bg-accent text-white text-base font-semibold uppercase tracking-wider rounded-full px-6 py-3.5">
                   Enter now →
@@ -98,7 +98,7 @@ export default async function EventsPage() {
       <div className="w-full max-w-sm flex flex-col gap-2">
         <a
           href="/athlete-login"
-          className="bg-accent text-white rounded-lg py-3 text-sm font-semibold hover-lift text-center border-2 border-paper"
+          className="bg-skyblue text-ink rounded-lg py-3 text-sm font-semibold hover-lift text-center border-2 border-paper"
         >
           Athlete sign-in
         </a>
