@@ -314,12 +314,14 @@ export default function RegisterContent() {
                   label={i === 0 ? "Name & surname (captain)" : `Teammate ${i + 1} name & surname`}
                   value={t.fullName}
                   onChange={(v) => updateTeammate(i, "fullName", v)}
+                  twoLineLabel
                 />
                 <Field
                   label={i === 0 ? "Your email" : `Teammate ${i + 1} email`}
                   value={t.email}
                   onChange={(v) => updateTeammate(i, "email", v)}
                   type="email"
+                  twoLineLabel
                 />
               </div>
               <Field
@@ -469,15 +471,25 @@ function Field({
   value,
   onChange,
   type = "text",
+  twoLineLabel = false,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
+  // Reserves 2 lines of label height regardless of how many lines this
+  // particular label actually wraps to, so a short sibling label in the
+  // same grid row (e.g. "Your email" next to "Name & surname (captain)")
+  // doesn't leave its input sitting higher than the wrapped one's.
+  twoLineLabel?: boolean;
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold uppercase tracking-wider mb-2">{label}</label>
+      <label
+        className={`block text-xs font-semibold uppercase tracking-wider mb-2 ${twoLineLabel ? "min-h-[2rem]" : ""}`}
+      >
+        {label}
+      </label>
       <input
         type={type}
         value={value}
