@@ -13,6 +13,7 @@ const links = [
   { href: "/heats", label: "Heats" },
   { href: "/workouts", label: "Workouts" },
   { href: "/series", label: "Series" },
+  { href: "/historical-results", label: "Historical Results" },
   { href: "/brand-kits", label: "Brand Kits" },
   { href: "/hub-photos", label: "Hub Photos" },
   { href: "/judges", label: "Judges" },

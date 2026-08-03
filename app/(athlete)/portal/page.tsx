@@ -63,7 +63,7 @@ export default async function PortalPage() {
   // and pull out this athlete's own placement. One leaderboard read per
   // division, fired in parallel rather than sequentially. Divisions with no
   // scores yet (or where the athlete isn't ranked) are skipped.
-  const bestFinishes = (
+  const liveBestFinishes = (
     await Promise.all(
       myRegistrations.map(async (reg) => {
         const { data: rows } = await supabase
@@ -84,9 +84,23 @@ export default async function PortalPage() {
         };
       })
     )
-  )
-    .filter((f): f is { eventName: string; divisionName: string; position: number; total: number } => f !== null)
-    .sort((a, b) => a.position - b.position);
+  ).filter((f): f is { eventName: string; divisionName: string; position: number; total: number } => f !== null);
+
+  // Placements from events run outside Wodflow (Indy/Remix, etc. — see
+  // migration-051). RLS only ever returns THIS athlete's own rows
+  // (matched by their logged-in email), so no extra filtering needed
+  // here.
+  const { data: historicalRows } = await supabase
+    .from("historical_results")
+    .select("event_name, division_name, position, entrants");
+  const historicalBestFinishes = (historicalRows ?? []).map((h) => ({
+    eventName: h.event_name,
+    divisionName: h.division_name,
+    position: h.position,
+    total: h.entrants,
+  }));
+
+  const bestFinishes = [...liveBestFinishes, ...historicalBestFinishes].sort((a, b) => a.position - b.position);
 
   const registeredEventIds = new Set(myRegistrations.map((r) => r.eventId));
   const registerableEvents = (upcomingEvents ?? []).filter((e) => !registeredEventIds.has(e.id));

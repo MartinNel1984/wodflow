@@ -28,14 +28,22 @@ export async function computeSeriesStandingsForEvents(
       const { standings } = computeStandings(rows as LeaderboardRow[], divisionScoringConfig);
       if (standings.length === 0) return [];
 
+      // public_registration_profiles (migration-052), not the raw
+      // registrations table — a real athlete's own session can only see
+      // THEIR OWN row in `registrations` (RLS), which would otherwise
+      // silently drop every other competitor and rank the caller "1 of
+      // 1" against themselves. This view exposes just enough (no PII)
+      // for any caller to resolve the whole field.
       const { data: registrations } = await supabase
-        .from("registrations")
-        .select("id, captain_profile_id")
+        .from("public_registration_profiles")
+        .select("registration_id, captain_profile_id")
         .in(
-          "id",
+          "registration_id",
           standings.map((s) => s.registrationId)
         );
-      const profileByRegistration = new Map((registrations ?? []).map((r) => [r.id, r.captain_profile_id]));
+      const profileByRegistration = new Map(
+        (registrations ?? []).map((r) => [r.registration_id, r.captain_profile_id])
+      );
 
       return standings.flatMap((s): SeriesEventPlacement[] => {
         const profileId = profileByRegistration.get(s.registrationId);
@@ -47,6 +55,21 @@ export async function computeSeriesStandingsForEvents(
     })
   );
 
-  const placements = perDivision.flat();
+  // Historical placements (events run outside Wodflow, e.g. Indy/Remix
+  // — see migration-051) count toward the same season points, using the
+  // exact same position+entrants -> points formula. Matched to a real
+  // profile server-side (public_historical_placements), so an athlete
+  // who hasn't signed up yet just doesn't appear — nothing to backfill.
+  const { data: historical } = await supabase
+    .from("public_historical_placements")
+    .select("profile_id, display_name, position, entrants");
+  const historicalPlacements: SeriesEventPlacement[] = (historical ?? []).map((h) => ({
+    profileId: h.profile_id,
+    displayName: h.display_name,
+    position: h.position,
+    entrants: h.entrants,
+  }));
+
+  const placements = [...perDivision.flat(), ...historicalPlacements];
   return computeSeriesStandings(placements, pointsConfig);
 }
