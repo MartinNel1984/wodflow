@@ -46,27 +46,6 @@ export default async function EventDetailPage({
     | null
     | undefined;
 
-  // spectator_price belongs to the in-flight ticket-sales feature, built
-  // on a separate worktree branch — it likely doesn't exist on this
-  // branch's `events` table yet. Probe for it defensively so a missing
-  // column errors this query alone, not the whole page, and the "Buy
-  // tickets" link simply never renders until both features merge and an
-  // organizer actually sets pricing.
-  let hasTicketPricing = false;
-  try {
-    const { data: pricing, error } = await supabase
-      .from("events")
-      .select("spectator_price, weekend_pass_price")
-      .eq("id", eventId)
-      .single();
-    const priced = pricing as { spectator_price?: number | null; weekend_pass_price?: number | null } | null;
-    if (!error && priced && (priced.spectator_price || priced.weekend_pass_price)) {
-      hasTicketPricing = true;
-    }
-  } catch {
-    hasTicketPricing = false;
-  }
-
   const isBigOne = brandKit?.name === "Rumble Big One";
 
   const content = (
@@ -125,23 +104,21 @@ export default async function EventDetailPage({
 
       {event.waiver_text && (
         <div className="space-y-2">
-          <h2 className="font-semibold text-xs uppercase tracking-wider text-ink/50">Waiver</h2>
-          <div className="bg-white border border-ink/10 rounded-xl p-4 text-sm text-ink/80 whitespace-pre-wrap">
-            {event.waiver_text}
-          </div>
+          <details className="bg-white border border-ink/10 rounded-xl group">
+            <summary className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-ink/50 cursor-pointer list-none flex items-center justify-between">
+              Waiver
+              <span className="text-accent text-base leading-none normal-case group-open:hidden">+</span>
+              <span className="text-accent text-base leading-none normal-case hidden group-open:inline">−</span>
+            </summary>
+            <div className="border-t border-ink/10 p-4 text-sm text-ink/80 whitespace-pre-wrap">
+              {event.waiver_text}
+            </div>
+          </details>
           <p className="text-ink/40 text-xs">You&apos;ll be asked to accept this waiver when you register.</p>
         </div>
       )}
 
       <div className="flex flex-col gap-2 pt-2">
-        {hasTicketPricing && (
-          <a
-            href={`/events/${eventId}/tickets`}
-            className="w-full text-center bg-white text-ink border-2 border-ink rounded-lg py-3 text-sm font-semibold hover-lift"
-          >
-            Buy tickets
-          </a>
-        )}
         <a
           href={`/register/${eventId}`}
           className="w-full text-center bg-accent text-white rounded-lg py-3 text-sm font-semibold hover-lift"
