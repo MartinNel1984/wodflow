@@ -490,6 +490,12 @@ button:hover, .hover-lift:hover {
   box-shadow: 0 0 40px color-mix(in srgb, var(--color-volt) 55%, transparent);
 }
 
+.rumble-cta-fork--magenta {
+  background: var(--color-magenta);
+  color: #0a0b10;
+  box-shadow: 0 0 40px color-mix(in srgb, var(--color-magenta) 55%, transparent);
+}
+
 .rumble-section {
   position: relative;
   width: 100%;

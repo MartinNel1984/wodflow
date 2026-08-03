@@ -58,13 +58,16 @@ export default async function RumbleHubPage() {
           <Link href="/tickets" className="rumble-cta-fork rumble-cta-fork--volt hover-lift">
             I&apos;m Spectating →
           </Link>
+          {event && (
+            <Link
+              href={`/events/${event.id}/judge-signup`}
+              className="rumble-cta-fork rumble-cta-fork--magenta hover-lift"
+            >
+              I&apos;m Judging →
+            </Link>
+          )}
         </div>
         <div className="flex justify-center gap-4 mt-4 text-xs opacity-70">
-          {event && (
-            <a href={`/events/${event.id}/judge-signup`} className="underline">
-              Judges
-            </a>
-          )}
           <a href="/login" className="underline">
             Organizer sign-in
           </a>
