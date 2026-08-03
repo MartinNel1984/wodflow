@@ -14,19 +14,24 @@
 -- live on every read, never a snapshot) automatically picks up their
 -- real profile_id on its own — no manual merge/reconciliation step.
 
-create or replace view public.public_historical_placements
+-- CREATE OR REPLACE VIEW can only append new columns at the end, not
+-- insert one in the middle of the existing column list (Postgres
+-- error 42P16) — drop and recreate cleanly instead.
+drop view if exists public.public_historical_placements;
+
+create view public.public_historical_placements
 with (security_invoker = false) as
 select
   hr.id,
   p.id as profile_id,
-  lower(hr.athlete_email) as athlete_email,
   hr.athlete_name as display_name,
   hr.event_name,
   hr.division_name,
   hr.position,
   hr.entrants,
   hr.gender,
-  hr.season_tier
+  hr.season_tier,
+  lower(hr.athlete_email) as athlete_email
 from public.historical_results hr
 left join public.profiles p on lower(p.email) = lower(hr.athlete_email);
 
