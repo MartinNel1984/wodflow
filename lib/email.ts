@@ -41,8 +41,18 @@ export async function sendRegistrationEmails(registrationId: string) {
 
   const { data: athletes } = await supabase
     .from("registration_athletes")
-    .select("full_name, email, is_captain")
+    .select("id, full_name, email, is_captain")
     .eq("registration_id", registrationId);
+
+  // Non-captain teammates get their own claim link (see migration-011/018)
+  // so they can sign their own waiver instead of relying on the captain
+  // to forward it — previously only shown on the captain's own
+  // confirmation page, never in the teammate's own email at all.
+  const { data: invites } = await supabase
+    .from("team_invites")
+    .select("registration_athlete_id, token")
+    .eq("registration_id", registrationId);
+  const tokenByAthleteId = new Map((invites ?? []).map((inv) => [inv.registration_athlete_id, inv.token]));
 
   const division = Array.isArray(registration.divisions) ? registration.divisions[0] : registration.divisions;
   const event = Array.isArray(registration.events) ? registration.events[0] : registration.events;
@@ -61,13 +71,21 @@ export async function sendRegistrationEmails(registrationId: string) {
   for (const athlete of athletes ?? []) {
     if (!athlete.email) continue;
     const firstName = athlete.full_name.split(" ")[0];
+    const token = tokenByAthleteId.get(athlete.id);
+    const inviteUrl = token ? `https://wodflow.co.za/invite/${token}` : null;
+    const inviteHtml = inviteUrl
+      ? `<p><a href="${inviteUrl}">Confirm your own details and sign your waiver</a> — this link is just for you.</p>`
+      : "";
+    const inviteText = inviteUrl
+      ? ` Confirm your own details and sign your waiver: ${inviteUrl}`
+      : "";
     sends.push(
       env.EMAIL.send({
         to: athlete.email,
         from: FROM,
         subject: `You're registered — ${event?.name ?? "Wodflow"}`,
-        html: `<p>Hi ${firstName},</p><p>You're confirmed for <strong>${division?.name}</strong> at <strong>${event?.name}</strong>. R${registration.price_paid} paid.</p><p>Your heat time and lane will be published closer to the event.</p>`,
-        text: `Hi ${firstName}, you're confirmed for ${division?.name} at ${event?.name}. R${registration.price_paid} paid. Your heat time and lane will be published closer to the event.`,
+        html: `<p>Hi ${firstName},</p><p>You're confirmed for <strong>${division?.name}</strong> at <strong>${event?.name}</strong>. R${registration.price_paid} paid.</p><p>Your heat time and lane will be published closer to the event.</p>${inviteHtml}`,
+        text: `Hi ${firstName}, you're confirmed for ${division?.name} at ${event?.name}. R${registration.price_paid} paid. Your heat time and lane will be published closer to the event.${inviteText}`,
       }).catch((err) => console.error("Athlete confirmation email failed", athlete.email, err))
     );
   }
