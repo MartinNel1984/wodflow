@@ -88,7 +88,7 @@ export default function RegisterContent() {
         supabase
           .from("events")
           .select(
-            "name, waiver_text, description, poster_url, spectator_price, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline)"
+            "name, waiver_text, description, poster_url, spectator_price, weekend_pass_price, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline)"
           )
           .eq("id", eventId)
           .single(),
@@ -104,7 +104,7 @@ export default function RegisterContent() {
       const kit = Array.isArray(event?.brand_kits) ? event.brand_kits[0] : event?.brand_kits;
       setBrandKit(kit ?? null);
       setWaiverText(event?.waiver_text ?? "");
-      setTicketsAvailable(event?.spectator_price != null);
+      setTicketsAvailable(event?.spectator_price != null || event?.weekend_pass_price != null);
       // "RX Test" is leftover rehearsal data on the real Big One event — same exclusion as lib/rumbleHub.ts
       setDivisions((divs ?? []).filter((d) => d.name !== "RX Test"));
       setLoading(false);

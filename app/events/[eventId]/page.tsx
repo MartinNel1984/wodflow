@@ -56,11 +56,11 @@ export default async function EventDetailPage({
   try {
     const { data: pricing, error } = await supabase
       .from("events")
-      .select("spectator_price")
+      .select("spectator_price, weekend_pass_price")
       .eq("id", eventId)
       .single();
-    const priced = pricing as { spectator_price?: number | null } | null;
-    if (!error && priced && priced.spectator_price) {
+    const priced = pricing as { spectator_price?: number | null; weekend_pass_price?: number | null } | null;
+    if (!error && priced && (priced.spectator_price || priced.weekend_pass_price)) {
       hasTicketPricing = true;
     }
   } catch {

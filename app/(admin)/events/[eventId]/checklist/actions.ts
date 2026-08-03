@@ -61,16 +61,19 @@ export async function updateTicketPrices(formData: FormData) {
   // Blank capacity = unlimited, same convention as a blank price meaning
   // "tickets off" — an empty field must write null, not 0 (which would
   // read as "sold out" to the enforce_spectator_capacity trigger).
-  const rawCapacity = String(formData.get("spectatorCapacity") ?? "").trim();
-  const capacityNum = Number(rawCapacity);
-  const spectatorCapacity =
-    rawCapacity && Number.isInteger(capacityNum) && capacityNum > 0 ? capacityNum : null;
+  const parseCapacity = (key: string) => {
+    const raw = String(formData.get(key) ?? "").trim();
+    const n = Number(raw);
+    return raw && Number.isInteger(n) && n > 0 ? n : null;
+  };
 
   await supabase
     .from("events")
     .update({
       spectator_price: parsePrice("spectatorPrice"),
-      spectator_capacity: spectatorCapacity,
+      spectator_capacity: parseCapacity("spectatorCapacity"),
+      weekend_pass_price: parsePrice("weekendPassPrice"),
+      weekend_pass_capacity: parseCapacity("weekendPassCapacity"),
     })
     .eq("id", eventId);
   revalidatePath(`/events/${eventId}/checklist`);

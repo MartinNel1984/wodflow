@@ -11,12 +11,15 @@ import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 // server reads the real per-event value; this is the UI's safe default.
 const MAX_PER_ORDER = 20;
 
+type TicketType = "spectator" | "weekend_pass";
+
 type EventInfo = {
   name: string;
   description: string | null;
   posterUrl: string | null;
   brandKit: BrandKit | null;
   spectatorPrice: number | null;
+  weekendPassPrice: number | null;
 };
 
 export default function TicketsContent() {
@@ -27,6 +30,7 @@ export default function TicketsContent() {
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [ticketType, setTicketType] = useState<TicketType>("spectator");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -36,7 +40,7 @@ export default function TicketsContent() {
       const { data } = await supabase
         .from("events")
         .select(
-          "name, description, poster_url, spectator_price, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline)"
+          "name, description, poster_url, spectator_price, weekend_pass_price, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline)"
         )
         .eq("id", eventId)
         .single();
@@ -49,14 +53,22 @@ export default function TicketsContent() {
           posterUrl: data.poster_url,
           brandKit: kit ?? null,
           spectatorPrice: data.spectator_price,
+          weekendPassPrice: data.weekend_pass_price,
         });
+        // Default to whichever type is actually on sale; day pass wins
+        // when both are (matches its position as the first option).
+        if (data.spectator_price == null && data.weekend_pass_price != null) {
+          setTicketType("weekend_pass");
+        }
       }
       setLoading(false);
     }
     load();
   }, [eventId]);
 
-  const unitPrice = event?.spectatorPrice ?? null;
+  const dayPassAvailable = event?.spectatorPrice != null;
+  const weekendPassAvailable = event?.weekendPassPrice != null;
+  const unitPrice = ticketType === "weekend_pass" ? event?.weekendPassPrice ?? null : event?.spectatorPrice ?? null;
   const total = unitPrice != null ? unitPrice * quantity : 0;
 
   const canSubmit = buyerName.trim().length > 0 && buyerEmail.trim().includes("@") && quantity >= 1 && !submitting;
@@ -71,7 +83,7 @@ export default function TicketsContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventId,
-          ticketType: "spectator",
+          ticketType,
           buyerName: buyerName.trim(),
           buyerEmail: buyerEmail.trim(),
           quantity,
@@ -115,6 +127,34 @@ export default function TicketsContent() {
         </div>
 
         <div className="space-y-5 bg-white border border-ink/10 rounded-xl p-5">
+          {dayPassAvailable && weekendPassAvailable && (
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Ticket type</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTicketType("spectator")}
+                  className={`rounded-lg border px-3 py-2 text-sm text-left ${
+                    ticketType === "spectator" ? "border-accent bg-accent/5 font-semibold" : "border-ink/10"
+                  }`}
+                >
+                  Day pass
+                  <span className="block text-ink/60 text-xs font-normal">R{event?.spectatorPrice}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTicketType("weekend_pass")}
+                  className={`rounded-lg border px-3 py-2 text-sm text-left ${
+                    ticketType === "weekend_pass" ? "border-accent bg-accent/5 font-semibold" : "border-ink/10"
+                  }`}
+                >
+                  Weekend pass
+                  <span className="block text-ink/60 text-xs font-normal">R{event?.weekendPassPrice}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           <Field label="Full name" value={buyerName} onChange={setBuyerName} />
           <Field label="Email" value={buyerEmail} onChange={setBuyerEmail} type="email" />
 

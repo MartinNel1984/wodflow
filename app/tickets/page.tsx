@@ -13,16 +13,27 @@ export const metadata: Metadata = {
 
 export default async function TicketsListPage() {
   const supabase = await createClient();
-  const { data: events } = await supabase
+  const { data: allEvents } = await supabase
     .from("events")
     .select(
-      "id, name, start_date, end_date, venue_name, poster_url, spectator_price, brand_kits(name, logo_url, color_primary, tagline)"
+      "id, name, start_date, end_date, venue_name, poster_url, spectator_price, weekend_pass_price, brand_kits(name, logo_url, color_primary, tagline)"
     )
     .in("status", ["published", "live"])
-    .not("spectator_price", "is", null)
     .order("start_date", { ascending: true });
 
-  const hasEvents = (events ?? []).length > 0;
+  // At least one ticket type must be priced (opt-in per event) — can't
+  // express "A or B is not null" as a single .or() filter cleanly
+  // alongside .in(), so filter in JS instead.
+  const events = (allEvents ?? []).filter((e) => e.spectator_price != null || e.weekend_pass_price != null);
+
+  const hasEvents = events.length > 0;
+
+  // Show the cheaper of the two prices when both are set ("from R__"
+  // matches how the event's own tickets page lets buyers pick either).
+  function fromPrice(e: (typeof events)[number]) {
+    const prices = [e.spectator_price, e.weekend_pass_price].filter((p): p is number => p != null);
+    return Math.min(...prices);
+  }
 
   return (
     <main className="graffiti-page min-h-screen flex flex-col items-center px-4 py-12">
@@ -49,7 +60,7 @@ export default async function TicketsListPage() {
           </div>
         )}
 
-        {(events ?? []).map((e) => {
+        {events.map((e) => {
           const kit = Array.isArray(e.brand_kits) ? e.brand_kits[0] : e.brand_kits;
 
           if (!e.poster_url) {
@@ -71,7 +82,7 @@ export default async function TicketsListPage() {
                   {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
                 </div>
                 <span className="shrink-0 bg-accent text-white text-xs font-semibold uppercase tracking-wider rounded-full px-3 py-1.5">
-                  R{e.spectator_price} →
+                  From R{fromPrice(e)} →
                 </span>
               </a>
             );
@@ -95,7 +106,7 @@ export default async function TicketsListPage() {
                 </p>
                 {kit?.tagline && <span className="sticker text-xs mt-1 inline-block">{kit.tagline}</span>}
                 <span className="mt-3 inline-block bg-accent text-white text-xs font-semibold uppercase tracking-wider rounded-full px-3 py-1.5">
-                  R{e.spectator_price} — Buy tickets →
+                  From R{fromPrice(e)} — Buy tickets →
                 </span>
               </div>
             </a>

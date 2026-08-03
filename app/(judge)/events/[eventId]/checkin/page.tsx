@@ -8,7 +8,7 @@ import { lookupTicket, confirmCheckin } from "./actions";
 
 type Ticket = {
   id: string;
-  ticket_type: "spectator";
+  ticket_type: "spectator" | "weekend_pass";
   buyer_name: string;
   quantity: number;
   checked_in_count: number;

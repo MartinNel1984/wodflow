@@ -19,7 +19,7 @@ export default async function ChecklistPage({
     supabase
       .from("events")
       .select(
-        "name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status, judging_mode, description, poster_url, spectator_price, spectator_capacity"
+        "name, venue_name, venue_address, contact_email, contact_phone, waiver_text, status, judging_mode, description, poster_url, spectator_price, spectator_capacity, weekend_pass_price, weekend_pass_capacity"
       )
       .eq("id", eventId)
       .single(),
@@ -204,36 +204,62 @@ export default async function ChecklistPage({
           <div>
             <p className="text-sm font-semibold">Spectator tickets</p>
             <p className="text-ink/60 text-xs">
-              Blank price = tickets are off. Set a price to open{" "}
+              Blank price = that ticket type is off. Set a price to open{" "}
               <a href={`/events/${eventId}/tickets`} className="text-accent hover:underline" target="_blank">
                 the public tickets page
               </a>
               . Blank capacity = unlimited.
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <label className="text-xs text-ink/60">
-              Spectator R
-              <input
-                type="number"
-                name="spectatorPrice"
-                min={0}
-                step="0.01"
-                defaultValue={event?.spectator_price ?? ""}
-                className="w-20 ml-1 text-sm border border-ink/10 rounded-lg px-2 py-1.5"
-              />
-            </label>
-            <label className="text-xs text-ink/60">
-              Capacity
-              <input
-                type="number"
-                name="spectatorCapacity"
-                min={1}
-                step="1"
-                defaultValue={event?.spectator_capacity ?? ""}
-                className="w-20 ml-1 text-sm border border-ink/10 rounded-lg px-2 py-1.5"
-              />
-            </label>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-ink/60">
+                Day pass R
+                <input
+                  type="number"
+                  name="spectatorPrice"
+                  min={0}
+                  step="0.01"
+                  defaultValue={event?.spectator_price ?? ""}
+                  className="w-20 ml-1 text-sm border border-ink/10 rounded-lg px-2 py-1.5"
+                />
+              </label>
+              <label className="text-xs text-ink/60">
+                Capacity
+                <input
+                  type="number"
+                  name="spectatorCapacity"
+                  min={1}
+                  step="1"
+                  defaultValue={event?.spectator_capacity ?? ""}
+                  className="w-20 ml-1 text-sm border border-ink/10 rounded-lg px-2 py-1.5"
+                />
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-ink/60">
+                Weekend pass R
+                <input
+                  type="number"
+                  name="weekendPassPrice"
+                  min={0}
+                  step="0.01"
+                  defaultValue={event?.weekend_pass_price ?? ""}
+                  className="w-20 ml-1 text-sm border border-ink/10 rounded-lg px-2 py-1.5"
+                />
+              </label>
+              <label className="text-xs text-ink/60">
+                Capacity
+                <input
+                  type="number"
+                  name="weekendPassCapacity"
+                  min={1}
+                  step="1"
+                  defaultValue={event?.weekend_pass_capacity ?? ""}
+                  className="w-20 ml-1 text-sm border border-ink/10 rounded-lg px-2 py-1.5"
+                />
+              </label>
+            </div>
             <button type="submit" className="text-sm text-accent font-semibold">
               Save
             </button>
