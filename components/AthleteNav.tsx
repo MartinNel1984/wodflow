@@ -30,20 +30,25 @@ export default function AthleteNav({ currentDivisionId }: { currentDivisionId: s
           Sign out
         </button>
       </div>
-      <div className="flex items-center gap-5 overflow-x-auto">
+      <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
         {links.map((link) =>
           link.href ? (
             <Link
               key={link.label}
               href={link.href}
-              className={`text-sm font-semibold whitespace-nowrap ${
-                pathname.startsWith(link.href) ? "text-paper" : "text-paper/50 hover:text-paper/80"
+              className={`text-base sm:text-lg font-bold whitespace-nowrap rounded-full px-4 py-2 transition-colors ${
+                pathname.startsWith(link.href)
+                  ? "bg-accent text-white"
+                  : "text-paper/70 hover:text-paper hover:bg-paper/10"
               }`}
             >
               {link.label}
             </Link>
           ) : (
-            <span key={link.label} className="text-sm font-semibold whitespace-nowrap text-paper/30">
+            <span
+              key={link.label}
+              className="text-base sm:text-lg font-bold whitespace-nowrap rounded-full px-4 py-2 text-paper/30"
+            >
               {link.label}
             </span>
           )

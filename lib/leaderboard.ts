@@ -42,14 +42,17 @@ export type Standing = {
 //                 opted into the other one).
 //   gap_formula — Tjokkie's proposed model: winner scores winner_points
 //                 (100 by default), each place down loses a fixed gap
-//                 of round(winner_points / entrants), floored at 0.
-//                 Note: with small fields this doesn't necessarily
-//                 reach exactly 0 at last place (e.g. 12 entrants ->
-//                 gap 8 -> last place lands on 12, not 0) — that's
-//                 the formula as described, not a bug; the exact
-//                 rounding/edge behavior is still an open question to
-//                 confirm with Tjokkie, not something to silently
-//                 "fix" by guessing a different formula.
+//                 of round(winner_points / (entrants - 1)), floored at
+//                 0. Dividing by (entrants - 1) — the number of GAPS
+//                 between 1st and last, not the number of entrants —
+//                 anchors last place at ~0 regardless of field size.
+//                 Dividing by entrants instead (the original version)
+//                 overshoots for large fields: e.g. 60 entrants ->
+//                 100/60=1.667 rounds UP to a gap of 2, hitting 0 at
+//                 position 51 and leaving ~10 athletes flatlined at
+//                 zero instead of just the last one. Found 2026-08-03
+//                 from a real Rumble in Randburg leaderboard screenshot
+//                 showing that exact cluster of zeros.
 // Exported for reuse by lib/series.ts — season points (Milestone 18)
 // are the same pluggable formula applied to an athlete's OVERALL
 // event placement instead of a per-workout one.
@@ -59,7 +62,7 @@ export function pointsForPosition(position: number, entrants: number, config: Sc
     // gap_points is a deliberate manual override (Tjokkie: "spread is 5
     // points because we have 20 teams", his own number, not necessarily
     // 100/20) — only auto-derive from entrant count when he hasn't set one.
-    const gap = config.gap_points ?? Math.round(winnerPoints / entrants);
+    const gap = config.gap_points ?? Math.round(winnerPoints / Math.max(1, entrants - 1));
     return Math.max(0, winnerPoints - (position - 1) * gap);
   }
   return entrants - position + 1;

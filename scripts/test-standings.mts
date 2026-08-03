@@ -177,7 +177,8 @@ console.log("\n--- a workout where everyone caps out ---\n");
 console.log("\n--- per-workout scoring_config overrides the division default ---\n");
 {
   // w1 uses the division default (rank_sum, 2 entrants -> 2,1).
-  // w2 carries its own gap_formula with winner_points 100 -> 100, 50.
+  // w2 carries its own gap_formula with winner_points 100 -> 2 entrants
+  // -> 1 gap -> gap = round(100/1) = 100 -> 100, 0.
   const gap: ScoringConfig = { method: "gap_formula", winner_points: 100 };
   const rows = [
     row("A", "Alice", "w1", { time_seconds: 100 }),
@@ -190,8 +191,8 @@ console.log("\n--- per-workout scoring_config overrides the division default ---
   check("workout with its own config uses it (Alice: 2 + 100 = 102)",
     alice.totalPoints === 102, `${alice.totalPoints}`);
   const bob = standings.find((s) => s.registrationId === "B")!;
-  check("second place under gap_formula loses one gap (Bob: 1 + 50 = 51)",
-    bob.totalPoints === 51, `${bob.totalPoints}`);
+  check("second place under gap_formula loses the full gap for a 2-entrant field (Bob: 1 + 0 = 1)",
+    bob.totalPoints === 1, `${bob.totalPoints}`);
 }
 
 // ---------------------------------------------------------------

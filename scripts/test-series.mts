@@ -17,9 +17,10 @@ function assertEqual(actual: unknown, expected: unknown, label: string) {
 // --- Same athlete places across two events, points accumulate ---
 {
   const placements: SeriesEventPlacement[] = [
-    { profileId: "alice", displayName: "Alice", position: 1, entrants: 10, eventName: "Event A", gender: "female" }, // gap 10 -> 100
-    { profileId: "bob", displayName: "Bob", position: 2, entrants: 10, eventName: "Event A", gender: "male" }, // -> 90
-    { profileId: "alice", displayName: "Alice", position: 3, entrants: 5, eventName: "Event B", gender: "female" }, // gap 20 -> 60
+    // gap = round(winner_points / (entrants - 1)).
+    { profileId: "alice", displayName: "Alice", position: 1, entrants: 10, eventName: "Event A", gender: "female" }, // gap round(100/9)=11 -> 100
+    { profileId: "bob", displayName: "Bob", position: 2, entrants: 10, eventName: "Event A", gender: "male" }, // -> 89
+    { profileId: "alice", displayName: "Alice", position: 3, entrants: 5, eventName: "Event B", gender: "female" }, // gap round(100/4)=25 -> 50
     { profileId: "bob", displayName: "Bob", position: 1, entrants: 5, eventName: "Event B", gender: "male" }, // -> 100
   ];
   const standings = computeSeriesStandings(placements, { method: "gap_formula", winner_points: 100 });
@@ -29,18 +30,18 @@ function assertEqual(actual: unknown, expected: unknown, label: string) {
       {
         profileId: "bob",
         displayName: "Bob",
-        totalPoints: 190,
+        totalPoints: 189,
         eventsCounted: 2,
         gender: "male",
-        pointsByEvent: { "Event A": 90, "Event B": 100 },
+        pointsByEvent: { "Event A": 89, "Event B": 100 },
       },
       {
         profileId: "alice",
         displayName: "Alice",
-        totalPoints: 160,
+        totalPoints: 150,
         eventsCounted: 2,
         gender: "female",
-        pointsByEvent: { "Event A": 100, "Event B": 60 },
+        pointsByEvent: { "Event A": 100, "Event B": 50 },
       },
     ],
     "points accumulate per profileId across events, ranked by total"
