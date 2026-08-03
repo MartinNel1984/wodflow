@@ -174,6 +174,9 @@ export default async function ChecklistPage({
         <a href={`/events/${eventId}/reports/waivers`} className="text-accent text-sm hover:underline">
           All signed waivers
         </a>
+        <a href={`/events/${eventId}/notices`} className="text-accent text-sm hover:underline">
+          Notice board
+        </a>
       </div>
 
       <div className="bg-white border border-ink/10 rounded-xl p-4 space-y-3">

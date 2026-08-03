@@ -23,11 +23,24 @@ export default async function AthleteLayout({ children }: { children: React.Reac
   // is never server-rendered to a non-athlete.
   if (role !== "athlete") redirect("/athlete-login");
 
+  // Leaderboard/Heats nav tabs link straight to the athlete's most
+  // recent registration — no picker, since almost everyone only has
+  // one active registration at a time (Martin's call).
+  const { data: myRegs } = await supabase
+    .from("registration_athletes")
+    .select("registrations(division_id, created_at)")
+    .eq("profile_id", user.id);
+  const currentDivisionId =
+    (myRegs ?? [])
+      .map((r) => (Array.isArray(r.registrations) ? r.registrations[0] : r.registrations))
+      .filter((r): r is { division_id: string; created_at: string } => !!r)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.division_id ?? null;
+
   return (
     <div className="rumble-page min-h-screen" style={{ "--color-accent": "var(--rumble-blue-bright)" } as React.CSSProperties}>
       <div className="rumble-texture" aria-hidden="true" />
       <AthleteRouteGuard role={role} />
-      <AthleteNav />
+      <AthleteNav currentDivisionId={currentDivisionId} />
       <div className="flex justify-center pt-2 pb-6">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/rumble/series-logo-v2.png" alt="Rumble Series" className="rumble-hero-logo-sm" />
