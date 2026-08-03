@@ -6,7 +6,8 @@ type DivisionMeta = { id: string; event_id: string; gender: string | null; seaso
 type DivisionStanding = { division: DivisionMeta; standings: Standing[] };
 
 type HistoricalRow = {
-  profile_id: string;
+  profile_id: string | null;
+  athlete_email: string;
   display_name: string;
   event_name: string;
   position: number;
@@ -14,6 +15,17 @@ type HistoricalRow = {
   gender: string | null;
   season_tier: number | null;
 };
+
+// An athlete who placed at Indy/Remix but hasn't signed up on Wodflow
+// yet still has no profiles row to key on (Martin: "if a Ruan Potgieter
+// is first he is first" — placement counts whether or not they've
+// signed up). Falls back to their email as a stable identity; once
+// they do sign up with the matching email, public_historical_placements
+// (migration-057, a live view, never a snapshot) resolves their real
+// profile_id automatically on the next read — no manual merge step.
+function identityKey(row: HistoricalRow): string {
+  return row.profile_id ?? `email:${row.athlete_email}`;
+}
 
 // Shared by the admin season leaderboard and the athlete portal's own
 // "season rank" stat — both need the same thing: every division across
@@ -125,7 +137,7 @@ export async function computeSeriesStandingsForEvents(
   // see migration-051), tiered the same way when tagged.
   const { data: historical } = await supabase
     .from("public_historical_placements")
-    .select("profile_id, display_name, event_name, position, entrants, gender, season_tier");
+    .select("profile_id, athlete_email, display_name, event_name, position, entrants, gender, season_tier");
 
   const historicalTieredGroups = new Map<string, HistoricalRow[]>();
   for (const h of (historical ?? []) as HistoricalRow[]) {
@@ -136,7 +148,7 @@ export async function computeSeriesStandingsForEvents(
       historicalTieredGroups.set(key, group);
     } else {
       placements.push({
-        profileId: h.profile_id,
+        profileId: identityKey(h),
         displayName: h.display_name,
         position: h.position,
         entrants: h.entrants,
@@ -163,7 +175,7 @@ export async function computeSeriesStandingsForEvents(
       const rowsForTier = byTier.get(t)!;
       for (const h of rowsForTier) {
         placements.push({
-          profileId: h.profile_id,
+          profileId: identityKey(h),
           displayName: h.display_name,
           position: offset + h.position,
           entrants: totalEntrants,

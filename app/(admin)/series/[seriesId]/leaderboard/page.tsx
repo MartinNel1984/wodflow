@@ -35,7 +35,13 @@ export default async function SeriesLeaderboardPage({
   // Prefer the athlete's own profile name over whatever display name a
   // particular event happened to show (e.g. a team name) — a season
   // leaderboard tracks the person, not the team they entered with once.
-  const profileIds = seriesStandings.map((s) => s.profileId);
+  //
+  // Not every standing has a real profile UUID — an athlete who placed
+  // at a historical event but hasn't signed up on Wodflow yet gets a
+  // synthetic "email:..." identity instead (see lib/seriesStandings.ts),
+  // which would make .in("id", ...) error against the uuid column.
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const profileIds = seriesStandings.map((s) => s.profileId).filter((id) => uuidPattern.test(id));
   const { data: profiles } =
     profileIds.length > 0
       ? await supabase.from("profiles").select("id, full_name").in("id", profileIds)
