@@ -30,10 +30,15 @@ export async function updateEventContactInfo(formData: FormData) {
   if (!eventId) return;
 
   const trimmed = (key: string) => String(formData.get(key) ?? "").trim() || null;
+  // Unlike the other fields here, name isn't optional — an event with
+  // no name would break every page that displays it.
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return;
 
   await supabase
     .from("events")
     .update({
+      name,
       venue_name: trimmed("venueName"),
       venue_address: trimmed("venueAddress"),
       contact_email: trimmed("contactEmail"),

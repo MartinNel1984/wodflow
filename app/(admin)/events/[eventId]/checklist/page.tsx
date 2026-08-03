@@ -147,6 +147,7 @@ export default async function ChecklistPage({
         <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">
           Venue &amp; contact details
         </h2>
+        <TextField label="Event name" name="name" required defaultValue={event?.name ?? ""} />
         <div className="grid grid-cols-2 gap-4">
           <TextField label="Venue name" name="venueName" defaultValue={event?.venue_name ?? ""} />
           <TextField label="Venue address" name="venueAddress" defaultValue={event?.venue_address ?? ""} />
@@ -312,11 +313,13 @@ function TextField({
   name,
   type = "text",
   defaultValue,
+  required = false,
 }: {
   label: string;
   name: string;
   type?: string;
   defaultValue?: string;
+  required?: boolean;
 }) {
   return (
     <div>
@@ -324,6 +327,7 @@ function TextField({
       <input
         type={type}
         name={name}
+        required={required}
         defaultValue={defaultValue}
         className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
       />
