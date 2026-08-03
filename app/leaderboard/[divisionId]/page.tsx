@@ -68,7 +68,7 @@ export default async function LeaderboardPage({
   const teamMembers: Record<string, string[]> = {};
   if (registrationIds.length > 0) {
     const { data: athletes } = await supabase
-      .from("registration_athletes")
+      .from("public_team_rosters")
       .select("registration_id, full_name, is_captain")
       .in("registration_id", registrationIds)
       .order("is_captain", { ascending: false });

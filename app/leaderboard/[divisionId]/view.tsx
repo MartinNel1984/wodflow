@@ -80,7 +80,8 @@ export default function LeaderboardView({
           )}
 
           {selectedWorkout ? (
-            <table className="w-full bg-white border border-ink/10 rounded-xl overflow-hidden text-sm">
+            <div className="overflow-x-auto rounded-xl border border-ink/10">
+            <table className="w-full bg-white text-sm">
               <thead>
                 <tr className="bg-ink/5 text-left">
                   <th className="px-4 py-2">Pos</th>
@@ -116,8 +117,10 @@ export default function LeaderboardView({
                 ))}
               </tbody>
             </table>
+            </div>
           ) : (
-            <table className="w-full bg-white border border-ink/10 rounded-xl overflow-hidden text-sm">
+            <div className="overflow-x-auto rounded-xl border border-ink/10">
+            <table className="w-full bg-white text-sm">
               <thead>
                 <tr className="bg-ink/5 text-left">
                   <th className="px-4 py-2">#</th>
@@ -187,6 +190,7 @@ export default function LeaderboardView({
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </>
       )}
