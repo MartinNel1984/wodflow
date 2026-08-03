@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ScoringConfig } from "@/lib/leaderboard";
 import { computeSeriesStandingsForEvents } from "@/lib/seriesStandings";
+import type { SeriesStanding } from "@/lib/series";
 import Link from "next/link";
 
 export default async function SeriesLeaderboardPage({
@@ -41,8 +42,15 @@ export default async function SeriesLeaderboardPage({
       : { data: [] as { id: string; full_name: string | null }[] };
   const nameByProfile = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
 
+  // Split by gender so Martin/Tjokkie can spot-check the combined
+  // ranking the way it's actually meant to be read — Male and Female
+  // are separate competitions, never ranked against each other.
+  const male = seriesStandings.filter((s) => s.gender === "male");
+  const female = seriesStandings.filter((s) => s.gender === "female");
+  const ungrouped = seriesStandings.filter((s) => s.gender !== "male" && s.gender !== "female");
+
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-3xl mx-auto space-y-8">
       <div>
         <Link href={`/series/${seriesId}`} className="text-accent text-sm hover:underline">
           ← {series.name}
@@ -52,29 +60,66 @@ export default async function SeriesLeaderboardPage({
         </h1>
       </div>
 
-      <div className="bg-white border border-ink/10 rounded-xl overflow-hidden">
+      <StandingsTable title="Male" standings={male} nameByProfile={nameByProfile} />
+      <StandingsTable title="Female" standings={female} nameByProfile={nameByProfile} />
+      {ungrouped.length > 0 && (
+        <StandingsTable
+          title="Ungrouped (no gender tagged on the division/result)"
+          standings={ungrouped}
+          nameByProfile={nameByProfile}
+        />
+      )}
+    </div>
+  );
+}
+
+function StandingsTable({
+  title,
+  standings,
+  nameByProfile,
+}: {
+  title: string;
+  standings: SeriesStanding[];
+  nameByProfile: Map<string, string | null>;
+}) {
+  // Dynamic columns — whichever comps actually contributed points for
+  // this group (e.g. "Rumble in Randburg", "Indy 2026", "Remix 2026").
+  const eventNames = [...new Set(standings.flatMap((s) => Object.keys(s.pointsByEvent)))];
+
+  return (
+    <div className="space-y-3">
+      <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">{title}</h2>
+      <div className="bg-white border border-ink/10 rounded-xl overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-ink/5 text-left">
               <th className="px-4 py-2">#</th>
               <th className="px-4 py-2">Athlete</th>
-              <th className="px-4 py-2">Events</th>
-              <th className="px-4 py-2 text-right">Points</th>
+              {eventNames.map((name) => (
+                <th key={name} className="px-4 py-2 text-right whitespace-nowrap">
+                  {name}
+                </th>
+              ))}
+              <th className="px-4 py-2 text-right">Total</th>
             </tr>
           </thead>
           <tbody>
-            {seriesStandings.map((s, i) => (
+            {standings.map((s, i) => (
               <tr key={s.profileId} className="border-t border-ink/10">
                 <td className="px-4 py-2 font-data font-bold text-accent">{i + 1}</td>
                 <td className="px-4 py-2">{nameByProfile.get(s.profileId) ?? s.displayName}</td>
-                <td className="px-4 py-2 text-ink/60">{s.eventsCounted}</td>
-                <td className="px-4 py-2 text-right font-data">{s.totalPoints}</td>
+                {eventNames.map((name) => (
+                  <td key={name} className="px-4 py-2 text-right font-data text-ink/70">
+                    {s.pointsByEvent[name] ?? "—"}
+                  </td>
+                ))}
+                <td className="px-4 py-2 text-right font-data font-bold">{s.totalPoints}</td>
               </tr>
             ))}
-            {seriesStandings.length === 0 && (
+            {standings.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-ink/60 text-sm">
-                  No scored results yet from any athlete who registered via a signed-in account.
+                <td colSpan={eventNames.length + 3} className="px-4 py-6 text-center text-ink/60 text-sm">
+                  No scored results yet.
                 </td>
               </tr>
             )}

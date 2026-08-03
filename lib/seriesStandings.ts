@@ -37,10 +37,11 @@ export async function computeSeriesStandingsForEvents(
 ): Promise<SeriesStanding[]> {
   if (eventIds.length === 0) return [];
 
-  const { data: divisions } = await supabase
-    .from("divisions")
-    .select("id, event_id, scoring_config, gender, season_tier")
-    .in("event_id", eventIds);
+  const [{ data: divisions }, { data: events }] = await Promise.all([
+    supabase.from("divisions").select("id, event_id, scoring_config, gender, season_tier").in("event_id", eventIds),
+    supabase.from("events").select("id, name").in("id", eventIds),
+  ]);
+  const eventNameById = new Map((events ?? []).map((e) => [e.id, e.name]));
 
   const divisionStandings: DivisionStanding[] = [];
   for (const division of divisions ?? []) {
@@ -78,14 +79,22 @@ export async function computeSeriesStandingsForEvents(
   }
 
   const placements: SeriesEventPlacement[] = [];
-  function pushTeamPlacement(registrationId: string, displayName: string, position: number, entrants: number) {
+  function pushTeamPlacement(
+    registrationId: string,
+    displayName: string,
+    position: number,
+    entrants: number,
+    eventName: string,
+    gender: string | null
+  ) {
     for (const profileId of profileIdsByRegistration.get(registrationId) ?? []) {
-      placements.push({ profileId, displayName, position, entrants });
+      placements.push({ profileId, displayName, position, entrants, eventName, gender });
     }
   }
 
   const tieredGroups = new Map<string, DivisionStanding[]>();
   for (const ds of divisionStandings) {
+    const eventName = eventNameById.get(ds.division.event_id) ?? "Event";
     if (ds.division.gender && ds.division.season_tier) {
       const key = `${ds.division.event_id}::${ds.division.gender}`;
       const group = tieredGroups.get(key) ?? [];
@@ -94,7 +103,7 @@ export async function computeSeriesStandingsForEvents(
     } else {
       // Standalone — unchanged behavior, normalized entirely on its own.
       for (const s of ds.standings) {
-        pushTeamPlacement(s.registrationId, s.displayName, s.place, ds.standings.length);
+        pushTeamPlacement(s.registrationId, s.displayName, s.place, ds.standings.length, eventName, ds.division.gender);
       }
     }
   }
@@ -104,8 +113,9 @@ export async function computeSeriesStandingsForEvents(
     const totalEntrants = group.reduce((sum, ds) => sum + ds.standings.length, 0);
     let offset = 0;
     for (const ds of group) {
+      const eventName = eventNameById.get(ds.division.event_id) ?? "Event";
       for (const s of ds.standings) {
-        pushTeamPlacement(s.registrationId, s.displayName, offset + s.place, totalEntrants);
+        pushTeamPlacement(s.registrationId, s.displayName, offset + s.place, totalEntrants, eventName, ds.division.gender);
       }
       offset += ds.standings.length;
     }
@@ -125,7 +135,14 @@ export async function computeSeriesStandingsForEvents(
       group.push(h);
       historicalTieredGroups.set(key, group);
     } else {
-      placements.push({ profileId: h.profile_id, displayName: h.display_name, position: h.position, entrants: h.entrants });
+      placements.push({
+        profileId: h.profile_id,
+        displayName: h.display_name,
+        position: h.position,
+        entrants: h.entrants,
+        eventName: h.event_name,
+        gender: h.gender,
+      });
     }
   }
 
@@ -145,7 +162,14 @@ export async function computeSeriesStandingsForEvents(
     for (const t of tiers) {
       const rowsForTier = byTier.get(t)!;
       for (const h of rowsForTier) {
-        placements.push({ profileId: h.profile_id, displayName: h.display_name, position: offset + h.position, entrants: totalEntrants });
+        placements.push({
+          profileId: h.profile_id,
+          displayName: h.display_name,
+          position: offset + h.position,
+          entrants: totalEntrants,
+          eventName: h.event_name,
+          gender: h.gender,
+        });
       }
       offset += rowsForTier[0].entrants;
     }
