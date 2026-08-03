@@ -484,6 +484,18 @@ button:hover, .hover-lift:hover {
   box-shadow: 0 0 40px color-mix(in srgb, var(--rumble-blue-bright) 55%, transparent);
 }
 
+.rumble-cta-fork--dark-blue {
+  background: var(--rumble-blue-deep);
+  color: var(--color-paper);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--rumble-blue-deep) 55%, transparent);
+}
+
+.rumble-cta-fork--white {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--color-paper) 55%, transparent);
+}
+
 .rumble-cta-fork--volt {
   background: var(--color-volt);
   color: var(--color-ink);
