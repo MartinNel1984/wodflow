@@ -58,12 +58,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           src="https://www.googletagmanager.com/gtag/js?id=G-0EW1XBW8X3"
           strategy="afterInteractive"
         />
+        {/* Two separate GA4 properties, one per domain — wodflow.co.za
+            is the platform, rumbleinrandburg.co.za is Rumble's own
+            marketing domain (same Worker/codebase serves both, see
+            wrangler.jsonc's routes), and Martin set up a distinct
+            analytics property for the Rumble domain rather than mixing
+            its traffic into Wodflow's own. Decided with a plain runtime
+            hostname check in the script body (not headers()/middleware
+            in the root layout) so this stays purely client-side and
+            doesn't force the whole app into dynamic rendering, which
+            would break static/ISR caching sitewide. */}
         <Script id="google-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', 'G-0EW1XBW8X3');
+            var rumbleHosts = ['rumbleinrandburg.co.za', 'www.rumbleinrandburg.co.za'];
+            var gaId = rumbleHosts.indexOf(window.location.hostname) !== -1 ? 'G-VVRNLX54GH' : 'G-0EW1XBW8X3';
+            gtag('config', gaId);
           `}
         </Script>
       </body>
