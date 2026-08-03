@@ -12,7 +12,7 @@ export default async function AthletesDirectoryPage() {
     supabase
       .from("registration_athletes")
       .select(
-        "id, full_name, id_number, is_minor, waiver_signed_at, registrations(payment_status, division_id, divisions(id, name, event_id, events(name)))"
+        "id, full_name, id_number, is_minor, waiver_signed_at, registrations(payment_status, division_id, team_name, divisions(id, name, event_id, events(name)))"
       )
       .order("waiver_signed_at", { ascending: false }),
     supabase
@@ -37,6 +37,7 @@ export default async function AthletesDirectoryPage() {
         id: a.id,
         fullName: a.full_name,
         idNumber: a.id_number,
+        teamName: reg?.team_name ?? null,
         isMinor: a.is_minor,
         waiverSignedAt: a.waiver_signed_at,
         paymentStatus: reg?.payment_status ?? "pending",

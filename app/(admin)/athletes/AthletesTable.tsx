@@ -7,6 +7,7 @@ export type AthleteRow = {
   id: string;
   fullName: string;
   idNumber: string | null;
+  teamName: string | null;
   isMinor: boolean;
   waiverSignedAt: string | null;
   paymentStatus: string;
@@ -38,6 +39,7 @@ export default function AthletesTable({
       (r) =>
         r.fullName.toLowerCase().includes(q) ||
         r.eventName.toLowerCase().includes(q) ||
+        (r.teamName ?? "").toLowerCase().includes(q) ||
         (r.idNumber ?? "").toLowerCase().includes(q)
     );
   }, [rows, query]);
@@ -48,7 +50,7 @@ export default function AthletesTable({
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search name, event, or ID number…"
+        placeholder="Search name, event, team, or ID number…"
         className="w-full bg-white border border-ink/10 rounded-lg px-4 py-3 text-sm"
       />
       <div className="bg-white border border-ink/10 rounded-xl overflow-hidden">
@@ -57,6 +59,7 @@ export default function AthletesTable({
             <tr className="bg-ink/5 text-left">
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Event</th>
+              <th className="px-4 py-2">Team</th>
               <th className="px-4 py-2">ID number</th>
               <th className="px-4 py-2">Waiver</th>
               <th className="px-4 py-2">Payment</th>
@@ -77,7 +80,8 @@ export default function AthletesTable({
                 <td className="px-4 py-2 text-ink/60">
                   {r.eventName} · {r.divisionName}
                 </td>
-                <td className="px-4 py-2 font-data">{r.idNumber || "—"}</td>
+                <td className="px-4 py-2 font-semibold">{r.teamName || "—"}</td>
+                <td className="px-4 py-2 font-data text-ink/50">{r.idNumber || "—"}</td>
                 <td className="px-4 py-2">
                   <span
                     className={`text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${
@@ -117,7 +121,7 @@ export default function AthletesTable({
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-ink/60 text-sm">
+                <td colSpan={7} className="px-4 py-6 text-center text-ink/60 text-sm">
                   No matches.
                 </td>
               </tr>
