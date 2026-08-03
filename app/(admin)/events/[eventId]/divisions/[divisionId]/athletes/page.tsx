@@ -11,7 +11,7 @@ export default async function AthletesPage({
   const supabase = await createClient();
 
   const [{ data: division }, { data: registrations }] = await Promise.all([
-    supabase.from("divisions").select("name").eq("id", divisionId).single(),
+    supabase.from("divisions").select("name, team_size").eq("id", divisionId).single(),
     supabase
       .from("registrations")
       .select(
@@ -115,39 +115,68 @@ export default async function AthletesPage({
           For walk-up entries who didn&apos;t go through the public registration wizard. Marked as
           waived (no payment).
         </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Full name</label>
-            <input
-              type="text"
-              name="fullName"
-              required
-              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
-            />
+        {(division?.team_size ?? 1) > 1 ? (
+          <>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Team name</label>
+              <input
+                type="text"
+                name="teamName"
+                required
+                className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {Array.from({ length: division!.team_size }, (_, i) => (
+                <div key={i}>
+                  <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+                    Athlete {i + 1}
+                  </label>
+                  <input
+                    type="text"
+                    name="athleteName"
+                    required
+                    className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+                  />
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Full name</label>
+              <input
+                type="text"
+                name="fullName"
+                required
+                className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+                Email (optional)
+              </label>
+              <input
+                type="email"
+                name="email"
+                className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+                ID number (optional)
+              </label>
+              <input
+                type="text"
+                name="idNumber"
+                className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
-              Email (optional)
-            </label>
-            <input
-              type="email"
-              name="email"
-              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
-              ID number (optional)
-            </label>
-            <input
-              type="text"
-              name="idNumber"
-              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
-            />
-          </div>
-        </div>
+        )}
         <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
-          Add athlete
+          Add athlete{(division?.team_size ?? 1) > 1 ? "s" : ""}
         </button>
       </form>
     </div>
