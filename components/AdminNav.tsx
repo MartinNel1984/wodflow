@@ -10,6 +10,7 @@ const links = [
   { href: "/athletes", label: "Athletes" },
   { href: "/score", label: "Score Entry" },
   { href: "/leaderboards", label: "Leaderboard" },
+  { href: "/heats", label: "Heats" },
   { href: "/workouts", label: "Workouts" },
   { href: "/series", label: "Series" },
   { href: "/brand-kits", label: "Brand Kits" },
