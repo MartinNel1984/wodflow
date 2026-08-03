@@ -36,8 +36,12 @@ export function RumbleBackdrop({
         className="relative z-10 flex flex-col items-center px-4 py-10"
         style={{ "--color-accent": "var(--rumble-blue-bright)" } as React.CSSProperties}
       >
+        {/* mb-12, not mb-6: the logo's drop-shadow glow (45px blur) was
+            bleeding onto the white content card immediately below it,
+            reading as a translucent box sitting "behind" the logo
+            (Nic, 08-03) — needs more clearance than the blur radius. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logoSrc} alt={logoAlt} className="rumble-hero-logo-sm mb-6" />
+        <img src={logoSrc} alt={logoAlt} className="rumble-hero-logo-sm mb-12" />
         {children}
       </div>
     </div>

@@ -399,17 +399,23 @@ button:hover, .hover-lift:hover {
   padding: 3rem 1.25rem;
 }
 
+/* The source artwork (series-logo-v2.png) has zero padding around the
+   crown/flag/banner elements — they sit flush against the image's own
+   edges. Sized too close to the viewport width (was 92vw), those edge
+   elements read as "cut off" on narrow phones even though the full PNG
+   is on-screen (Nic, 08-03). Backed off to leave real breathing room. */
 .rumble-hero-logo {
-  width: min(92vw, 560px);
+  width: min(74vw, 460px);
   height: auto;
   filter: drop-shadow(0 0 60px color-mix(in srgb, var(--rumble-blue-bright) 45%, transparent));
 }
 
 /* Same full-bright glow treatment as .rumble-hero-logo, sized down for
    pages that need room for a form/card below the logo (login, portal,
-   registration) rather than the hub's full-viewport hero moment. */
+   registration) rather than the hub's full-viewport hero moment. Same
+   edge-padding fix as .rumble-hero-logo (was 78vw). */
 .rumble-hero-logo-sm {
-  width: min(78vw, 340px);
+  width: min(62vw, 280px);
   height: auto;
   filter: drop-shadow(0 0 45px color-mix(in srgb, var(--rumble-blue-bright) 45%, transparent));
 }
