@@ -160,13 +160,14 @@ export default function LeaderboardView({
                         {workouts.map((w) => {
                           const score = s.workoutScores[w.id];
                           return (
-                            <td key={w.id} className="px-4 py-2 text-right font-data text-ink/70">
+                            <td key={w.id} className="px-4 py-2 text-right font-data text-ink/70 whitespace-nowrap">
                               {score ? (
                                 <>
                                   <div>{score.display}</div>
+                                  <div className="text-xs text-ink/40">#{score.position}</div>
+                                  <div className="text-xs text-ink/40">{score.points}pts</div>
                                   <div className="text-xs text-ink/40">
-                                    #{score.position} · {score.points}pts
-                                    {score.tiebreakDisplay ? ` · TB ${score.tiebreakDisplay}` : ""}
+                                    {score.tiebreakDisplay ? `TB ${score.tiebreakDisplay}` : " "}
                                   </div>
                                 </>
                               ) : (
