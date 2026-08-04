@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createOrganization, setOrganizationStatus, createOrgInvite } from "./actions";
 import { Logo } from "@/components/Logo";
+import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 
 const SITE_URL = "https://wodflow.co.za";
 
@@ -136,6 +137,11 @@ export default async function PlatformControlPage() {
             Create organization
           </button>
         </form>
+      </section>
+
+      <section className="space-y-3 max-w-sm">
+        <h2 className="text-lg font-semibold">Your account</h2>
+        <ChangePasswordForm className="bg-white text-ink border-2 border-ink rounded-xl p-4 space-y-4" />
       </section>
     </div>
   );
