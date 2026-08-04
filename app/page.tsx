@@ -14,6 +14,24 @@ export const metadata: Metadata = {
 // switch on event day would all need a redeploy to show up.
 export const revalidate = 60;
 
+function InstagramIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <circle cx="17.5" cy="6.5" r="1" fill="#fff" stroke="none" />
+    </svg>
+  );
+}
+
+function FacebookIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </svg>
+  );
+}
+
 function formatDateRange(start: string, end: string | null): string {
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
   const startDate = new Date(`${start}T00:00:00`);
@@ -132,21 +150,27 @@ export default async function RumbleHubPage() {
       {/* ---------- Social ---------- */}
       <section className="rumble-section text-center">
         <h2 className="rumble-section-title">Follow the Rumble</h2>
-        <div className="flex justify-center gap-3">
+        <div className="flex justify-center gap-4">
           <a
             href="https://www.instagram.com/rumble_inrandburg/"
             target="_blank"
             rel="noopener noreferrer"
-            className="rumble-card px-5 py-2.5 text-sm font-semibold"
+            className="social-pill social-pill--instagram"
           >
+            <span className="social-pill-badge social-pill-badge--instagram">
+              <InstagramIcon />
+            </span>
             Instagram
           </a>
           <a
             href="https://www.facebook.com/randburgrumble"
             target="_blank"
             rel="noopener noreferrer"
-            className="rumble-card px-5 py-2.5 text-sm font-semibold"
+            className="social-pill social-pill--facebook"
           >
+            <span className="social-pill-badge social-pill-badge--facebook">
+              <FacebookIcon />
+            </span>
             Facebook
           </a>
         </div>

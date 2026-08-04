@@ -537,6 +537,56 @@ button:hover, .hover-lift:hover {
   padding: 1.25rem;
 }
 
+/* Brand-colored badge + always-on glow, not just a text pill, so
+   "Follow the Rumble" doesn't blend into the wall of identical dark
+   .rumble-card boxes above it (Martin, 08-04 — social links were
+   getting missed entirely). */
+.social-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 1.5rem 0.65rem 0.65rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rumble-blue) 22%, #0a0b10);
+  border: 1px solid transparent;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-paper);
+}
+
+.social-pill-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.social-pill-badge svg {
+  width: 19px;
+  height: 19px;
+}
+
+.social-pill-badge--instagram {
+  background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
+}
+
+.social-pill-badge--facebook {
+  background: #1877f2;
+}
+
+.social-pill--instagram {
+  border-color: color-mix(in srgb, #d6249f 45%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, #d6249f 30%, transparent);
+}
+
+.social-pill--facebook {
+  border-color: color-mix(in srgb, #1877f2 45%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, #1877f2 30%, transparent);
+}
+
 /* Minimal markdown styling for the public event detail page's rendered
    `description` — no Tailwind typography plugin, just enough so headings,
    bold text, and lists read as structure instead of raw markdown syntax. */
