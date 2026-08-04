@@ -114,7 +114,11 @@ export default async function TicketsListPage() {
 
       <div className="text-center mt-auto pt-10 text-xs opacity-50 space-y-3">
         <div className="text-base font-semibold opacity-70"><Logo /></div>
-        <p className="mt-1 opacity-70">Infrastructure managed by Wodflow</p>
+        <p className="mt-1 opacity-70">
+          <a href="https://drafttwo.co.za" className="no-underline text-inherit">
+            Infrastructure managed by Wodflow
+          </a>
+        </p>
       </div>
     </main>
   );
