@@ -109,9 +109,9 @@ export default async function EventsPage() {
         </a>
       </div>
 
-      <div className="text-center mt-auto pt-10">
-        <div className="text-base font-semibold opacity-60"><Logo /></div>
-        <p className="mt-1 text-paper/40 text-xs">Infrastructure managed by Wodflow</p>
+      <div className="text-center mt-auto pt-10 text-xs opacity-50 space-y-3">
+        <div className="text-base font-semibold opacity-70"><Logo /></div>
+        <p className="mt-1 opacity-70">Infrastructure managed by Wodflow</p>
       </div>
     </main>
   );

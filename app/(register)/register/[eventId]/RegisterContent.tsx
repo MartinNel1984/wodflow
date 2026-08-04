@@ -460,7 +460,7 @@ export default function RegisterContent() {
 
   return (
     <>
-      <BackLink href="/all-events" />
+      <BackLink href={`/events/${eventId}`} />
       {content}
     </>
   );

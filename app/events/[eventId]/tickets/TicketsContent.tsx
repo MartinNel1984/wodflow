@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BrandKitLogo } from "@/components/BrandKitLogo";
-import { BackLink } from "@/components/BackLink";
+import { BackHistoryLink } from "@/components/BackLink";
 import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 
 // Mirrors events.max_tickets_per_order's default (migration-046). The
@@ -107,7 +107,7 @@ export default function TicketsContent() {
 
   return (
     <>
-      <BackLink href={`/register/${eventId}`} />
+      <BackHistoryLink fallbackHref="/tickets" />
       <div className="max-w-xl mx-auto px-4 py-10 space-y-8" style={brandKitStyle(event.brandKit)}>
         {event.posterUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
