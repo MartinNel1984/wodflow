@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BrandKitLogo } from "@/components/BrandKitLogo";
 import { BackHistoryLink } from "@/components/BackLink";
+import { RumbleBackdrop } from "@/components/RumbleBackdrop";
 import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 
 // Mirrors events.max_tickets_per_order's default (migration-046). The
@@ -105,11 +106,11 @@ export default function TicketsContent() {
   if (loading) return <p className="text-center py-20 text-ink/50">Loading…</p>;
   if (!event) return <p className="text-center py-20 text-ink/50">Event not found.</p>;
 
-  return (
-    <>
-      <BackHistoryLink fallbackHref="/tickets" />
+  const isBigOne = event.brandKit?.name === "Rumble Big One";
+
+  const content = (
       <div className="max-w-xl mx-auto px-4 py-10 space-y-8" style={brandKitStyle(event.brandKit)}>
-        {event.posterUrl ? (
+        {event.posterUrl && !isBigOne ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={event.posterUrl}
@@ -117,7 +118,7 @@ export default function TicketsContent() {
             className="w-full aspect-video object-cover rounded-xl animate-settle-in"
           />
         ) : (
-          event.brandKit?.logo_url && <BrandKitLogo kit={event.brandKit} className="h-12 mx-auto mb-3" />
+          !isBigOne && event.brandKit?.logo_url && <BrandKitLogo kit={event.brandKit} className="h-12 mx-auto mb-3" />
         )}
 
         <div className="text-center">
@@ -196,6 +197,25 @@ export default function TicketsContent() {
           </button>
         </div>
       </div>
+  );
+
+  if (isBigOne) {
+    return (
+      <RumbleBackdrop
+        logoSrc={event.brandKit?.logo_url || "/rumble/series-logo-v2.png"}
+        logoAlt={event.brandKit?.name || "Rumble Big One"}
+        backHref="/tickets"
+        useHistoryBack
+      >
+        <div className="w-full max-w-xl bg-white text-ink rounded-2xl shadow-xl">{content}</div>
+      </RumbleBackdrop>
+    );
+  }
+
+  return (
+    <>
+      <BackHistoryLink fallbackHref="/tickets" />
+      {content}
     </>
   );
 }
