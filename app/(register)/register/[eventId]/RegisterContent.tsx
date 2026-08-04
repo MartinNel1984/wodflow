@@ -451,7 +451,7 @@ export default function RegisterContent() {
       <RumbleBackdrop
         logoSrc={brandKit?.logo_url || "/rumble/series-logo-v2.png"}
         logoAlt={brandKit?.name || "Rumble Big One"}
-        backHref="/all-events"
+        backHref={`/events/${eventId}`}
       >
         <div className="w-full max-w-xl bg-white text-ink rounded-2xl shadow-xl">{content}</div>
       </RumbleBackdrop>
