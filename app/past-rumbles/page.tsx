@@ -39,7 +39,9 @@ export default async function PastRumblesPage() {
                 <Link
                   key={e.id}
                   href={`/past-rumbles/${e.id}`}
-                  className="rumble-card hover-lift flex flex-col items-center gap-3 p-3 w-64 sm:w-80"
+                  className={`rumble-card hover-lift flex flex-col items-center gap-3 p-3 ${
+                    year === "2026" ? "w-44 sm:w-56" : "w-64 sm:w-80"
+                  }`}
                 >
                   {logoUrl(e.logo_path) ? (
                     // eslint-disable-next-line @next/next/no-img-element
