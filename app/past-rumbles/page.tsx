@@ -34,12 +34,12 @@ export default async function PastRumblesPage() {
         {groupByYear(events ?? []).map(([year, yearEvents]) => (
           <div key={year} className="mb-10">
             <h2 className="text-sm font-semibold uppercase tracking-wider opacity-50 mb-4">{year}</h2>
-            <div className="flex flex-nowrap overflow-x-auto justify-center gap-10 sm:gap-14 max-w-6xl mx-auto py-2">
+            <div className="flex flex-wrap justify-center gap-4 sm:gap-8 max-w-6xl mx-auto">
               {yearEvents.map((e) => (
                 <Link
                   key={e.id}
                   href={`/past-rumbles/${e.id}`}
-                  className="rumble-card hover-lift flex flex-col items-center gap-3 p-3 w-64 sm:w-80 shrink-0"
+                  className="rumble-card hover-lift flex flex-col items-center gap-3 p-3 w-32 sm:w-44"
                 >
                   {logoUrl(e.logo_path) ? (
                     // eslint-disable-next-line @next/next/no-img-element
