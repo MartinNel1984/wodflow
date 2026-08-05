@@ -3,6 +3,7 @@ import { computeStandings, type LeaderboardRow, type ScoringConfig } from "@/lib
 import { computeSeriesStandingsForEvents } from "@/lib/seriesStandings";
 import Link from "next/link";
 import AvatarUpload from "./AvatarUpload";
+import EditProfile from "./EditProfile";
 
 export default async function PortalPage() {
   const supabase = await createClient();
@@ -13,7 +14,7 @@ export default async function PortalPage() {
 
   const { data: myProfile } = await supabase
     .from("profiles")
-    .select("full_name, avatar_url")
+    .select("full_name, avatar_url, phone")
     .eq("id", user.id)
     .single();
 
@@ -153,6 +154,12 @@ export default async function PortalPage() {
           fullName={myProfile?.full_name ?? "Athlete"}
         />
         <h1 className="text-2xl font-semibold">My Wodflow</h1>
+        <EditProfile
+          profileId={user.id}
+          initialFullName={myProfile?.full_name ?? ""}
+          initialPhone={myProfile?.phone ?? ""}
+          initialEmail={user.email ?? ""}
+        />
       </div>
 
       <div className="grid grid-cols-3 gap-3">
