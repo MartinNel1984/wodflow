@@ -15,7 +15,6 @@ export default async function PastRumblesPage() {
   const { data: events } = await supabase
     .from("historical_events")
     .select("id, name, logo_path, event_date")
-    .order("event_date", { ascending: false, nullsFirst: false })
     .order("sort_order", { ascending: true });
 
   const logoUrl = (path: string | null) =>
