@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { Logo } from "@/components/Logo";
 import { BackLink } from "@/components/BackLink";
 import { computeHistoricalEventPoints, type HistoricalEventResultRow } from "@/lib/historicalEventResults";
 import type { ScoringConfig } from "@/lib/leaderboard";
@@ -51,6 +52,15 @@ export default async function PastRumbleResultsPage({ params }: { params: Promis
       <ResultsTable title="Male" placements={sortByDivisionThenPosition(male)} />
       <ResultsTable title="Female" placements={sortByDivisionThenPosition(female)} />
       {other.length > 0 && <ResultsTable title="Results" placements={sortByDivisionThenPosition(other)} />}
+
+      <footer className="rumble-section text-center text-xs opacity-50 pb-10 space-y-3">
+        <div className="text-base font-semibold opacity-70"><Logo /></div>
+        <p className="mt-1 opacity-70">
+          <a href="https://drafttwo.co.za" className="no-underline text-inherit">
+            Infrastructure managed by Wodflow
+          </a>
+        </p>
+      </footer>
     </main>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { Logo } from "@/components/Logo";
 import { BackLink } from "@/components/BackLink";
 
 export const metadata: Metadata = {
@@ -65,6 +66,15 @@ export default async function PastRumblesPage() {
           </div>
         ))}
       </section>
+
+      <footer className="rumble-section text-center text-xs opacity-50 pb-10 space-y-3">
+        <div className="text-base font-semibold opacity-70"><Logo /></div>
+        <p className="mt-1 opacity-70">
+          <a href="https://drafttwo.co.za" className="no-underline text-inherit">
+            Infrastructure managed by Wodflow
+          </a>
+        </p>
+      </footer>
     </main>
   );
 }
