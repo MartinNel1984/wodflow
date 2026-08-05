@@ -31,26 +31,48 @@ export default async function PastRumblesPage() {
 
         {(events ?? []).length === 0 && <p className="opacity-70">No past events added yet — check back soon.</p>}
 
-        <div className="flex flex-wrap justify-center gap-10 sm:gap-14 max-w-6xl mx-auto">
-          {(events ?? []).map((e) => (
-            <Link
-              key={e.id}
-              href={`/past-rumbles/${e.id}`}
-              className="rumble-card hover-lift flex flex-col items-center gap-3 p-3 w-64 sm:w-80"
-            >
-              {logoUrl(e.logo_path) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl(e.logo_path)!} alt={e.name} className="w-full aspect-square object-contain" />
-              ) : (
-                <div className="w-full aspect-square flex items-center justify-center rumble-headline text-lg">
-                  {e.name}
-                </div>
-              )}
-              <span className="text-sm sm:text-base font-semibold">{e.name}</span>
-            </Link>
-          ))}
-        </div>
+        {groupByYear(events ?? []).map(([year, yearEvents]) => (
+          <div key={year} className="mb-10">
+            <h2 className="text-sm font-semibold uppercase tracking-wider opacity-50 mb-4">{year}</h2>
+            <div className="flex flex-wrap justify-center gap-10 sm:gap-14 max-w-6xl mx-auto">
+              {yearEvents.map((e) => (
+                <Link
+                  key={e.id}
+                  href={`/past-rumbles/${e.id}`}
+                  className="rumble-card hover-lift flex flex-col items-center gap-3 p-3 w-64 sm:w-80"
+                >
+                  {logoUrl(e.logo_path) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={logoUrl(e.logo_path)!} alt={e.name} className="w-full aspect-square object-contain" />
+                  ) : (
+                    <div className="w-full aspect-square flex items-center justify-center rumble-headline text-lg">
+                      {e.name}
+                    </div>
+                  )}
+                  <span className="text-sm sm:text-base font-semibold">{e.name}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
       </section>
     </main>
   );
+}
+
+// Groups into one row per year (2026's Indy/Remix/The Big One
+// together, 2025's three together, etc) — order preserved within each
+// year from the query's own sort_order, years themselves shown
+// newest-first. Falls back to "Other" for a name with no 4-digit year
+// (shouldn't happen given current naming, but keeps the page from
+// silently dropping a row rather than crashing on a future rename).
+function groupByYear<T extends { name: string }>(events: T[]): [string, T[]][] {
+  const groups = new Map<string, T[]>();
+  for (const e of events) {
+    const year = e.name.match(/\b(20\d{2})\b/)?.[1] ?? "Other";
+    const group = groups.get(year) ?? [];
+    group.push(e);
+    groups.set(year, group);
+  }
+  return [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]));
 }
