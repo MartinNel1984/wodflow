@@ -35,14 +35,14 @@ export default async function PastRumbleResultsPage({ params }: { params: Promis
   const other = placements.filter((p) => p.gender !== "male" && p.gender !== "female");
 
   return (
-    <main className="rumble-page">
+    <main className="rumble-page min-h-screen">
       <div className="rumble-texture" aria-hidden="true" />
       <BackLink href="/past-rumbles" />
 
       <section className="rumble-section text-center">
         {logoUrl && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt={event.name} className="w-40 mx-auto mb-4" />
+          <img src={logoUrl} alt={event.name} className="w-60 sm:w-72 mx-auto mb-4" />
         )}
         <h1 className="rumble-section-title">{event.name}</h1>
         {event.event_date && <p className="text-sm opacity-70 mb-8">{event.event_date}</p>}

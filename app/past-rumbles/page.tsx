@@ -22,7 +22,7 @@ export default async function PastRumblesPage() {
     path ? supabase.storage.from("historical-event-logos").getPublicUrl(path).data.publicUrl : null;
 
   return (
-    <main className="rumble-page">
+    <main className="rumble-page min-h-screen">
       <div className="rumble-texture" aria-hidden="true" />
       <BackLink href="/" />
 
@@ -32,9 +32,9 @@ export default async function PastRumblesPage() {
 
         {(events ?? []).length === 0 && <p className="opacity-70">No past events added yet — check back soon.</p>}
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
+        <div className="grid grid-cols-3 gap-6 sm:gap-10 max-w-4xl mx-auto">
           {(events ?? []).map((e) => (
-            <Link key={e.id} href={`/past-rumbles/${e.id}`} className="rumble-card hover-lift flex flex-col items-center gap-3 p-4">
+            <Link key={e.id} href={`/past-rumbles/${e.id}`} className="rumble-card hover-lift flex flex-col items-center gap-3 p-4 sm:p-6">
               {logoUrl(e.logo_path) ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={logoUrl(e.logo_path)!} alt={e.name} className="w-full aspect-square object-contain" />
@@ -43,7 +43,7 @@ export default async function PastRumblesPage() {
                   {e.name}
                 </div>
               )}
-              <span className="text-sm font-semibold">{e.name}</span>
+              <span className="text-sm sm:text-base font-semibold">{e.name}</span>
             </Link>
           ))}
         </div>
