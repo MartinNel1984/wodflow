@@ -51,7 +51,7 @@ export default async function PastRumblesPage() {
                     <img
                       src={logoUrl(e.logo_path)!}
                       alt={e.name}
-                      className={`aspect-square object-contain ${e.name === "Indy 2026" ? "w-[70%]" : "w-full"}`}
+                      className="aspect-square object-contain w-full"
                     />
                   ) : (
                     <div className="w-full aspect-square flex items-center justify-center rumble-headline text-lg">
