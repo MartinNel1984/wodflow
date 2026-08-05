@@ -521,6 +521,13 @@ button:hover, .hover-lift:hover {
   padding: 2.5rem 1.25rem;
 }
 
+/* Past Rumbles' logo grid needs more room than the standard 640px
+   column so three logos per row can sit at a legible size instead of
+   shrinking to fit — the CI artwork gets muddy below ~200px wide. */
+.rumble-section--events {
+  max-width: 820px;
+}
+
 .rumble-section-title {
   font-family: var(--font-rumble-headline), sans-serif;
   text-transform: uppercase;

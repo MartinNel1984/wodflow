@@ -25,7 +25,7 @@ export default async function PastRumblesPage() {
       <div className="rumble-texture" aria-hidden="true" />
       <BackLink href="/" />
 
-      <section className="rumble-section text-center">
+      <section className="rumble-section rumble-section--events text-center">
         <h1 className="rumble-section-title">Past Rumbles</h1>
         <p className="text-sm opacity-70 mb-8">Every Rumble Series event so far — tap a logo for the full results.</p>
 
@@ -39,7 +39,7 @@ export default async function PastRumblesPage() {
                 <Link
                   key={e.id}
                   href={`/past-rumbles/${e.id}`}
-                  className="rumble-card hover-lift flex flex-col items-center gap-3 p-3 w-32 sm:w-44"
+                  className="rumble-card hover-lift flex flex-col items-center gap-3 p-3 w-32 sm:w-56"
                 >
                   {logoUrl(e.logo_path) ? (
                     // eslint-disable-next-line @next/next/no-img-element
