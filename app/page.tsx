@@ -147,6 +147,15 @@ export default async function RumbleHubPage() {
         </section>
       )}
 
+      {/* ---------- Past Rumbles ---------- */}
+      <section className="rumble-section text-center">
+        <h2 className="rumble-section-title">Past Rumbles</h2>
+        <p className="text-sm opacity-70 mb-4">Results from every Rumble Series event so far.</p>
+        <Link href="/past-rumbles" className="rumble-cta-fork rumble-cta-fork--blue hover-lift">
+          See Past Results →
+        </Link>
+      </section>
+
       {/* ---------- Social ---------- */}
       <section className="rumble-section text-center">
         <h2 className="rumble-section-title">Follow the Rumble</h2>
