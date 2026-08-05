@@ -55,11 +55,20 @@ export default async function PastRumbleResultsPage({ params }: { params: Promis
   );
 }
 
+// Groups by division name for display regardless of whether
+// season_tier is set — some events (e.g. Remix 2026's mixed-gender
+// team divisions) deliberately leave season_tier unset so their
+// points aren't cross-tier combined, but still want RX and Not So
+// RX'd shown as separate blocks rather than interleaved by raw
+// position.
 function sortByDivisionThenPosition<T extends { division_name: string; season_tier: number | null; position: number }>(
   rows: T[]
 ): T[] {
   return [...rows].sort(
-    (a, b) => (a.season_tier ?? 0) - (b.season_tier ?? 0) || a.position - b.position
+    (a, b) =>
+      (a.season_tier ?? 0) - (b.season_tier ?? 0) ||
+      a.division_name.localeCompare(b.division_name) ||
+      a.position - b.position
   );
 }
 
