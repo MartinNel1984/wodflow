@@ -79,6 +79,23 @@ export default async function SeriesLeaderboardPage({
   );
 }
 
+// Left-to-right reading order Martin wants on the season leaderboard,
+// oldest/most-recently-run first through to the newest — event names
+// not in this list (a future comp not yet named here) fall in
+// alphabetically at the end rather than disappearing.
+const EVENT_COLUMN_ORDER = ["Indy 2026", "Remix 2026", "Big Rumble 2025", "Rumble Indy 2025", "Rumble Teams 2025"];
+
+function orderEventNames(names: string[]): string[] {
+  return [...names].sort((a, b) => {
+    const ai = EVENT_COLUMN_ORDER.indexOf(a);
+    const bi = EVENT_COLUMN_ORDER.indexOf(b);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return a.localeCompare(b);
+  });
+}
+
 function StandingsTable({
   title,
   standings,
@@ -89,37 +106,37 @@ function StandingsTable({
   nameByProfile: Map<string, string | null>;
 }) {
   // Dynamic columns — whichever comps actually contributed points for
-  // this group (e.g. "Rumble in Randburg", "Indy 2026", "Remix 2026").
-  const eventNames = [...new Set(standings.flatMap((s) => Object.keys(s.pointsByEvent)))];
+  // this group (e.g. "Rumble Indy 2025", "Indy 2026", "Remix 2026").
+  const eventNames = orderEventNames([...new Set(standings.flatMap((s) => Object.keys(s.pointsByEvent)))]);
 
   return (
     <div className="space-y-3">
       <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">{title}</h2>
       <div className="bg-white border border-ink/10 rounded-xl overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-fixed">
           <thead>
-            <tr className="bg-ink/5 text-left">
-              <th className="px-4 py-2">#</th>
-              <th className="px-4 py-2">Athlete</th>
+            <tr className="bg-ink/5 text-left align-bottom">
+              <th className="px-2 py-2 w-10">#</th>
+              <th className="px-3 py-2 w-40">Athlete</th>
               {eventNames.map((name) => (
-                <th key={name} className="px-4 py-2 text-right whitespace-nowrap">
+                <th key={name} className="px-1.5 py-2 text-right w-16 whitespace-normal break-words text-xs leading-tight font-semibold">
                   {name}
                 </th>
               ))}
-              <th className="px-4 py-2 text-right">Total</th>
+              <th className="px-3 py-2 text-right w-16">Total</th>
             </tr>
           </thead>
           <tbody>
             {standings.map((s, i) => (
               <tr key={s.profileId} className="border-t border-ink/10">
-                <td className="px-4 py-2 font-data font-bold text-accent">{i + 1}</td>
-                <td className="px-4 py-2">{nameByProfile.get(s.profileId) ?? s.displayName}</td>
+                <td className="px-2 py-2 font-data font-bold text-accent">{i + 1}</td>
+                <td className="px-3 py-2 truncate">{nameByProfile.get(s.profileId) ?? s.displayName}</td>
                 {eventNames.map((name) => (
-                  <td key={name} className="px-4 py-2 text-right font-data text-ink/70">
+                  <td key={name} className="px-1.5 py-2 text-right font-data text-ink/70 text-xs">
                     {s.pointsByEvent[name] ?? "—"}
                   </td>
                 ))}
-                <td className="px-4 py-2 text-right font-data font-bold">{s.totalPoints}</td>
+                <td className="px-3 py-2 text-right font-data font-bold">{s.totalPoints}</td>
               </tr>
             ))}
             {standings.length === 0 && (

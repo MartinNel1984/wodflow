@@ -156,7 +156,7 @@ export default async function PortalPage() {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <StatBubble label="Events entered" value={String(eventsEntered)} />
+        <StatBubble label="Upcoming events" value={String(eventsEntered)} />
         <StatBubble
           label="Best finish"
           value={bestOverall ? String(bestOverall.position) : "—"}
