@@ -34,18 +34,20 @@ export default async function PastRumblesPage() {
         {groupByYear(events ?? []).map(([year, yearEvents]) => (
           <div key={year} className="mb-10">
             <h2 className="text-sm font-semibold uppercase tracking-wider opacity-50 mb-4">{year}</h2>
-            <div className="flex flex-wrap justify-center gap-10 sm:gap-14 max-w-6xl mx-auto">
+            <div className="flex flex-nowrap overflow-x-auto justify-center gap-10 sm:gap-14 max-w-6xl mx-auto py-2">
               {yearEvents.map((e) => (
                 <Link
                   key={e.id}
                   href={`/past-rumbles/${e.id}`}
-                  className={`rumble-card hover-lift flex flex-col items-center gap-3 p-3 ${
-                    year === "2026" ? "w-44 sm:w-56" : "w-64 sm:w-80"
-                  }`}
+                  className="rumble-card hover-lift flex flex-col items-center gap-3 p-3 w-64 sm:w-80 shrink-0"
                 >
                   {logoUrl(e.logo_path) ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={logoUrl(e.logo_path)!} alt={e.name} className="w-full aspect-square object-contain" />
+                    <img
+                      src={logoUrl(e.logo_path)!}
+                      alt={e.name}
+                      className={`aspect-square object-contain ${e.name === "Indy 2026" ? "w-[70%]" : "w-full"}`}
+                    />
                   ) : (
                     <div className="w-full aspect-square flex items-center justify-center rumble-headline text-lg">
                       {e.name}
