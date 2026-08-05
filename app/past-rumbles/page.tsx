@@ -33,7 +33,12 @@ export default async function PastRumblesPage() {
 
         {groupByYear(events ?? []).map(([year, yearEvents]) => (
           <div key={year} className="mb-10">
-            <h2 className="text-sm font-semibold uppercase tracking-wider opacity-50 mb-4">{year}</h2>
+            <h2
+              className="rumble-headline text-3xl sm:text-4xl uppercase tracking-wide mb-4"
+              style={{ color: "var(--rumble-blue-bright)" }}
+            >
+              {year}
+            </h2>
             <div className="flex flex-wrap justify-center gap-4 sm:gap-8 max-w-6xl mx-auto">
               {yearEvents.map((e) => (
                 <Link
