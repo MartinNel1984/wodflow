@@ -2,7 +2,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireOrganizer } from "@/lib/auth";
 import AthletesTable, { type AthleteRow } from "./AthletesTable";
-import { addAthleteManually, removeAthlete } from "../events/[eventId]/divisions/[divisionId]/athletes/actions";
+import {
+  addAthleteManually,
+  removeAthlete,
+  resendPaymentLink,
+} from "../events/[eventId]/divisions/[divisionId]/athletes/actions";
 
 export default async function AthletesDirectoryPage() {
   const supabase = await createClient();
@@ -12,7 +16,7 @@ export default async function AthletesDirectoryPage() {
     supabase
       .from("registration_athletes")
       .select(
-        "id, full_name, id_number, is_minor, waiver_signed_at, registrations(payment_status, division_id, team_name, divisions(id, name, event_id, events(name)))"
+        "id, full_name, id_number, is_minor, waiver_signed_at, is_captain, registrations(id, payment_status, division_id, team_name, divisions(id, name, event_id, events(name)))"
       )
       .order("waiver_signed_at", { ascending: false }),
     supabase
@@ -44,6 +48,8 @@ export default async function AthletesDirectoryPage() {
         eventName: event.name,
         divisionName: division.name,
         waiverHref: `/events/${division.event_id}/divisions/${division.id}/athletes/${a.id}/waiver`,
+        registrationId: reg?.id ?? null,
+        isCaptain: a.is_captain,
       };
     })
     .filter((r): r is AthleteRow => r !== null);
@@ -99,6 +105,7 @@ export default async function AthletesDirectoryPage() {
         divisions={divisions}
         addAthleteAction={addAthleteManually}
         removeAthleteAction={removeAthlete}
+        resendPaymentLinkAction={resendPaymentLink}
       />
     </div>
   );

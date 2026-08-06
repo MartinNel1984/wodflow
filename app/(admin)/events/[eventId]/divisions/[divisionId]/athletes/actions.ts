@@ -1,6 +1,7 @@
 "use server";
 
 import { requireOrganizer } from "@/lib/auth";
+import { sendPaymentReminderEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
 
 function path(eventId: string, divisionId: string) {
@@ -87,6 +88,26 @@ export async function addAthleteManually(formData: FormData) {
 
   revalidatePath(path(division.event_id, divisionId));
   revalidatePath("/athletes");
+}
+
+// For a registration stuck at 'pending' (abandoned checkout) — emails
+// the captain the same PayFast link already generated at signup, so
+// they can finish paying without re-entering their whole registration.
+export async function resendPaymentLink(formData: FormData) {
+  const { supabase } = await requireOrganizer();
+  const registrationId = String(formData.get("registrationId") ?? "");
+  if (!registrationId) return;
+
+  // RLS (org-scoped via requireOrganizer's session client) returns
+  // nothing if this registration belongs to a different organizer.
+  const { data: registration } = await supabase
+    .from("registrations")
+    .select("id, payment_status")
+    .eq("id", registrationId)
+    .single();
+  if (!registration || registration.payment_status !== "pending") return;
+
+  await sendPaymentReminderEmail(registrationId);
 }
 
 // Removes a single athlete row. If they were the last person on their

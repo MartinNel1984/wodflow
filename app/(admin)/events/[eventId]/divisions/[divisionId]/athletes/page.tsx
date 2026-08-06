@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { addAthleteManually, removeAthlete } from "./actions";
+import { addAthleteManually, removeAthlete, resendPaymentLink } from "./actions";
 
 export default async function AthletesPage({
   params,
@@ -15,7 +15,7 @@ export default async function AthletesPage({
     supabase
       .from("registrations")
       .select(
-        "id, team_name, payment_status, registration_athletes(id, full_name, id_number, is_minor, waiver_signed_name, waiver_signed_at)"
+        "id, team_name, payment_status, registration_athletes(id, full_name, id_number, is_minor, waiver_signed_name, waiver_signed_at, is_captain)"
       )
       .eq("division_id", divisionId)
       .order("created_at", { ascending: true }),
@@ -26,6 +26,7 @@ export default async function AthletesPage({
       ...a,
       teamName: r.team_name,
       paymentStatus: r.payment_status,
+      registrationId: r.id,
     }))
   );
 
@@ -199,6 +200,8 @@ function AthleteTable({
     waiver_signed_at: string | null;
     teamName: string | null;
     paymentStatus: string;
+    registrationId: string;
+    is_captain: boolean;
   }>;
   eventId: string;
   divisionId: string;
@@ -213,6 +216,7 @@ function AthleteTable({
             <th className="px-4 py-2">ID number</th>
             <th className="px-4 py-2">Waiver</th>
             <th className="px-4 py-2">Payment</th>
+            <th className="px-4 py-2" />
             <th className="px-4 py-2" />
             <th className="px-4 py-2" />
           </tr>
@@ -249,6 +253,16 @@ function AthleteTable({
                 )}
               </td>
               <td className="px-4 py-2 text-right">
+                {a.paymentStatus === "pending" && a.is_captain && (
+                  <form action={resendPaymentLink}>
+                    <input type="hidden" name="registrationId" value={a.registrationId} />
+                    <button type="submit" className="text-accent text-xs font-semibold hover:underline whitespace-nowrap">
+                      Send payment link
+                    </button>
+                  </form>
+                )}
+              </td>
+              <td className="px-4 py-2 text-right">
                 <form action={removeAthlete}>
                   <input type="hidden" name="eventId" value={eventId} />
                   <input type="hidden" name="divisionId" value={divisionId} />
@@ -262,7 +276,7 @@ function AthleteTable({
           ))}
           {athletes.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-4 py-6 text-center text-ink/60 text-sm">
+              <td colSpan={7} className="px-4 py-6 text-center text-ink/60 text-sm">
                 {emptyMessage}
               </td>
             </tr>

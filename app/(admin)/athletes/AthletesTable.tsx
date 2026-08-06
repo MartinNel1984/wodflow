@@ -14,6 +14,8 @@ export type AthleteRow = {
   eventName: string;
   divisionName: string;
   waiverHref: string;
+  registrationId: string | null;
+  isCaptain: boolean;
 };
 
 export default function AthletesTable({
@@ -21,11 +23,13 @@ export default function AthletesTable({
   divisions,
   addAthleteAction,
   removeAthleteAction,
+  resendPaymentLinkAction,
 }: {
   rows: AthleteRow[];
   divisions: { id: string; label: string; teamSize: number }[];
   addAthleteAction: (formData: FormData) => void;
   removeAthleteAction: (formData: FormData) => void;
+  resendPaymentLinkAction: (formData: FormData) => void;
 }) {
   const [query, setQuery] = useState("");
   const [selectedDivisionId, setSelectedDivisionId] = useState("");
@@ -109,6 +113,14 @@ export default function AthletesTable({
                     <Link href={r.waiverHref} className="text-accent text-xs font-semibold hover:underline mr-3">
                       View waiver
                     </Link>
+                  )}
+                  {r.paymentStatus === "pending" && r.isCaptain && r.registrationId && (
+                    <form action={resendPaymentLinkAction} className="inline mr-3">
+                      <input type="hidden" name="registrationId" value={r.registrationId} />
+                      <button type="submit" className="text-accent text-xs font-semibold hover:underline">
+                        Send payment link
+                      </button>
+                    </form>
                   )}
                   <form action={removeAthleteAction} className="inline">
                     <input type="hidden" name="athleteId" value={r.id} />

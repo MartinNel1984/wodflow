@@ -105,6 +105,54 @@ export async function sendRegistrationEmails(registrationId: string) {
   await Promise.all(sends);
 }
 
+// Organizer-triggered, not webhook-triggered — for a registration
+// that's genuinely stuck at payment_status 'pending' (waiver signed,
+// PayFast checkout link generated, but the athlete closed the tab or
+// their card failed before completing checkout). Reuses the exact
+// pay_url already stored on the registration (deterministic from
+// PayFast's own signed-field encoding, see lib/payfast.ts — no need to
+// regenerate) so the athlete lands on the same checkout PayFast already
+// has a record of, rather than risking a second m_payment_id.
+export async function sendPaymentReminderEmail(registrationId: string) {
+  const supabase = createServiceClient();
+
+  const { data: registration } = await supabase
+    .from("registrations")
+    .select("id, team_name, price_paid, payment_status, pay_url, divisions(name), events(name)")
+    .eq("id", registrationId)
+    .single();
+  if (!registration || registration.payment_status !== "pending" || !registration.pay_url) return;
+
+  const { data: captain } = await supabase
+    .from("registration_athletes")
+    .select("full_name, email")
+    .eq("registration_id", registrationId)
+    .eq("is_captain", true)
+    .single();
+  if (!captain?.email) return;
+
+  const division = Array.isArray(registration.divisions) ? registration.divisions[0] : registration.divisions;
+  const event = Array.isArray(registration.events) ? registration.events[0] : registration.events;
+  const firstName = captain.full_name.split(" ")[0];
+  const label = registration.team_name ? `${registration.team_name} (${division?.name})` : division?.name;
+
+  let env;
+  try {
+    ({ env } = getCloudflareContext());
+  } catch (err) {
+    console.error("sendPaymentReminderEmail: could not get Cloudflare context", err);
+    return;
+  }
+
+  await env.EMAIL.send({
+    to: captain.email,
+    from: FROM,
+    subject: `Complete your registration — ${event?.name ?? "Wodflow"}`,
+    html: `<p>Hi ${firstName},</p><p>We noticed your registration for <strong>${label}</strong> at <strong>${event?.name}</strong> hasn't been paid yet, so your spot isn't reserved.</p><p><a href="${registration.pay_url}">Complete your payment (R${registration.price_paid})</a> to secure it.</p>`,
+    text: `Hi ${firstName}, we noticed your registration for ${label} at ${event?.name} hasn't been paid yet, so your spot isn't reserved. Complete your payment (R${registration.price_paid}): ${registration.pay_url}`,
+  }).catch((err) => console.error("Payment reminder email failed", captain.email, err));
+}
+
 // Fired once a ticket purchase is confirmed paid (from the PayFast
 // webhook, not at ticket-row creation — same timing as
 // sendRegistrationEmails, and for the same reason: a checkout can be
