@@ -43,12 +43,21 @@ export async function addHistoricalResult(formData: FormData) {
 // two different emails for the same person show up as two separate
 // entries on the season leaderboard. Retyping one row's email to match
 // the other merges them into a single ranked identity on the next read.
-export async function updateHistoricalResultEmail(formData: FormData) {
+//
+// Also covers correcting the athlete name itself — team rosters
+// imported from a spreadsheet can go stale by event day (a sub takes a
+// teammate's spot but the sheet was never updated), so the row needs
+// to be edited to reflect who actually competed.
+export async function updateHistoricalResult(formData: FormData) {
   const { supabase } = await requireOrganizer();
   const id = String(formData.get("id") ?? "");
+  const athleteName = String(formData.get("athleteName") ?? "").trim();
   const athleteEmail = String(formData.get("athleteEmail") ?? "").trim().toLowerCase();
-  if (!id || !athleteEmail) return;
-  await supabase.from("historical_results").update({ athlete_email: athleteEmail }).eq("id", id);
+  if (!id || !athleteName || !athleteEmail) return;
+  await supabase
+    .from("historical_results")
+    .update({ athlete_name: athleteName, athlete_email: athleteEmail })
+    .eq("id", id);
   revalidatePath("/historical-results");
 }
 

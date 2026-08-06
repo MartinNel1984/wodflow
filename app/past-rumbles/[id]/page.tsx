@@ -70,13 +70,25 @@ export default async function PastRumbleResultsPage({ params }: { params: Promis
 // team divisions) deliberately leave season_tier unset so their
 // points aren't cross-tier combined, but still want RX and Not So
 // RX'd shown as separate blocks rather than interleaved by raw
-// position.
+// position. When season_tier IS set it already puts RX (tier 1)
+// ahead of Not So RX'd (tier 2); when it's null both fall back to
+// this rank, which must not be plain alphabetical — "Not So RX'd"
+// sorts before "RX" alphabetically, which is backwards from how
+// every tiered event already displays (found on Remix 2026, whose
+// division rows have season_tier: null).
+function divisionDisplayRank(divisionName: string): number {
+  if (/^rx$/i.test(divisionName.trim())) return 0;
+  if (/not so rx/i.test(divisionName)) return 1;
+  return 2;
+}
+
 function sortByDivisionThenPosition<T extends { division_name: string; season_tier: number | null; position: number }>(
   rows: T[]
 ): T[] {
   return [...rows].sort(
     (a, b) =>
       (a.season_tier ?? 0) - (b.season_tier ?? 0) ||
+      divisionDisplayRank(a.division_name) - divisionDisplayRank(b.division_name) ||
       a.division_name.localeCompare(b.division_name) ||
       a.position - b.position
   );

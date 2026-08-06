@@ -1,5 +1,5 @@
 import { requireOrganizer } from "@/lib/auth";
-import { addHistoricalResult, removeHistoricalResult, updateHistoricalResultEmail } from "./actions";
+import { addHistoricalResult, removeHistoricalResult, updateHistoricalResult } from "./actions";
 
 export default async function HistoricalResultsPage() {
   const { supabase, organizationId } = await requireOrganizer();
@@ -145,8 +145,7 @@ export default async function HistoricalResultsPage() {
             <tr className="bg-ink/5 text-left">
               <th className="px-4 py-2">Event</th>
               <th className="px-4 py-2">Division</th>
-              <th className="px-4 py-2">Athlete</th>
-              <th className="px-4 py-2">Email</th>
+              <th className="px-4 py-2">Athlete / Email</th>
               <th className="px-4 py-2">Placement</th>
               <th className="px-4 py-2" />
             </tr>
@@ -160,10 +159,15 @@ export default async function HistoricalResultsPage() {
                   {r.team_name ? ` · ${r.team_name}` : ""}
                   {r.gender && r.season_tier ? ` · ${r.gender} tier ${r.season_tier}` : ""}
                 </td>
-                <td className="px-4 py-2">{r.athlete_name}</td>
                 <td className="px-4 py-2">
-                  <form action={updateHistoricalResultEmail} className="flex items-center gap-2">
+                  <form action={updateHistoricalResult} className="flex items-center gap-2">
                     <input type="hidden" name="id" value={r.id} />
+                    <input
+                      type="text"
+                      name="athleteName"
+                      defaultValue={r.athlete_name}
+                      className="w-32 bg-paper rounded px-2 py-1 text-xs border border-ink/10 focus:outline-none focus:border-accent"
+                    />
                     <input
                       type="email"
                       name="athleteEmail"
@@ -190,7 +194,7 @@ export default async function HistoricalResultsPage() {
             ))}
             {(results ?? []).length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-ink/60 text-sm">
+                <td colSpan={5} className="px-4 py-6 text-center text-ink/60 text-sm">
                   No historical results yet.
                 </td>
               </tr>
