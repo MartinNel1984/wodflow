@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { addAthleteManually, removeAthlete, resendPaymentLink } from "./actions";
+import { SendPaymentLinkButton } from "@/components/SendPaymentLinkButton";
 
 export default async function AthletesPage({
   params,
@@ -254,12 +255,7 @@ function AthleteTable({
               </td>
               <td className="px-4 py-2 text-right">
                 {a.paymentStatus === "pending" && a.is_captain && (
-                  <form action={resendPaymentLink}>
-                    <input type="hidden" name="registrationId" value={a.registrationId} />
-                    <button type="submit" className="text-accent text-xs font-semibold hover:underline whitespace-nowrap">
-                      Send payment link
-                    </button>
-                  </form>
+                  <SendPaymentLinkButton registrationId={a.registrationId} action={resendPaymentLink} />
                 )}
               </td>
               <td className="px-4 py-2 text-right">

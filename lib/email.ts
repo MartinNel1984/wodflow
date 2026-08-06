@@ -113,7 +113,7 @@ export async function sendRegistrationEmails(registrationId: string) {
 // PayFast's own signed-field encoding, see lib/payfast.ts — no need to
 // regenerate) so the athlete lands on the same checkout PayFast already
 // has a record of, rather than risking a second m_payment_id.
-export async function sendPaymentReminderEmail(registrationId: string) {
+export async function sendPaymentReminderEmail(registrationId: string): Promise<boolean> {
   const supabase = createServiceClient();
 
   const { data: registration } = await supabase
@@ -121,7 +121,7 @@ export async function sendPaymentReminderEmail(registrationId: string) {
     .select("id, team_name, price_paid, payment_status, pay_url, divisions(name), events(name)")
     .eq("id", registrationId)
     .single();
-  if (!registration || registration.payment_status !== "pending" || !registration.pay_url) return;
+  if (!registration || registration.payment_status !== "pending" || !registration.pay_url) return false;
 
   const { data: captain } = await supabase
     .from("registration_athletes")
@@ -129,7 +129,7 @@ export async function sendPaymentReminderEmail(registrationId: string) {
     .eq("registration_id", registrationId)
     .eq("is_captain", true)
     .single();
-  if (!captain?.email) return;
+  if (!captain?.email) return false;
 
   const division = Array.isArray(registration.divisions) ? registration.divisions[0] : registration.divisions;
   const event = Array.isArray(registration.events) ? registration.events[0] : registration.events;
@@ -141,16 +141,22 @@ export async function sendPaymentReminderEmail(registrationId: string) {
     ({ env } = getCloudflareContext());
   } catch (err) {
     console.error("sendPaymentReminderEmail: could not get Cloudflare context", err);
-    return;
+    return false;
   }
 
-  await env.EMAIL.send({
-    to: captain.email,
-    from: FROM,
-    subject: `Complete your registration — ${event?.name ?? "Wodflow"}`,
-    html: `<p>Hi ${firstName},</p><p>We noticed your registration for <strong>${label}</strong> at <strong>${event?.name}</strong> hasn't been paid yet, so your spot isn't reserved.</p><p><a href="${registration.pay_url}">Complete your payment (R${registration.price_paid})</a> to secure it.</p>`,
-    text: `Hi ${firstName}, we noticed your registration for ${label} at ${event?.name} hasn't been paid yet, so your spot isn't reserved. Complete your payment (R${registration.price_paid}): ${registration.pay_url}`,
-  }).catch((err) => console.error("Payment reminder email failed", captain.email, err));
+  try {
+    await env.EMAIL.send({
+      to: captain.email,
+      from: FROM,
+      subject: `Complete your registration — ${event?.name ?? "Wodflow"}`,
+      html: `<p>Hi ${firstName},</p><p>We noticed your registration for <strong>${label}</strong> at <strong>${event?.name}</strong> hasn't been paid yet, so your spot isn't reserved.</p><p><a href="${registration.pay_url}">Complete your payment (R${registration.price_paid})</a> to secure it.</p>`,
+      text: `Hi ${firstName}, we noticed your registration for ${label} at ${event?.name} hasn't been paid yet, so your spot isn't reserved. Complete your payment (R${registration.price_paid}): ${registration.pay_url}`,
+    });
+    return true;
+  } catch (err) {
+    console.error("Payment reminder email failed", captain.email, err);
+    return false;
+  }
 }
 
 // Fired once a ticket purchase is confirmed paid (from the PayFast

@@ -93,10 +93,10 @@ export async function addAthleteManually(formData: FormData) {
 // For a registration stuck at 'pending' (abandoned checkout) — emails
 // the captain the same PayFast link already generated at signup, so
 // they can finish paying without re-entering their whole registration.
-export async function resendPaymentLink(formData: FormData) {
+export async function resendPaymentLink(formData: FormData): Promise<{ sent: boolean }> {
   const { supabase } = await requireOrganizer();
   const registrationId = String(formData.get("registrationId") ?? "");
-  if (!registrationId) return;
+  if (!registrationId) return { sent: false };
 
   // RLS (org-scoped via requireOrganizer's session client) returns
   // nothing if this registration belongs to a different organizer.
@@ -105,9 +105,10 @@ export async function resendPaymentLink(formData: FormData) {
     .select("id, payment_status")
     .eq("id", registrationId)
     .single();
-  if (!registration || registration.payment_status !== "pending") return;
+  if (!registration || registration.payment_status !== "pending") return { sent: false };
 
-  await sendPaymentReminderEmail(registrationId);
+  const sent = await sendPaymentReminderEmail(registrationId);
+  return { sent };
 }
 
 // Removes a single athlete row. If they were the last person on their

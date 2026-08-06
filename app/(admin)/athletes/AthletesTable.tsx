@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { SendPaymentLinkButton } from "@/components/SendPaymentLinkButton";
 
 export type AthleteRow = {
   id: string;
@@ -29,7 +30,7 @@ export default function AthletesTable({
   divisions: { id: string; label: string; teamSize: number }[];
   addAthleteAction: (formData: FormData) => void;
   removeAthleteAction: (formData: FormData) => void;
-  resendPaymentLinkAction: (formData: FormData) => void;
+  resendPaymentLinkAction: (formData: FormData) => Promise<{ sent: boolean }>;
 }) {
   const [query, setQuery] = useState("");
   const [selectedDivisionId, setSelectedDivisionId] = useState("");
@@ -115,12 +116,12 @@ export default function AthletesTable({
                     </Link>
                   )}
                   {r.paymentStatus === "pending" && r.isCaptain && r.registrationId && (
-                    <form action={resendPaymentLinkAction} className="inline mr-3">
-                      <input type="hidden" name="registrationId" value={r.registrationId} />
-                      <button type="submit" className="text-accent text-xs font-semibold hover:underline">
-                        Send payment link
-                      </button>
-                    </form>
+                    <span className="mr-3">
+                      <SendPaymentLinkButton
+                        registrationId={r.registrationId}
+                        action={resendPaymentLinkAction}
+                      />
+                    </span>
                   )}
                   <form action={removeAthleteAction} className="inline">
                     <input type="hidden" name="athleteId" value={r.id} />
