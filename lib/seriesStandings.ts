@@ -107,7 +107,12 @@ export async function computeSeriesStandingsForEvents(
   const tieredGroups = new Map<string, DivisionStanding[]>();
   for (const ds of divisionStandings) {
     const eventName = eventNameById.get(ds.division.event_id) ?? "Event";
-    if (ds.division.gender && ds.division.season_tier) {
+    // season_tier alone is enough to chain divisions together — gender
+    // only splits the chain into separate male/female tracks when it's
+    // actually tracked. Requiring both meant team events (never
+    // gender-tagged) silently skipped tiering and every division
+    // restarted its own points at the winner value.
+    if (ds.division.season_tier) {
       const key = `${ds.division.event_id}::${ds.division.gender}`;
       const group = tieredGroups.get(key) ?? [];
       group.push(ds);
@@ -141,7 +146,9 @@ export async function computeSeriesStandingsForEvents(
 
   const historicalTieredGroups = new Map<string, HistoricalRow[]>();
   for (const h of (historical ?? []) as HistoricalRow[]) {
-    if (h.gender && h.season_tier) {
+    // Same season_tier-alone rule as the live-division loop above —
+    // Rumble Teams' historical rows have season_tier but no gender tag.
+    if (h.season_tier) {
       const key = `${h.event_name}::${h.gender}`;
       const group = historicalTieredGroups.get(key) ?? [];
       group.push(h);

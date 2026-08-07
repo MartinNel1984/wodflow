@@ -36,8 +36,14 @@ export function computeHistoricalEventPoints(
   for (const [divisionName, divisionRows] of byDivision) {
     const gender = divisionRows[0].gender;
     const seasonTier = divisionRows[0].season_tier;
-    if (gender && seasonTier) {
-      const key = gender;
+    // Tiering only requires season_tier — gender narrows the chain to
+    // male/female separately when it's tracked, but team events (e.g.
+    // Rumble Teams) never tag individual gender at all, so requiring
+    // BOTH silently dropped those events out of tiering entirely and
+    // let every division restart its own points at the winner value
+    // instead of chaining off the tier above it.
+    if (seasonTier) {
+      const key = String(gender);
       const group = tieredGroups.get(key) ?? [];
       group.push({ division_name: divisionName, season_tier: seasonTier, rows: divisionRows });
       tieredGroups.set(key, group);
