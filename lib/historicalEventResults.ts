@@ -25,15 +25,25 @@ export function computeHistoricalEventPoints(
 ): HistoricalEventPlacement[] {
   const out: HistoricalEventPlacement[] = [];
 
+  // Keyed on division_name + gender, not division_name alone — the same
+  // division_name ("RX", "Not So RX'd") is reused across both genders,
+  // so grouping by name only merged male and female rows into one
+  // bucket. That bucket then got scored as if it were a single
+  // homogeneous field: whichever gender's row happened to come first
+  // decided the entrant count and tier key for BOTH genders' rows,
+  // scrambling everyone's points and forcing early zero-outs once the
+  // mismatched offset ran past the (wrong) total.
   const byDivision = new Map<string, HistoricalEventResultRow[]>();
   for (const r of rows) {
-    const arr = byDivision.get(r.division_name) ?? [];
+    const key = `${r.division_name}::${r.gender}`;
+    const arr = byDivision.get(key) ?? [];
     arr.push(r);
-    byDivision.set(r.division_name, arr);
+    byDivision.set(key, arr);
   }
 
   const tieredGroups = new Map<string, { division_name: string; season_tier: number; rows: HistoricalEventResultRow[] }[]>();
-  for (const [divisionName, divisionRows] of byDivision) {
+  for (const divisionRows of byDivision.values()) {
+    const divisionName = divisionRows[0].division_name;
     const gender = divisionRows[0].gender;
     const seasonTier = divisionRows[0].season_tier;
     // Tiering only requires season_tier — gender narrows the chain to
