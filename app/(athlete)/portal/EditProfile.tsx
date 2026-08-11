@@ -4,27 +4,31 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 // Column-level grant for self-updates (full_name, email, phone,
-// id_number, updated_at) already exists — migration-035 locked
-// profiles_update_self down to exactly these columns after finding an
-// athlete could otherwise PATCH their own role. Email is handled
-// separately below via supabase.auth.updateUser rather than a plain
-// table write, since email is also the login credential (auth.users),
-// not just profile data — migration-059 syncs profiles.email once the
-// athlete confirms the change from their inbox.
+// id_number, gym_name, updated_at) already exists — migration-035
+// locked profiles_update_self down to exactly these columns after
+// finding an athlete could otherwise PATCH their own role (migration-060
+// extended the grant to add gym_name). Email is handled separately below
+// via supabase.auth.updateUser rather than a plain table write, since
+// email is also the login credential (auth.users), not just profile
+// data — migration-059 syncs profiles.email once the athlete confirms
+// the change from their inbox.
 export default function EditProfile({
   profileId,
   initialFullName,
   initialPhone,
   initialEmail,
+  initialGymName,
 }: {
   profileId: string;
   initialFullName: string;
   initialPhone: string;
   initialEmail: string;
+  initialGymName: string;
 }) {
   const [open, setOpen] = useState(false);
   const [fullName, setFullName] = useState(initialFullName);
   const [phone, setPhone] = useState(initialPhone);
+  const [gymName, setGymName] = useState(initialGymName);
   const [savingDetails, setSavingDetails] = useState(false);
   const [detailsError, setDetailsError] = useState("");
   const [detailsSaved, setDetailsSaved] = useState(false);
@@ -42,7 +46,7 @@ export default function EditProfile({
     const supabase = createClient();
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: fullName.trim(), phone: phone.trim() || null })
+      .update({ full_name: fullName.trim(), phone: phone.trim() || null, gym_name: gymName.trim() || null })
       .eq("id", profileId);
     setSavingDetails(false);
     if (error) {
@@ -94,6 +98,15 @@ export default function EditProfile({
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            className="w-full bg-paper rounded-lg px-3 py-2 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider mb-1">Gym name</label>
+          <input
+            type="text"
+            value={gymName}
+            onChange={(e) => setGymName(e.target.value)}
             className="w-full bg-paper rounded-lg px-3 py-2 text-sm border border-ink/10 focus:outline-none focus:border-accent"
           />
         </div>

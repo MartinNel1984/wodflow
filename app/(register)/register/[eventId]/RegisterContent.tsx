@@ -24,13 +24,22 @@ type Teammate = {
   fullName: string;
   email: string;
   idNumber: string;
+  gymName: string;
   isMinor: boolean;
   guardianName: string;
   guardianIdNumber: string;
 };
 
 function emptyTeammate(): Teammate {
-  return { fullName: "", email: "", idNumber: "", isMinor: false, guardianName: "", guardianIdNumber: "" };
+  return {
+    fullName: "",
+    email: "",
+    idNumber: "",
+    gymName: "",
+    isMinor: false,
+    guardianName: "",
+    guardianIdNumber: "",
+  };
 }
 
 export default function RegisterContent() {
@@ -67,7 +76,7 @@ export default function RegisterContent() {
       if (!user) return;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role, full_name, email, id_number")
+        .select("role, full_name, email, id_number, gym_name")
         .eq("id", user.id)
         .single();
       if (profile?.role !== "athlete") return;
@@ -75,6 +84,7 @@ export default function RegisterContent() {
         fullName: profile.full_name ?? "",
         email: profile.email ?? "",
         idNumber: profile.id_number ?? "",
+        gymName: profile.gym_name ?? "",
       });
     }
     loadAthleteProfile();
@@ -182,6 +192,7 @@ export default function RegisterContent() {
           email: captain.email,
           password,
           idNumber: captain.idNumber,
+          gymName: captain.gymName,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -197,7 +208,12 @@ export default function RegisterContent() {
         setCreatingAccount(false);
         return;
       }
-      setAthleteProfile({ fullName: captain.fullName, email: captain.email, idNumber: captain.idNumber });
+      setAthleteProfile({
+        fullName: captain.fullName,
+        email: captain.email,
+        idNumber: captain.idNumber,
+        gymName: captain.gymName,
+      });
       setStep(3);
     } catch {
       setAccountError("Network error. Please try again.");
@@ -328,6 +344,11 @@ export default function RegisterContent() {
                 label="ID number"
                 value={t.idNumber}
                 onChange={(v) => updateTeammate(i, "idNumber", v)}
+              />
+              <Field
+                label="Gym name (optional)"
+                value={t.gymName}
+                onChange={(v) => updateTeammate(i, "gymName", v)}
               />
               <label className="flex items-center gap-2 text-sm">
                 <input

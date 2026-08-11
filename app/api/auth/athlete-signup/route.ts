@@ -19,6 +19,7 @@ export async function POST(request: Request) {
   const password = body?.password as string | undefined;
   const phone = (body?.phone as string | undefined)?.trim() || null;
   const idNumber = (body?.idNumber as string | undefined)?.trim() || null;
+  const gymName = (body?.gymName as string | undefined)?.trim() || null;
 
   if (!fullName || !email || !password || password.length < 8) {
     return NextResponse.json(
@@ -68,7 +69,15 @@ export async function POST(request: Request) {
   const { error: profileError } = await svc
     .from("profiles")
     .upsert(
-      { id: created.user.id, full_name: fullName, email, phone, id_number: idNumber, role: "athlete" },
+      {
+        id: created.user.id,
+        full_name: fullName,
+        email,
+        phone,
+        id_number: idNumber,
+        gym_name: gymName,
+        role: "athlete",
+      },
       { onConflict: "id" }
     );
   if (profileError) {

@@ -11,6 +11,7 @@ type Teammate = {
   email: string;
   isCaptain: boolean;
   idNumber: string;
+  gymName: string;
   isMinor: boolean;
   guardianName: string;
   guardianIdNumber: string;
@@ -124,6 +125,7 @@ export async function POST(request: Request) {
     email: t.email.trim().toLowerCase(),
     is_captain: t.isCaptain,
     id_number: t.idNumber.trim(),
+    gym_name: t.gymName?.trim() || null,
     is_minor: t.isMinor,
     guardian_name: t.isMinor ? t.guardianName.trim() : null,
     guardian_id_number: t.isMinor ? t.guardianIdNumber.trim() : null,
