@@ -63,23 +63,23 @@ export default function AthletesTable({
         placeholder="Search name, event, team, or ID number…"
         className="w-full bg-white border border-ink/10 rounded-lg px-4 py-3 text-sm"
       />
-      <div className="bg-white border border-ink/10 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white border border-ink/10 rounded-xl overflow-x-auto">
+        <table className="w-full text-sm min-w-[900px]">
           <thead>
             <tr className="bg-ink/5 text-left">
-              <th className="px-4 py-2">Name</th>
-              <th className="px-4 py-2">Event</th>
-              <th className="px-4 py-2">Team</th>
-              <th className="px-4 py-2">ID number</th>
-              <th className="px-4 py-2">Waiver</th>
-              <th className="px-4 py-2">Payment</th>
+              <th className="px-4 py-2 whitespace-nowrap">Name</th>
+              <th className="px-4 py-2 whitespace-nowrap">Event</th>
+              <th className="px-4 py-2 whitespace-nowrap">Team</th>
+              <th className="px-4 py-2 whitespace-nowrap">ID number</th>
+              <th className="px-4 py-2 whitespace-nowrap">Waiver</th>
+              <th className="px-4 py-2 whitespace-nowrap">Payment</th>
               <th className="px-4 py-2" />
             </tr>
           </thead>
           <tbody>
             {filtered.map((r) => (
               <tr key={r.id} className="border-t border-ink/10">
-                <td className="px-4 py-2">
+                <td className="px-4 py-2 whitespace-nowrap">
                   {r.fullName}
                   {r.isMinor && (
                     <span className="ml-2 text-xs font-semibold uppercase tracking-wider text-accent">
@@ -87,7 +87,7 @@ export default function AthletesTable({
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-2 text-ink/60">
+                <td className="px-4 py-2 text-ink/60 whitespace-nowrap">
                   {r.eventName} · {r.divisionName}
                 </td>
                 <td className="px-4 py-2 font-semibold">{r.teamName || "—"}</td>
