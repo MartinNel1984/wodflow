@@ -6,6 +6,7 @@ import {
   addAthleteManually,
   removeAthlete,
   resendPaymentLink,
+  markPaidAndSendConfirmation,
 } from "../events/[eventId]/divisions/[divisionId]/athletes/actions";
 
 export default async function AthletesDirectoryPage() {
@@ -47,6 +48,8 @@ export default async function AthletesDirectoryPage() {
         paymentStatus: reg?.payment_status ?? "pending",
         eventName: event.name,
         divisionName: division.name,
+        eventId: division.event_id,
+        divisionId: division.id,
         waiverHref: `/events/${division.event_id}/divisions/${division.id}/athletes/${a.id}/waiver`,
         registrationId: reg?.id ?? null,
         isCaptain: a.is_captain,
@@ -106,6 +109,7 @@ export default async function AthletesDirectoryPage() {
         addAthleteAction={addAthleteManually}
         removeAthleteAction={removeAthlete}
         resendPaymentLinkAction={resendPaymentLink}
+        markPaidAction={markPaidAndSendConfirmation}
       />
     </div>
   );

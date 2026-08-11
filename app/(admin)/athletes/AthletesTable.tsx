@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { SendPaymentLinkButton } from "@/components/SendPaymentLinkButton";
+import { MarkPaidButton } from "@/components/MarkPaidButton";
 
 export type AthleteRow = {
   id: string;
@@ -14,6 +15,8 @@ export type AthleteRow = {
   paymentStatus: string;
   eventName: string;
   divisionName: string;
+  eventId: string;
+  divisionId: string;
   waiverHref: string;
   registrationId: string | null;
   isCaptain: boolean;
@@ -25,12 +28,14 @@ export default function AthletesTable({
   addAthleteAction,
   removeAthleteAction,
   resendPaymentLinkAction,
+  markPaidAction,
 }: {
   rows: AthleteRow[];
   divisions: { id: string; label: string; teamSize: number }[];
   addAthleteAction: (formData: FormData) => void;
   removeAthleteAction: (formData: FormData) => void;
   resendPaymentLinkAction: (formData: FormData) => Promise<{ sent: boolean }>;
+  markPaidAction: (formData: FormData) => Promise<{ sent: boolean }>;
 }) {
   const [query, setQuery] = useState("");
   const [selectedDivisionId, setSelectedDivisionId] = useState("");
@@ -120,6 +125,16 @@ export default function AthletesTable({
                       <SendPaymentLinkButton
                         registrationId={r.registrationId}
                         action={resendPaymentLinkAction}
+                      />
+                    </span>
+                  )}
+                  {r.paymentStatus === "pending" && r.isCaptain && r.registrationId && (
+                    <span className="mr-3">
+                      <MarkPaidButton
+                        registrationId={r.registrationId}
+                        eventId={r.eventId}
+                        divisionId={r.divisionId}
+                        action={markPaidAction}
                       />
                     </span>
                   )}

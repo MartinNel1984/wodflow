@@ -1,7 +1,7 @@
 "use server";
 
 import { requireOrganizer } from "@/lib/auth";
-import { sendPaymentReminderEmail } from "@/lib/email";
+import { sendPaymentReminderEmail, sendRegistrationEmails } from "@/lib/email";
 import { revalidatePath } from "next/cache";
 
 function path(eventId: string, divisionId: string) {
@@ -109,6 +109,41 @@ export async function resendPaymentLink(formData: FormData): Promise<{ sent: boo
 
   const sent = await sendPaymentReminderEmail(registrationId);
   return { sent };
+}
+
+// Manual reconciliation for a registration whose PayFast payment actually
+// went through (organizer sees the money land in PayFast/their bank) but
+// never flipped to 'paid' here — PayFast's ITN webhook is server-to-server
+// and delivery isn't guaranteed, so this UI is the fallback when it's lost.
+// Mirrors the webhook's own update + email exactly, so it's a normal
+// "resend confirmation" no-op if triggered again on an already-paid row.
+export async function markPaidAndSendConfirmation(formData: FormData): Promise<{ sent: boolean }> {
+  const { supabase } = await requireOrganizer();
+  const registrationId = String(formData.get("registrationId") ?? "");
+  const eventId = String(formData.get("eventId") ?? "");
+  const divisionId = String(formData.get("divisionId") ?? "");
+  if (!registrationId) return { sent: false };
+
+  const { data: registration } = await supabase
+    .from("registrations")
+    .select("id, payment_status")
+    .eq("id", registrationId)
+    .single();
+  if (!registration) return { sent: false };
+
+  if (registration.payment_status !== "paid") {
+    await supabase
+      .from("registrations")
+      .update({ payment_status: "paid", paid_at: new Date().toISOString(), paid_via: "manual" })
+      .eq("id", registrationId)
+      .neq("payment_status", "paid");
+  }
+
+  await sendRegistrationEmails(registrationId);
+
+  if (eventId && divisionId) revalidatePath(path(eventId, divisionId));
+  revalidatePath("/athletes");
+  return { sent: true };
 }
 
 // Removes a single athlete row. If they were the last person on their

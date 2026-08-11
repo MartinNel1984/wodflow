@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { addAthleteManually, removeAthlete, resendPaymentLink } from "./actions";
+import { addAthleteManually, removeAthlete, resendPaymentLink, markPaidAndSendConfirmation } from "./actions";
 import { SendPaymentLinkButton } from "@/components/SendPaymentLinkButton";
+import { MarkPaidButton } from "@/components/MarkPaidButton";
 
 export default async function AthletesPage({
   params,
@@ -253,9 +254,19 @@ function AthleteTable({
                   </Link>
                 )}
               </td>
-              <td className="px-4 py-2 text-right">
+              <td className="px-4 py-2 text-right whitespace-nowrap">
                 {a.paymentStatus === "pending" && a.is_captain && (
-                  <SendPaymentLinkButton registrationId={a.registrationId} action={resendPaymentLink} />
+                  <span className="mr-3">
+                    <SendPaymentLinkButton registrationId={a.registrationId} action={resendPaymentLink} />
+                  </span>
+                )}
+                {a.paymentStatus === "pending" && a.is_captain && (
+                  <MarkPaidButton
+                    registrationId={a.registrationId}
+                    eventId={eventId}
+                    divisionId={divisionId}
+                    action={markPaidAndSendConfirmation}
+                  />
                 )}
               </td>
               <td className="px-4 py-2 text-right">
