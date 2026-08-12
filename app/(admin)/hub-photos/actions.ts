@@ -19,10 +19,12 @@ export async function addHubPhoto(formData: FormData) {
   await supabase.from("hub_photos").insert({
     image_url: imageUrl,
     caption: String(formData.get("caption") ?? "").trim() || null,
+    event_id: String(formData.get("eventId") ?? "").trim() || null,
     sort_order: nextSortOrder,
     organization_id: organizationId,
   });
   revalidatePath("/hub-photos");
+  revalidatePath("/photos");
   revalidatePath("/");
 }
 
@@ -32,5 +34,6 @@ export async function deleteHubPhoto(formData: FormData) {
   if (!id) return;
   await supabase.from("hub_photos").delete().eq("id", id);
   revalidatePath("/hub-photos");
+  revalidatePath("/photos");
   revalidatePath("/");
 }

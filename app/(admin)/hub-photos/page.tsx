@@ -8,43 +8,66 @@ export default async function HubPhotosPage() {
   // marketing carousel), so this admin listing must filter to the
   // caller's own org itself — otherwise every organizer sees (and can
   // see a delete button next to) every other org's photos here.
-  const { data: photos } = await supabase
-    .from("hub_photos")
-    .select("id, image_url, caption, sort_order")
-    .eq("organization_id", organizationId)
-    .order("sort_order", { ascending: true });
+  const [{ data: photos }, { data: events }] = await Promise.all([
+    supabase
+      .from("hub_photos")
+      .select("id, image_url, caption, sort_order, event_id, events(name)")
+      .eq("organization_id", organizationId)
+      .order("sort_order", { ascending: true }),
+    // events' own read policy is public too — same cross-org leak risk,
+    // same fix (explicit org filter) as the brand_kits picker on the
+    // Events admin page.
+    supabase
+      .from("events")
+      .select("id, name")
+      .eq("organization_id", organizationId)
+      .order("start_date", { ascending: false }),
+  ]);
+
+  const groups = new Map<string, { label: string; photos: NonNullable<typeof photos> }>();
+  for (const p of photos ?? []) {
+    const event = Array.isArray(p.events) ? p.events[0] : p.events;
+    const key = p.event_id ?? "none";
+    const label = event?.name ?? "General (homepage carousel)";
+    if (!groups.has(key)) groups.set(key, { label, photos: [] });
+    groups.get(key)!.photos.push(p);
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-semibold">Rumble hub photos</h1>
         <p className="text-ink/60 text-sm mt-1">
-          The &ldquo;From the Floor&rdquo; carousel on wodflow.co.za. Added in order — newest goes last.
+          Photos tagged to an event show in that event&apos;s archive on the athlete portal. Untagged
+          photos only show in the homepage &ldquo;From the Floor&rdquo; carousel.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {(photos ?? []).map((p) => (
-          <div key={p.id} className="bg-white border border-ink/10 rounded-xl overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.image_url} alt={p.caption ?? ""} className="w-full aspect-square object-cover" />
-            <div className="p-2 flex items-center justify-between gap-2">
-              <p className="text-xs text-ink/60 truncate">{p.caption || "—"}</p>
-              <form action={deleteHubPhoto}>
-                <input type="hidden" name="id" value={p.id} />
-                <button type="submit" className="text-xs text-ink/40 hover:text-red-700 shrink-0">
-                  Delete
-                </button>
-              </form>
-            </div>
+      {[...groups.values()].map((group) => (
+        <div key={group.label} className="space-y-3">
+          <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">{group.label}</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {group.photos.map((p) => (
+              <div key={p.id} className="bg-white border border-ink/10 rounded-xl overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.image_url} alt={p.caption ?? ""} className="w-full aspect-square object-cover" />
+                <div className="p-2 flex items-center justify-between gap-2">
+                  <p className="text-xs text-ink/60 truncate">{p.caption || "—"}</p>
+                  <form action={deleteHubPhoto}>
+                    <input type="hidden" name="id" value={p.id} />
+                    <button type="submit" className="text-xs text-ink/40 hover:text-red-700 shrink-0">
+                      Delete
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-        {(!photos || photos.length === 0) && (
-          <p className="text-ink/60 text-sm col-span-full">No photos yet — add one below.</p>
-        )}
-      </div>
+        </div>
+      ))}
+      {(!photos || photos.length === 0) && <p className="text-ink/60 text-sm">No photos yet — add one below.</p>}
 
-      <UploadForm organizationId={organizationId} />
+      <UploadForm organizationId={organizationId} events={events ?? []} />
     </div>
   );
 }

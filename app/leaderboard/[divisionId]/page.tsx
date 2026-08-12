@@ -40,7 +40,7 @@ export default async function LeaderboardPage({
     supabase
       .from("divisions")
       .select(
-        "name, workout_scoring_type, scoring_config, events(brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline))"
+        "name, workout_scoring_type, scoring_config, events(start_date, end_date, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline))"
       )
       .eq("id", divisionId)
       .single(),
@@ -84,6 +84,8 @@ export default async function LeaderboardPage({
       workouts={workouts}
       brandKit={brandKit ?? null}
       teamMembers={teamMembers}
+      eventStartDate={event?.start_date ?? null}
+      eventEndDate={event?.end_date ?? null}
     />
   );
 }

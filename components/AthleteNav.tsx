@@ -14,7 +14,10 @@ export default function AthleteNav({ currentDivisionId }: { currentDivisionId: s
 
   const links = [
     { href: "/portal", label: "My Wodflow" },
-    { href: currentDivisionId ? `/leaderboard/${currentDivisionId}` : null, label: "Leaderboard" },
+    // Routes to the picker page, which redirects straight through to
+    // the single division when the athlete only has one registration
+    // (same fast path the direct link used to be).
+    { href: currentDivisionId ? `/leaderboard` : null, label: "Leaderboard" },
     { href: currentDivisionId ? `/heats/${currentDivisionId}` : null, label: "Heats" },
     { href: "/notice-board", label: "Notice Board" },
     { href: "/photos", label: "Photos" },

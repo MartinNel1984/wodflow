@@ -12,12 +12,16 @@ export default function LeaderboardView({
   workouts,
   brandKit,
   teamMembers,
+  eventStartDate,
+  eventEndDate,
 }: {
   divisionName: string;
   standings: Standing[];
   workouts: { id: string; name: string; results: WorkoutResult[] }[];
   brandKit?: BrandKit | null;
   teamMembers?: Record<string, string[]>;
+  eventStartDate?: string | null;
+  eventEndDate?: string | null;
 }) {
   const [view, setView] = useState<string>("overall");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -61,7 +65,7 @@ export default function LeaderboardView({
       </div>
 
       {workouts.length === 0 ? (
-        <p className="text-center text-ink/60 text-sm">No scores yet.</p>
+        <NotLiveYet startDate={eventStartDate} endDate={eventEndDate} />
       ) : (
         <>
           {workouts.length > 1 && (
@@ -212,4 +216,40 @@ export default function LeaderboardView({
   }
 
   return content;
+}
+
+// Replaces the old flat "No scores yet." with a message that actually
+// explains why — an athlete clicking through from the portal picker to
+// an event weeks out shouldn't read a blank leaderboard as broken.
+function NotLiveYet({ startDate, endDate }: { startDate?: string | null; endDate?: string | null }) {
+  if (!startDate) {
+    return <p className="text-center text-ink/60 text-sm">No scores yet.</p>;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const formatted = new Date(startDate + "T00:00:00").toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "long",
+  });
+
+  if (today < startDate) {
+    const daysAway = Math.ceil(
+      (new Date(startDate + "T00:00:00").getTime() - new Date(today + "T00:00:00").getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+    return (
+      <div className="text-center space-y-1">
+        <p className="text-ink/70 text-sm font-semibold">Leaderboard opens {formatted}</p>
+        <p className="text-ink/50 text-xs">
+          {daysAway === 0 ? "Today" : daysAway === 1 ? "1 day to go" : `${daysAway} days to go`}
+        </p>
+      </div>
+    );
+  }
+
+  if (!endDate || today <= endDate) {
+    return <p className="text-center text-ink/60 text-sm">Event&apos;s underway — scores will appear here as they&apos;re entered.</p>;
+  }
+
+  return <p className="text-center text-ink/60 text-sm">No scores yet.</p>;
 }

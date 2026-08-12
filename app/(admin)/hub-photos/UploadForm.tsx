@@ -6,7 +6,13 @@ import { addHubPhoto } from "./actions";
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 
-export function UploadForm({ organizationId }: { organizationId: string }) {
+export function UploadForm({
+  organizationId,
+  events,
+}: {
+  organizationId: string;
+  events: { id: string; name: string }[];
+}) {
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -71,6 +77,22 @@ export function UploadForm({ organizationId }: { organizationId: string }) {
           placeholder="Podium, RX Male division"
           className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
         />
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Event (optional)</label>
+        <select
+          name="eventId"
+          defaultValue=""
+          className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+        >
+          <option value="">None — homepage carousel only</option>
+          {events.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <button
