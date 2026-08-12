@@ -186,31 +186,32 @@ export default async function PortalPage() {
         />
       </div>
 
-      {(recentNotices ?? []).length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-sm uppercase tracking-wider text-paper/50">Notice Board</h2>
-            <Link href="/notice-board" className="text-accent text-xs hover:underline">
-              View all →
-            </Link>
-          </div>
-          <div className="bg-white text-ink border-2 border-ink rounded-xl divide-y divide-ink/5">
-            {(recentNotices ?? []).map((n) => {
-              const event = Array.isArray(n.events) ? n.events[0] : n.events;
-              return (
-                <div key={n.id} className="px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-semibold text-sm">{n.title}</p>
-                    <p className="text-ink/40 text-xs shrink-0">{new Date(n.created_at).toLocaleDateString()}</p>
-                  </div>
-                  {event?.name && <p className="text-ink/50 text-xs mt-0.5">{event.name}</p>}
-                  <p className="text-ink/70 text-sm mt-1 line-clamp-2">{n.body}</p>
-                </div>
-              );
-            })}
-          </div>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-sm uppercase tracking-wider text-paper/50">My Notifications</h2>
+          <Link href="/notice-board" className="text-accent text-xs hover:underline">
+            View all →
+          </Link>
         </div>
-      )}
+        <div className="bg-white text-ink border-2 border-ink rounded-xl divide-y divide-ink/5">
+          {(recentNotices ?? []).length === 0 && (
+            <p className="text-ink/60 text-sm text-center py-6">No notifications</p>
+          )}
+          {(recentNotices ?? []).map((n) => {
+            const event = Array.isArray(n.events) ? n.events[0] : n.events;
+            return (
+              <div key={n.id} className="px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold text-sm">{n.title}</p>
+                  <p className="text-ink/40 text-xs shrink-0">{new Date(n.created_at).toLocaleDateString()}</p>
+                </div>
+                {event?.name && <p className="text-ink/50 text-xs mt-0.5">{event.name}</p>}
+                <p className="text-ink/70 text-sm mt-1 line-clamp-2">{n.body}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {bestFinishes.length > 0 && (
         <div className="space-y-3">
