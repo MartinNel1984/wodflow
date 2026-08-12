@@ -9,10 +9,12 @@ export default async function NoticesPage({ params }: { params: Promise<{ eventI
 
   const [{ data: event }, { data: notices }] = await Promise.all([
     supabase.from("events").select("name").eq("id", eventId).single(),
+    // Box-wide notices (event_id null) show alongside this event's own —
+    // RLS already scopes both to the organizer's own org.
     supabase
       .from("notices")
-      .select("id, title, body, created_at")
-      .eq("event_id", eventId)
+      .select("id, title, body, created_at, event_id")
+      .or(`event_id.eq.${eventId},event_id.is.null`)
       .order("created_at", { ascending: false }),
   ]);
 
@@ -37,7 +39,14 @@ export default async function NoticesPage({ params }: { params: Promise<{ eventI
           <div key={n.id} className="bg-white border border-ink/10 rounded-xl p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-semibold">{n.title}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold">{n.title}</p>
+                  {n.event_id === null && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-accent/10 text-accent shrink-0">
+                      All athletes
+                    </span>
+                  )}
+                </div>
                 <p className="text-ink/70 text-sm mt-1 whitespace-pre-wrap">{n.body}</p>
                 <p className="text-ink/40 text-xs mt-2">{new Date(n.created_at).toLocaleString()}</p>
               </div>

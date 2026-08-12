@@ -32,6 +32,10 @@ export default function NoticeForm({ eventId }: { eventId: string }) {
           className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
         />
       </div>
+      <label className="flex items-center gap-2 text-sm text-ink/70">
+        <input type="checkbox" name="orgWide" className="rounded border-ink/20" />
+        Send to everyone in the box (not just this event) — deals, specials, general updates
+      </label>
       <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
         Post notice
       </button>
