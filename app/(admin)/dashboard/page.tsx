@@ -132,6 +132,9 @@ export default async function DashboardPage() {
               <span className="text-ink/50">
                 {paidCount} paid{pendingCount > 0 ? ` · ${pendingCount} pending` : ""} · R{revenue} revenue
               </span>
+              <Link href={`/events/${event.id}/notices`} className="text-accent font-semibold hover:underline">
+                Send a notification →
+              </Link>
             </div>
             {divisionCounts.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-ink/10">

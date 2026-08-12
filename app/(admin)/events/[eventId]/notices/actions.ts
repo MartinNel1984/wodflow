@@ -3,20 +3,24 @@
 import { requireOrganizer } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-export async function addNotice(formData: FormData) {
+export async function addNotice(_prevState: { error: string | null }, formData: FormData) {
   const { supabase, organizationId } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const title = String(formData.get("title") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
-  if (!eventId || !title || !body) return;
+  if (!eventId || !title || !body) return { error: "Title and message are required." };
 
-  await supabase.from("notices").insert({
+  const { error } = await supabase.from("notices").insert({
     event_id: eventId,
     organization_id: organizationId,
     title,
     body,
   });
+  if (error) return { error: error.message };
+
   revalidatePath(`/events/${eventId}/notices`);
+  revalidatePath("/portal");
+  return { error: null };
 }
 
 export async function removeNotice(formData: FormData) {
