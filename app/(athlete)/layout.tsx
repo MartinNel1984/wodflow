@@ -56,7 +56,6 @@ export default async function AthleteLayout({ children }: { children: React.Reac
           instead of above the fold. Notice Board/Photos keep the old
           top-of-page placement. */}
       <main className="p-4 sm:p-6 lg:p-8">{children}</main>
-      <footer className="text-center text-xs opacity-40 pb-8">Managed by Wodflow</footer>
     </div>
   );
 }

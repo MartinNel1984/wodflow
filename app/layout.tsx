@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Anton, Hanken_Grotesk, Space_Mono, Permanent_Marker } from "next/font/google";
 import localFont from "next/font/local";
 import Script from "next/script";
+import { WodflowBadge } from "@/components/WodflowBadge";
 import "./globals.css";
 
 // Font pairing chosen for this app specifically, not reused from other
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body>
         {children}
+        <WodflowBadge />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-0EW1XBW8X3"
           strategy="afterInteractive"

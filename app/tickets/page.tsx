@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Logo } from "@/components/Logo";
 import { BrandKitLogo } from "@/components/BrandKitLogo";
 import { BackLink } from "@/components/BackLink";
 import { brandKitStyle } from "@/lib/brandKit";
@@ -110,15 +109,6 @@ export default async function TicketsListPage() {
             </a>
           );
         })}
-      </div>
-
-      <div className="text-center mt-auto pt-10 text-xs opacity-50 space-y-3">
-        <div className="text-base font-semibold opacity-70"><Logo /></div>
-        <p className="mt-1 opacity-70">
-          <a href="https://drafttwo.co.za" className="no-underline text-inherit">
-            Infrastructure managed by Wodflow
-          </a>
-        </p>
       </div>
     </main>
   );
