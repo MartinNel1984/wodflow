@@ -2,10 +2,32 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-export default function AthleteNav({ currentDivisionId }: { currentDivisionId: string | null }) {
+const NOTICES_SEEN_KEY = "wodflow_notices_seen_at";
+
+export default function AthleteNav({
+  currentDivisionId,
+  latestNoticeAt,
+}: {
+  currentDivisionId: string | null;
+  latestNoticeAt: string | null;
+}) {
   const router = useRouter();
   const pathname = usePathname();
+  const [hasUnreadNotice, setHasUnreadNotice] = useState(false);
+
+  useEffect(() => {
+    if (!latestNoticeAt) return;
+    const seenAt = window.localStorage.getItem(NOTICES_SEEN_KEY);
+    setHasUnreadNotice(!seenAt || new Date(latestNoticeAt) > new Date(seenAt));
+  }, [latestNoticeAt]);
+
+  useEffect(() => {
+    if (!pathname.startsWith("/notice-board") || !latestNoticeAt) return;
+    window.localStorage.setItem(NOTICES_SEEN_KEY, latestNoticeAt);
+    setHasUnreadNotice(false);
+  }, [pathname, latestNoticeAt]);
 
   async function signOut() {
     await fetch("/api/auth/signout", { method: "POST" });
@@ -40,13 +62,16 @@ export default function AthleteNav({ currentDivisionId }: { currentDivisionId: s
             <Link
               key={link.label}
               href={link.href}
-              className={`text-sm sm:text-lg font-bold whitespace-nowrap rounded-full px-3 sm:px-4 py-1.5 sm:py-2 transition-colors ${
+              className={`relative text-sm sm:text-lg font-bold whitespace-nowrap rounded-full px-3 sm:px-4 py-1.5 sm:py-2 transition-colors ${
                 pathname.startsWith(link.href)
                   ? "bg-accent text-white"
                   : "text-paper/70 hover:text-paper hover:bg-paper/10"
               }`}
             >
               {link.label}
+              {link.label === "Notice Board" && hasUnreadNotice && (
+                <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-red-500" aria-label="Unread notice" />
+              )}
             </Link>
           ) : (
             <span

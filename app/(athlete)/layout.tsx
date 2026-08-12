@@ -36,11 +36,20 @@ export default async function AthleteLayout({ children }: { children: React.Reac
       .filter((r): r is { division_id: string; created_at: string } => !!r)
       .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.division_id ?? null;
 
+  // RLS (migration-056) already limits this to notices for events the
+  // athlete is registered in — used to flag unread notices in the nav.
+  const { data: latestNotice } = await supabase
+    .from("notices")
+    .select("created_at")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   return (
     <div className="rumble-page min-h-screen" style={{ "--color-accent": "var(--rumble-blue-bright)" } as React.CSSProperties}>
       <div className="rumble-texture" aria-hidden="true" />
       <AthleteRouteGuard role={role} />
-      <AthleteNav currentDivisionId={currentDivisionId} />
+      <AthleteNav currentDivisionId={currentDivisionId} latestNoticeAt={latestNotice?.created_at ?? null} />
       {/* Hero logo moved into each page (AthleteHeroLogo) instead of living
           here — the portal home page needs its profile/rank blocks visible
           without scrolling, so it renders the logo lower down the page
