@@ -146,6 +146,22 @@ export async function markPaidAndSendConfirmation(formData: FormData): Promise<{
   return { sent: true };
 }
 
+// Renames a team registration's team_name. Also used to fill in a blank
+// team_name left over from a registration that never had one set.
+export async function updateTeamName(formData: FormData) {
+  const { supabase } = await requireOrganizer();
+  const eventId = String(formData.get("eventId") ?? "");
+  const divisionId = String(formData.get("divisionId") ?? "");
+  const registrationId = String(formData.get("registrationId") ?? "");
+  const teamName = String(formData.get("teamName") ?? "").trim();
+  if (!registrationId || !teamName) return;
+
+  await supabase.from("registrations").update({ team_name: teamName }).eq("id", registrationId);
+
+  if (eventId && divisionId) revalidatePath(path(eventId, divisionId));
+  revalidatePath("/athletes");
+}
+
 // Removes a single athlete row. If they were the last person on their
 // registration, the (now-empty) registration is removed too, so a manual
 // remove doesn't leave an orphan "team of zero" behind.

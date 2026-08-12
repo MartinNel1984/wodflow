@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { addAthleteManually, removeAthlete, resendPaymentLink, markPaidAndSendConfirmation } from "./actions";
+import { addAthleteManually, removeAthlete, resendPaymentLink, markPaidAndSendConfirmation, updateTeamName } from "./actions";
 import { SendPaymentLinkButton } from "@/components/SendPaymentLinkButton";
 import { MarkPaidButton } from "@/components/MarkPaidButton";
+import { TeamNameField } from "@/components/TeamNameField";
 
 export default async function AthletesPage({
   params,
@@ -87,6 +88,7 @@ export default async function AthletesPage({
           athletes={confirmedAthletes}
           eventId={eventId}
           divisionId={divisionId}
+          isTeam={(division?.team_size ?? 1) > 1}
           emptyMessage="No confirmed athletes yet."
         />
       </div>
@@ -101,6 +103,7 @@ export default async function AthletesPage({
               athletes={archivedAthletes}
               eventId={eventId}
               divisionId={divisionId}
+              isTeam={(division?.team_size ?? 1) > 1}
               emptyMessage="Nothing archived."
             />
           </div>
@@ -192,6 +195,7 @@ function AthleteTable({
   athletes,
   eventId,
   divisionId,
+  isTeam,
   emptyMessage,
 }: {
   athletes: Array<{
@@ -207,6 +211,7 @@ function AthleteTable({
   }>;
   eventId: string;
   divisionId: string;
+  isTeam: boolean;
   emptyMessage: string;
 }) {
   return (
@@ -234,6 +239,15 @@ function AthleteTable({
                   </span>
                 )}
                 {a.teamName && <span className="ml-2 text-ink/40 text-xs">({a.teamName})</span>}
+                {isTeam && a.is_captain && (
+                  <TeamNameField
+                    registrationId={a.registrationId}
+                    eventId={eventId}
+                    divisionId={divisionId}
+                    teamName={a.teamName}
+                    action={updateTeamName}
+                  />
+                )}
               </td>
               <td className="px-4 py-2 font-data">{a.id_number || "—"}</td>
               <td className="px-4 py-2">
