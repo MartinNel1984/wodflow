@@ -19,7 +19,7 @@ export default async function PortalPage() {
     .eq("id", user.id)
     .single();
 
-  const [{ data: myRows }, { data: upcomingEvents }] = await Promise.all([
+  const [{ data: myRows }, { data: upcomingEvents }, { data: recentNotices }] = await Promise.all([
     supabase
       .from("registration_athletes")
       .select(
@@ -31,6 +31,14 @@ export default async function PortalPage() {
       .select("id, name, start_date, end_date, venue_name")
       .in("status", ["published", "live"])
       .order("start_date", { ascending: true }),
+    // RLS (migration-056) already limits this to notices for events the
+    // athlete is registered in — surfaced here so it isn't buried behind
+    // the Notice Board tab.
+    supabase
+      .from("notices")
+      .select("id, title, body, created_at, events(name)")
+      .order("created_at", { ascending: false })
+      .limit(2),
   ]);
 
   type MyRegistration = {
@@ -177,6 +185,32 @@ export default async function PortalPage() {
           sub={seasonRank ? `of ${seasonRank.total}` : undefined}
         />
       </div>
+
+      {(recentNotices ?? []).length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-sm uppercase tracking-wider text-paper/50">Notice Board</h2>
+            <Link href="/notice-board" className="text-accent text-xs hover:underline">
+              View all →
+            </Link>
+          </div>
+          <div className="bg-white text-ink border-2 border-ink rounded-xl divide-y divide-ink/5">
+            {(recentNotices ?? []).map((n) => {
+              const event = Array.isArray(n.events) ? n.events[0] : n.events;
+              return (
+                <div key={n.id} className="px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold text-sm">{n.title}</p>
+                    <p className="text-ink/40 text-xs shrink-0">{new Date(n.created_at).toLocaleDateString()}</p>
+                  </div>
+                  {event?.name && <p className="text-ink/50 text-xs mt-0.5">{event.name}</p>}
+                  <p className="text-ink/70 text-sm mt-1 line-clamp-2">{n.body}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {bestFinishes.length > 0 && (
         <div className="space-y-3">
