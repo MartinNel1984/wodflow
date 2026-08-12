@@ -16,10 +16,14 @@ export async function addHubPhoto(formData: FormData) {
     .maybeSingle();
   const nextSortOrder = (existing?.sort_order ?? 0) + 1;
 
+  const taggedEvent = String(formData.get("taggedEvent") ?? "").trim();
+  const [taggedType, taggedId] = taggedEvent.split(":");
+
   await supabase.from("hub_photos").insert({
     image_url: imageUrl,
     caption: String(formData.get("caption") ?? "").trim() || null,
-    event_id: String(formData.get("eventId") ?? "").trim() || null,
+    event_id: taggedType === "event" ? taggedId : null,
+    historical_event_id: taggedType === "historical" ? taggedId : null,
     sort_order: nextSortOrder,
     organization_id: organizationId,
   });

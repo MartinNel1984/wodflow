@@ -8,10 +8,10 @@ export default async function HubPhotosPage() {
   // marketing carousel), so this admin listing must filter to the
   // caller's own org itself — otherwise every organizer sees (and can
   // see a delete button next to) every other org's photos here.
-  const [{ data: photos }, { data: events }] = await Promise.all([
+  const [{ data: photos }, { data: events }, { data: historicalEvents }] = await Promise.all([
     supabase
       .from("hub_photos")
-      .select("id, image_url, caption, sort_order, event_id, events(name)")
+      .select("id, image_url, caption, sort_order, event_id, historical_event_id, events(name), historical_events(name)")
       .eq("organization_id", organizationId)
       .order("sort_order", { ascending: true }),
     // events' own read policy is public too — same cross-org leak risk,
@@ -22,13 +22,19 @@ export default async function HubPhotosPage() {
       .select("id, name")
       .eq("organization_id", organizationId)
       .order("start_date", { ascending: false }),
+    supabase
+      .from("historical_events")
+      .select("id, name")
+      .eq("organization_id", organizationId)
+      .order("sort_order", { ascending: true }),
   ]);
 
   const groups = new Map<string, { label: string; photos: NonNullable<typeof photos> }>();
   for (const p of photos ?? []) {
     const event = Array.isArray(p.events) ? p.events[0] : p.events;
-    const key = p.event_id ?? "none";
-    const label = event?.name ?? "General (homepage carousel)";
+    const historicalEvent = Array.isArray(p.historical_events) ? p.historical_events[0] : p.historical_events;
+    const key = p.event_id ?? p.historical_event_id ?? "none";
+    const label = event?.name ?? historicalEvent?.name ?? "General (homepage carousel)";
     if (!groups.has(key)) groups.set(key, { label, photos: [] });
     groups.get(key)!.photos.push(p);
   }
@@ -67,7 +73,7 @@ export default async function HubPhotosPage() {
       ))}
       {(!photos || photos.length === 0) && <p className="text-ink/60 text-sm">No photos yet — add one below.</p>}
 
-      <UploadForm organizationId={organizationId} events={events ?? []} />
+      <UploadForm organizationId={organizationId} events={events ?? []} historicalEvents={historicalEvents ?? []} />
     </div>
   );
 }
