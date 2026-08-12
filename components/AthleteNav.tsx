@@ -34,13 +34,13 @@ export default function AthleteNav({ currentDivisionId }: { currentDivisionId: s
           Sign out
         </button>
       </div>
-      <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         {links.map((link) =>
           link.href ? (
             <Link
               key={link.label}
               href={link.href}
-              className={`text-base sm:text-lg font-bold whitespace-nowrap rounded-full px-4 py-2 transition-colors ${
+              className={`text-sm sm:text-lg font-bold whitespace-nowrap rounded-full px-3 sm:px-4 py-1.5 sm:py-2 transition-colors ${
                 pathname.startsWith(link.href)
                   ? "bg-accent text-white"
                   : "text-paper/70 hover:text-paper hover:bg-paper/10"
@@ -51,7 +51,7 @@ export default function AthleteNav({ currentDivisionId }: { currentDivisionId: s
           ) : (
             <span
               key={link.label}
-              className="text-base sm:text-lg font-bold whitespace-nowrap rounded-full px-4 py-2 text-paper/30"
+              className="text-sm sm:text-lg font-bold whitespace-nowrap rounded-full px-3 sm:px-4 py-1.5 sm:py-2 text-paper/30"
             >
               {link.label}
             </span>
