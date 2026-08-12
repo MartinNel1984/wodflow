@@ -61,6 +61,8 @@ export default async function AthletesPage({
     })
     .filter((t) => t.signed < t.total);
 
+  const isTeamDivision = (division?.team_size ?? 1) > 1;
+
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <div>
@@ -88,7 +90,7 @@ export default async function AthletesPage({
           athletes={confirmedAthletes}
           eventId={eventId}
           divisionId={divisionId}
-          isTeam={(division?.team_size ?? 1) > 1}
+          isTeam={isTeamDivision}
           emptyMessage="No confirmed athletes yet."
         />
       </div>
@@ -103,7 +105,7 @@ export default async function AthletesPage({
               athletes={archivedAthletes}
               eventId={eventId}
               divisionId={divisionId}
-              isTeam={(division?.team_size ?? 1) > 1}
+              isTeam={isTeamDivision}
               emptyMessage="Nothing archived."
             />
           </div>
@@ -117,13 +119,13 @@ export default async function AthletesPage({
         <input type="hidden" name="eventId" value={eventId} />
         <input type="hidden" name="divisionId" value={divisionId} />
         <h2 className="font-semibold">
-          {(division?.team_size ?? 1) > 1 ? "Add team manually" : "Add athlete manually"}
+          {isTeamDivision ? "Add team manually" : "Add athlete manually"}
         </h2>
         <p className="text-ink/60 text-sm">
           For walk-up entries who didn&apos;t go through the public registration wizard. Marked as
           waived (no payment).
         </p>
-        {(division?.team_size ?? 1) > 1 ? (
+        {isTeamDivision ? (
           <>
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Team name</label>
@@ -184,7 +186,7 @@ export default async function AthletesPage({
           </div>
         )}
         <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
-          {(division?.team_size ?? 1) > 1 ? "Add team" : "Add athlete"}
+          {isTeamDivision ? "Add team" : "Add athlete"}
         </button>
       </form>
     </div>
