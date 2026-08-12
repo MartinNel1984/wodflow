@@ -2,9 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 const NOTICES_SEEN_KEY = "wodflow_notices_seen_at";
+
+// localStorage never changes from outside this tab in a way we care about,
+// so there's nothing to subscribe to — reads happen fresh on every render.
+function subscribe() {
+  return () => {};
+}
 
 export default function AthleteNav({
   currentDivisionId,
@@ -15,18 +21,20 @@ export default function AthleteNav({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [hasUnreadNotice, setHasUnreadNotice] = useState(false);
 
-  useEffect(() => {
-    if (!latestNoticeAt) return;
-    const seenAt = window.localStorage.getItem(NOTICES_SEEN_KEY);
-    setHasUnreadNotice(!seenAt || new Date(latestNoticeAt) > new Date(seenAt));
-  }, [latestNoticeAt]);
+  const hasUnreadNotice = useSyncExternalStore(
+    subscribe,
+    () => {
+      if (!latestNoticeAt) return false;
+      const seenAt = window.localStorage.getItem(NOTICES_SEEN_KEY);
+      return !seenAt || new Date(latestNoticeAt) > new Date(seenAt);
+    },
+    () => false
+  );
 
   useEffect(() => {
     if (!pathname.startsWith("/notice-board") || !latestNoticeAt) return;
     window.localStorage.setItem(NOTICES_SEEN_KEY, latestNoticeAt);
-    setHasUnreadNotice(false);
   }, [pathname, latestNoticeAt]);
 
   async function signOut() {
