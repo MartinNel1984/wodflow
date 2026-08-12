@@ -4,6 +4,7 @@ import { computeSeriesStandingsForEvents } from "@/lib/seriesStandings";
 import Link from "next/link";
 import AvatarUpload from "./AvatarUpload";
 import EditProfile from "./EditProfile";
+import { AthleteHeroLogo } from "@/components/AthleteHeroLogo";
 
 export default async function PortalPage() {
   const supabase = await createClient();
@@ -171,7 +172,7 @@ export default async function PortalPage() {
           sub={bestOverall ? `of ${bestOverall.total}` : undefined}
         />
         <StatBubble
-          label="Season rank"
+          label="Series rank"
           value={seasonRank ? String(seasonRank.position) : "—"}
           sub={seasonRank ? `of ${seasonRank.total}` : undefined}
         />
@@ -242,6 +243,8 @@ export default async function PortalPage() {
           </a>
         ))}
       </div>
+
+      <AthleteHeroLogo size="lg" />
     </div>
   );
 }

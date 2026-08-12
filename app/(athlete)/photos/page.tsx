@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { PhotoCarousel } from "@/components/PhotoCarousel";
+import { AthleteHeroLogo } from "@/components/AthleteHeroLogo";
 
 export default async function AthletePhotosPage() {
   const supabase = await createClient();
@@ -10,6 +11,7 @@ export default async function AthletePhotosPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      <AthleteHeroLogo />
       <h1 className="text-2xl font-semibold text-paper">From the Floor</h1>
       {photos && photos.length > 0 ? (
         <PhotoCarousel photos={photos} />

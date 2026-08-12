@@ -20,8 +20,8 @@ export default async function HistoricalResultsPage() {
         <h1 className="text-2xl font-semibold">Historical results</h1>
         <p className="text-ink/60 text-sm mt-1">
           Placements from events run outside Wodflow (e.g. Indy, Remix) — matched to an athlete&apos;s
-          Wodflow account by email, so they show up on that athlete&apos;s own portal (Best Finishes +
-          Season Rank) once they&apos;ve signed up. No match yet? The row just waits.
+          Wodflow account by email, so they show up on that athlete&apos;s own portal (Best Finishes)
+          once they&apos;ve signed up. No match yet? The row just waits.
         </p>
       </div>
 

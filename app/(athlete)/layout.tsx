@@ -41,10 +41,11 @@ export default async function AthleteLayout({ children }: { children: React.Reac
       <div className="rumble-texture" aria-hidden="true" />
       <AthleteRouteGuard role={role} />
       <AthleteNav currentDivisionId={currentDivisionId} />
-      <div className="flex justify-center pt-2 pb-10">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/rumble/series-logo-v2.png" alt="Rumble Series" className="rumble-hero-logo-sm" />
-      </div>
+      {/* Hero logo moved into each page (AthleteHeroLogo) instead of living
+          here — the portal home page needs its profile/rank blocks visible
+          without scrolling, so it renders the logo lower down the page
+          instead of above the fold. Notice Board/Photos keep the old
+          top-of-page placement. */}
       <main className="p-4 sm:p-6 lg:p-8">{children}</main>
       <footer className="text-center text-xs opacity-40 pb-8">Managed by Wodflow</footer>
     </div>
