@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createPublicClient } from "@/lib/supabase/public";
 import { computeStandings, type LeaderboardRow, type ScoringConfig } from "@/lib/leaderboard";
+import { isPrivilegedFor } from "@/lib/auth";
 import type { BrandKit } from "@/lib/brandKit";
 import LeaderboardView from "./view";
 
@@ -36,6 +37,15 @@ export default async function LeaderboardPage({
   const { divisionId } = await params;
   const supabase = createPublicClient();
 
+  const { data: divisionEvent } = await supabase
+    .from("divisions")
+    .select("events(organization_id, results_visible)")
+    .eq("id", divisionId)
+    .single();
+  const gateEvent = Array.isArray(divisionEvent?.events) ? divisionEvent.events[0] : divisionEvent?.events;
+  const isPreview = gateEvent?.results_visible === false && (await isPrivilegedFor(gateEvent.organization_id));
+  const isHidden = gateEvent?.results_visible === false && !isPreview;
+
   const [{ data: division }, { data: rows }] = await Promise.all([
     supabase
       .from("divisions")
@@ -44,13 +54,23 @@ export default async function LeaderboardPage({
       )
       .eq("id", divisionId)
       .single(),
-    supabase
-      .from("public_leaderboard")
-      .select(
-        "heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value, workout_name, workout_scoring_config"
-      )
-      .eq("division_id", divisionId),
+    isHidden
+      ? Promise.resolve({ data: [] })
+      : supabase
+          .from("public_leaderboard")
+          .select(
+            "heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value, workout_name, workout_scoring_config"
+          )
+          .eq("division_id", divisionId),
   ]);
+
+  if (isHidden) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <p className="text-ink/60 text-sm">Leaderboard isn&apos;t available yet — check back on event day.</p>
+      </div>
+    );
+  }
 
   const scoringConfig = (division?.scoring_config ?? { method: "rank_sum" }) as ScoringConfig;
   const { standings, workouts } = computeStandings((rows ?? []) as LeaderboardRow[], scoringConfig);
@@ -86,6 +106,7 @@ export default async function LeaderboardPage({
       teamMembers={teamMembers}
       eventStartDate={event?.start_date ?? null}
       eventEndDate={event?.end_date ?? null}
+      isPreview={isPreview}
     />
   );
 }

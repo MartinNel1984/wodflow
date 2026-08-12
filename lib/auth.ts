@@ -56,6 +56,26 @@ export async function requirePrivileged() {
   return { supabase, organizationId: profile.organization_id as string };
 }
 
+// Non-throwing variant for public pages (leaderboard/heat sheet) that
+// need to show an organizer/head judge a preview of results hidden
+// from everyone else, without crashing for anonymous visitors.
+export async function isPrivilegedFor(organizationId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, organization_id")
+    .eq("id", user.id)
+    .single();
+  return (
+    (profile?.role === "organizer" || profile?.role === "head_judge") &&
+    profile.organization_id === organizationId
+  );
+}
+
 // Platform admin — Martin only. Not organization-scoped.
 export async function requirePlatformAdmin() {
   const supabase = await createClient();

@@ -71,6 +71,21 @@ export async function updateEventStatus(formData: FormData) {
   revalidatePath("/events");
 }
 
+// Lets an organizer rehearse heats/scoring against a real event
+// (migration-065) without athletes/spectators seeing it on the public
+// leaderboard/heat sheet — those two pages check this flag and show
+// the organizer a preview instead of the placeholder everyone else
+// gets. Admin/judge scoring pages are unaffected either way.
+export async function toggleResultsVisible(formData: FormData) {
+  const { supabase } = await requireOrganizer();
+  const id = String(formData.get("id") ?? "");
+  const resultsVisible = formData.get("resultsVisible") === "true";
+  if (!id) return;
+
+  await supabase.from("events").update({ results_visible: resultsVisible }).eq("id", id);
+  revalidatePath("/dashboard");
+}
+
 export async function updateEventBrandKit(formData: FormData) {
   const { supabase, organizationId } = await requireOrganizer();
   const id = String(formData.get("id") ?? "");

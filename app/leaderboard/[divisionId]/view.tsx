@@ -14,6 +14,7 @@ export default function LeaderboardView({
   teamMembers,
   eventStartDate,
   eventEndDate,
+  isPreview,
 }: {
   divisionName: string;
   standings: Standing[];
@@ -22,6 +23,7 @@ export default function LeaderboardView({
   teamMembers?: Record<string, string[]>;
   eventStartDate?: string | null;
   eventEndDate?: string | null;
+  isPreview?: boolean;
 }) {
   const [view, setView] = useState<string>("overall");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -57,6 +59,11 @@ export default function LeaderboardView({
 
   const content = (
     <div className="max-w-2xl mx-auto px-4 py-10 space-y-6" style={brandKitStyle(brandKit)}>
+      {isPreview && (
+        <p className="text-center text-xs font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 rounded-full px-3 py-1.5">
+          🔒 Preview — hidden from athletes until you make results live
+        </p>
+      )}
       <div className="text-center">
         <div className="text-lg font-semibold opacity-70">
           <BrandKitLogo kit={brandKit} />

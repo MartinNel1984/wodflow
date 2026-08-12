@@ -23,7 +23,7 @@ export default async function PortalPage() {
     supabase
       .from("registration_athletes")
       .select(
-        "id, registration_id, registrations(id, division_id, team_name, payment_status, divisions(id, name, scoring_config, events(id, name, start_date)))"
+        "id, registration_id, registrations(id, division_id, team_name, payment_status, divisions(id, name, scoring_config, events(id, name, start_date, results_visible)))"
       )
       .eq("profile_id", user.id),
     supabase
@@ -51,6 +51,7 @@ export default async function PortalPage() {
     eventStartDate: string;
     teamName: string | null;
     paymentStatus: string;
+    resultsVisible: boolean;
   };
 
   const myRegistrations: MyRegistration[] = (myRows ?? [])
@@ -70,6 +71,7 @@ export default async function PortalPage() {
         eventStartDate: event.start_date,
         teamName: reg.team_name,
         paymentStatus: reg.payment_status,
+        resultsVisible: event.results_visible !== false,
       };
     })
     .filter((r): r is MyRegistration => r !== null)
@@ -79,10 +81,14 @@ export default async function PortalPage() {
   // compute that division's real standings (using its own scoring formula)
   // and pull out this athlete's own placement. One leaderboard read per
   // division, fired in parallel rather than sequentially. Divisions with no
-  // scores yet (or where the athlete isn't ranked) are skipped.
+  // scores yet (or where the athlete isn't ranked) are skipped. Events an
+  // organizer has hidden for rehearsal (migration-065) are skipped too —
+  // same boundary as the public leaderboard/heat-sheet pages.
   const liveBestFinishes = (
     await Promise.all(
-      myRegistrations.map(async (reg) => {
+      myRegistrations
+        .filter((reg) => reg.resultsVisible)
+        .map(async (reg) => {
         const { data: rows } = await supabase
           .from("public_leaderboard")
           .select(
@@ -127,14 +133,22 @@ export default async function PortalPage() {
   // flag yet (one series per season is the only setup this app has).
   const { data: currentSeries } = await supabase
     .from("series")
-    .select("points_config, series_events(event_id)")
+    .select("points_config, series_events(event_id, events(results_visible))")
     .order("year", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   let seasonRank: { position: number; total: number } | null = null;
   if (currentSeries) {
-    const seriesEventIds = (currentSeries.series_events ?? []).map((se) => se.event_id);
+    // Skip events an organizer has hidden for rehearsal (migration-065)
+    // — same boundary as the public leaderboard/heat-sheet pages, so a
+    // rehearsal doesn't leak into the athlete's own season rank either.
+    const seriesEventIds = (currentSeries.series_events ?? [])
+      .filter((se) => {
+        const e = Array.isArray(se.events) ? se.events[0] : se.events;
+        return e?.results_visible !== false;
+      })
+      .map((se) => se.event_id);
     const pointsConfig = (currentSeries.points_config ?? { method: "gap_formula", winner_points: 100 }) as ScoringConfig;
     const seriesStandings = await computeSeriesStandingsForEvents(supabase, seriesEventIds, pointsConfig);
     const idx = seriesStandings.findIndex((s) => s.profileId === user.id);

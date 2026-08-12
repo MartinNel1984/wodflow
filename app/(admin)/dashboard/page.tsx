@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeAllChecks } from "@/lib/checklist";
 import { requireOrganizer } from "@/lib/auth";
+import { toggleResultsVisible } from "../events/actions";
 import Link from "next/link";
 
 export default async function DashboardPage() {
@@ -10,7 +11,7 @@ export default async function DashboardPage() {
   const { data: events } = await supabase
     .from("events")
     .select(
-      "id, name, status, start_date, venue_name, venue_address, contact_email, contact_phone, waiver_text"
+      "id, name, status, start_date, venue_name, venue_address, contact_email, contact_phone, waiver_text, results_visible"
     )
     .eq("organization_id", organizationId)
     .order("start_date", { ascending: true });
@@ -117,6 +118,24 @@ export default async function DashboardPage() {
               >
                 {event.status}
               </span>
+            </div>
+            <div
+              className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 mb-3 text-sm ${
+                event.results_visible ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-800"
+              }`}
+            >
+              <span className="font-semibold">
+                {event.results_visible
+                  ? "Results visible to athletes"
+                  : "🔒 Rehearsal mode — results hidden from athletes/spectators"}
+              </span>
+              <form action={toggleResultsVisible}>
+                <input type="hidden" name="id" value={event.id} />
+                <input type="hidden" name="resultsVisible" value={event.results_visible ? "false" : "true"} />
+                <button type="submit" className="text-xs font-semibold uppercase tracking-wider underline shrink-0">
+                  {event.results_visible ? "Hide for rehearsal" : "Make results live"}
+                </button>
+              </form>
             </div>
             <div className="flex items-center gap-4 text-sm">
               <Link
