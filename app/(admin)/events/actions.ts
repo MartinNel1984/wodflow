@@ -110,7 +110,7 @@ export async function duplicateEvent(formData: FormData) {
   const { data: source } = await supabase
     .from("events")
     .select(
-      "name, slug, start_date, end_date, venue_name, venue_address, contact_email, contact_phone, waiver_text, default_price, brand_kit_id, payment_provider, organization_id"
+      "name, slug, start_date, end_date, venue_name, venue_address, contact_email, contact_phone, waiver_text, default_price, brand_kit_id, organization_id"
     )
     .eq("id", sourceId)
     .eq("organization_id", organizationId)
@@ -132,7 +132,6 @@ export async function duplicateEvent(formData: FormData) {
       waiver_text: source.waiver_text,
       default_price: source.default_price,
       brand_kit_id: source.brand_kit_id,
-      payment_provider: source.payment_provider,
       organization_id: organizationId,
       status: "draft",
       results_visible: false,
@@ -180,7 +179,7 @@ export async function duplicateEvent(formData: FormData) {
   const { data: workouts } = await supabase
     .from("workouts")
     .select(
-      "id, division_id, name, sequence, cap_seconds, scoring_type, tiebreak_enabled, lane_count, heat_duration_minutes, transition_minutes, scoring_config, workout_movements(sequence, name, reps_rx, reps_scaled, load_rx, load_scaled, rounds)"
+      "id, division_id, name, sequence, cap_seconds, scoring_type, tiebreak_enabled, lane_count, heat_duration_minutes, transition_minutes, scoring_config, workout_movements(sequence, name, reps, load, rounds)"
     )
     .in("division_id", sourceDivisionIds);
 
@@ -212,10 +211,8 @@ export async function duplicateEvent(formData: FormData) {
           workout_id: newWorkout.id,
           sequence: m.sequence,
           name: m.name,
-          reps_rx: m.reps_rx,
-          reps_scaled: m.reps_scaled,
-          load_rx: m.load_rx,
-          load_scaled: m.load_scaled,
+          reps: m.reps,
+          load: m.load,
           rounds: m.rounds,
         }))
       );
