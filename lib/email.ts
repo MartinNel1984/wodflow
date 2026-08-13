@@ -23,6 +23,43 @@ declare global {
 
 const FROM = { email: "noreply@wodflow.co.za", name: "Wodflow" };
 
+type EmailType =
+  | "athlete_confirmation"
+  | "registration_organizer_notification"
+  | "payment_reminder"
+  | "ticket_confirmation"
+  | "ticket_organizer_notification";
+
+// One row per send attempt, success or failure — so "did the athlete's
+// confirmation actually send" is a lookup instead of the investigation
+// it was for the Pair Pressure support case (2026-08-13) that prompted
+// this table. Never throws — a logging failure must not break a real
+// send that otherwise succeeded.
+async function logEmailAttempt(
+  supabase: ReturnType<typeof createServiceClient>,
+  params: {
+    registrationId?: string;
+    ticketId?: string;
+    recipientEmail: string;
+    emailType: EmailType;
+    status: "sent" | "failed";
+    errorMessage?: string;
+  }
+) {
+  try {
+    await supabase.from("email_log").insert({
+      registration_id: params.registrationId ?? null,
+      ticket_id: params.ticketId ?? null,
+      recipient_email: params.recipientEmail,
+      email_type: params.emailType,
+      status: params.status,
+      error_message: params.errorMessage ?? null,
+    });
+  } catch (err) {
+    console.error("logEmailAttempt failed", err);
+  }
+}
+
 // Fired once a registration is confirmed paid (from the PayFast
 // webhook, not at registration creation — a checkout can be abandoned).
 // Sends the athlete a confirmation and the organizer a notification, to
@@ -86,7 +123,25 @@ export async function sendRegistrationEmails(registrationId: string) {
         subject: `You're registered — ${event?.name ?? "Wodflow"}`,
         html: `<p>Hi ${firstName},</p><p>You're confirmed for <strong>${division?.name}</strong> at <strong>${event?.name}</strong>. R${registration.price_paid} paid.</p><p>Your heat time and lane will be published closer to the event.</p>${inviteHtml}`,
         text: `Hi ${firstName}, you're confirmed for ${division?.name} at ${event?.name}. R${registration.price_paid} paid. Your heat time and lane will be published closer to the event.${inviteText}`,
-      }).catch((err) => console.error("Athlete confirmation email failed", athlete.email, err))
+      })
+        .then(() =>
+          logEmailAttempt(supabase, {
+            registrationId,
+            recipientEmail: athlete.email,
+            emailType: "athlete_confirmation",
+            status: "sent",
+          })
+        )
+        .catch((err) => {
+          console.error("Athlete confirmation email failed", athlete.email, err);
+          return logEmailAttempt(supabase, {
+            registrationId,
+            recipientEmail: athlete.email,
+            emailType: "athlete_confirmation",
+            status: "failed",
+            errorMessage: String(err),
+          });
+        })
     );
   }
 
@@ -98,7 +153,25 @@ export async function sendRegistrationEmails(registrationId: string) {
         subject: `New registration — ${label} (${division?.name ?? "division"})`,
         html: `<p>${label} just registered and paid for <strong>${division?.name}</strong> at <strong>${event?.name}</strong>.</p><p>R${registration.price_paid} paid.</p>`,
         text: `${label} just registered and paid for ${division?.name} at ${event?.name}. R${registration.price_paid} paid.`,
-      }).catch((err) => console.error("Organizer notification email failed", err))
+      })
+        .then(() =>
+          logEmailAttempt(supabase, {
+            registrationId,
+            recipientEmail: event.contact_email,
+            emailType: "registration_organizer_notification",
+            status: "sent",
+          })
+        )
+        .catch((err) => {
+          console.error("Organizer notification email failed", err);
+          return logEmailAttempt(supabase, {
+            registrationId,
+            recipientEmail: event.contact_email,
+            emailType: "registration_organizer_notification",
+            status: "failed",
+            errorMessage: String(err),
+          });
+        })
     );
   }
 
@@ -152,9 +225,22 @@ export async function sendPaymentReminderEmail(registrationId: string): Promise<
       html: `<p>Hi ${firstName},</p><p>We noticed your registration for <strong>${label}</strong> at <strong>${event?.name}</strong> hasn't been paid yet, so your spot isn't reserved.</p><p><a href="${registration.pay_url}">Complete your payment (R${registration.price_paid})</a> to secure it.</p>`,
       text: `Hi ${firstName}, we noticed your registration for ${label} at ${event?.name} hasn't been paid yet, so your spot isn't reserved. Complete your payment (R${registration.price_paid}): ${registration.pay_url}`,
     });
+    await logEmailAttempt(supabase, {
+      registrationId,
+      recipientEmail: captain.email,
+      emailType: "payment_reminder",
+      status: "sent",
+    });
     return true;
   } catch (err) {
     console.error("Payment reminder email failed", captain.email, err);
+    await logEmailAttempt(supabase, {
+      registrationId,
+      recipientEmail: captain.email,
+      emailType: "payment_reminder",
+      status: "failed",
+      errorMessage: String(err),
+    });
     return false;
   }
 }
@@ -202,7 +288,25 @@ export async function sendTicketConfirmationEmail(ticketId: string) {
         subject: `Your ${typeLabel.toLowerCase()} — ${event?.name ?? "Wodflow"}`,
         html: `<p>Hi ${firstName},</p><p>Your <strong>${typeLabel}</strong> (×${ticket.quantity}) for <strong>${event?.name}</strong> is confirmed. R${ticket.price_paid} paid.</p><p><a href="${ticketUrl}">View your ticket and QR code</a> — show this at the gate to check in.</p>`,
         text: `Hi ${firstName}, your ${typeLabel.toLowerCase()} (x${ticket.quantity}) for ${event?.name} is confirmed. R${ticket.price_paid} paid. View your ticket and QR code: ${ticketUrl} — show this at the gate to check in.`,
-      }).catch((err) => console.error("Ticket buyer confirmation email failed", ticket.buyer_email, err))
+      })
+        .then(() =>
+          logEmailAttempt(supabase, {
+            ticketId,
+            recipientEmail: ticket.buyer_email,
+            emailType: "ticket_confirmation",
+            status: "sent",
+          })
+        )
+        .catch((err) => {
+          console.error("Ticket buyer confirmation email failed", ticket.buyer_email, err);
+          return logEmailAttempt(supabase, {
+            ticketId,
+            recipientEmail: ticket.buyer_email,
+            emailType: "ticket_confirmation",
+            status: "failed",
+            errorMessage: String(err),
+          });
+        })
     );
   }
 
@@ -214,7 +318,25 @@ export async function sendTicketConfirmationEmail(ticketId: string) {
         subject: `New ${typeLabel.toLowerCase()} sale — ${ticket.buyer_name} (×${ticket.quantity})`,
         html: `<p>${ticket.buyer_name} just bought a <strong>${typeLabel}</strong> (×${ticket.quantity}) for <strong>${event?.name}</strong>.</p><p>R${ticket.price_paid} paid.</p>`,
         text: `${ticket.buyer_name} just bought a ${typeLabel.toLowerCase()} (x${ticket.quantity}) for ${event?.name}. R${ticket.price_paid} paid.`,
-      }).catch((err) => console.error("Organizer ticket notification email failed", err))
+      })
+        .then(() =>
+          logEmailAttempt(supabase, {
+            ticketId,
+            recipientEmail: event.contact_email,
+            emailType: "ticket_organizer_notification",
+            status: "sent",
+          })
+        )
+        .catch((err) => {
+          console.error("Organizer ticket notification email failed", err);
+          return logEmailAttempt(supabase, {
+            ticketId,
+            recipientEmail: event.contact_email,
+            emailType: "ticket_organizer_notification",
+            status: "failed",
+            errorMessage: String(err),
+          });
+        })
     );
   }
 

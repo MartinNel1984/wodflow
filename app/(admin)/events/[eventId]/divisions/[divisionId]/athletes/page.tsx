@@ -26,7 +26,7 @@ export default async function AthletesPage({
     supabase
       .from("registrations")
       .select(
-        "id, team_name, payment_status, registration_athletes(id, full_name, id_number, is_minor, waiver_signed_name, waiver_signed_at, is_captain)"
+        "id, team_name, payment_status, registration_athletes(id, full_name, email, id_number, is_minor, waiver_signed_name, waiver_signed_at, is_captain)"
       )
       .eq("division_id", divisionId)
       .order("created_at", { ascending: true }),
@@ -38,12 +38,33 @@ export default async function AthletesPage({
       .order("created_at", { ascending: true }),
   ]);
 
+  const registrationIds = (registrations ?? []).map((r) => r.id);
+  const { data: emailLogRows } = registrationIds.length
+    ? await supabase
+        .from("email_log")
+        .select("registration_id, recipient_email, status, created_at")
+        .in("registration_id", registrationIds)
+        .eq("email_type", "athlete_confirmation")
+        .order("created_at", { ascending: false })
+    : { data: [] };
+
+  // Most recent attempt per (registration, recipient) wins — a resend
+  // after an earlier failure should show as sent, not failed.
+  const confirmationStatusByKey = new Map<string, "sent" | "failed">();
+  for (const row of emailLogRows ?? []) {
+    const key = `${row.registration_id}:${row.recipient_email}`;
+    if (!confirmationStatusByKey.has(key)) {
+      confirmationStatusByKey.set(key, row.status as "sent" | "failed");
+    }
+  }
+
   const athletes = (registrations ?? []).flatMap((r) =>
     (r.registration_athletes ?? []).map((a) => ({
       ...a,
       teamName: r.team_name,
       paymentStatus: r.payment_status,
       registrationId: r.id,
+      confirmationStatus: confirmationStatusByKey.get(`${r.id}:${a.email}`) ?? null,
     }))
   );
 
@@ -227,6 +248,7 @@ function AthleteTable({
     paymentStatus: string;
     registrationId: string;
     is_captain: boolean;
+    confirmationStatus: "sent" | "failed" | null;
   }>;
   eventId: string;
   divisionId: string;
@@ -286,7 +308,26 @@ function AthleteTable({
                   <span className="text-amber-700 font-semibold">Not signed</span>
                 )}
               </td>
-              <td className="px-4 py-2 capitalize">{a.paymentStatus}</td>
+              <td className="px-4 py-2 capitalize">
+                {a.paymentStatus}
+                {a.paymentStatus === "paid" && (
+                  <div className="mt-0.5">
+                    {a.confirmationStatus === "sent" && (
+                      <span className="text-green-700 text-xs font-semibold normal-case">
+                        ✓ Confirmation email sent
+                      </span>
+                    )}
+                    {a.confirmationStatus === "failed" && (
+                      <span className="text-red-700 text-xs font-semibold normal-case">
+                        ✗ Confirmation email failed
+                      </span>
+                    )}
+                    {a.confirmationStatus === null && (
+                      <span className="text-ink/40 text-xs normal-case">No confirmation email logged</span>
+                    )}
+                  </div>
+                )}
+              </td>
               <td className="px-4 py-2 text-right">
                 {a.waiver_signed_at && (
                   <Link
