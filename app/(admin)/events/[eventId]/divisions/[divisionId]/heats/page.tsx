@@ -29,13 +29,18 @@ export default async function HeatsPage({
   const { workoutId: workoutIdParam } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: division }, { data: workouts }] = await Promise.all([
+  const [{ data: division }, { data: workouts }, { data: divisions }] = await Promise.all([
     supabase.from("divisions").select("name").eq("id", divisionId).single(),
     supabase
       .from("workouts")
       .select("id, name, sequence, lane_count, heat_duration_minutes, transition_minutes, scoring_type, tiebreak_enabled")
       .eq("division_id", divisionId)
       .order("sequence", { ascending: true }),
+    // Sibling divisions in this same event, for the quick-switch pills
+    // below — Tjokkie (2026-08-13) wanted to jump between divisions
+    // without going back to the divisions list each time, same as the
+    // existing workout pills further down.
+    supabase.from("divisions").select("id, name").eq("event_id", eventId).order("created_at", { ascending: true }),
   ]);
 
   const activeWorkout = (workouts ?? []).find((w) => w.id === workoutIdParam) ?? (workouts ?? [])[0] ?? null;
@@ -97,6 +102,24 @@ export default async function HeatsPage({
         </a>
         <h1 className="text-2xl font-semibold mt-1">{division?.name ?? "Division"} — Heats</h1>
       </div>
+
+      {(divisions ?? []).length > 1 && (
+        <div className="flex gap-2 flex-wrap">
+          {(divisions ?? []).map((d) => (
+            <a
+              key={d.id}
+              href={`/events/${eventId}/divisions/${d.id}/heats`}
+              className={`text-sm px-3 py-1.5 rounded-lg border ${
+                d.id === divisionId
+                  ? "bg-ink text-white border-ink"
+                  : "border-ink/10 text-ink/60 hover:border-ink/30"
+              }`}
+            >
+              {d.name}
+            </a>
+          ))}
+        </div>
+      )}
 
       {(workouts ?? []).length > 1 && (
         <div className="flex gap-2">

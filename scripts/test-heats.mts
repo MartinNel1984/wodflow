@@ -60,10 +60,19 @@ const start = new Date("2026-08-01T08:00:00Z");
     roster,
   });
   assertEqual(result.heats.length, 4, "odd roster: 23 athletes / 6 lanes -> 4 heats (ceil)");
+  // Flipped 2026-08-13 (Tjokkie): the leftover/partial group now lands
+  // in Heat 1, not the final heat — asserting the reverse of what this
+  // case checked before the fix, so a regression back to the old
+  // behavior would fail loudly here.
+  assertEqual(
+    result.assignments.filter((a) => a.heatNumber === 1).length,
+    5,
+    "odd roster: heat 1 gets the leftover 5, not padded to 6"
+  );
   assertEqual(
     result.assignments.filter((a) => a.heatNumber === 4).length,
-    5,
-    "odd roster: last heat gets the remaining 5, not padded to 6"
+    6,
+    "odd roster: last heat is full (6), not the partial one"
   );
 }
 

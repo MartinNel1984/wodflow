@@ -62,16 +62,33 @@ export function generateHeats(input: HeatGenInput): HeatGenResult {
   const heatCount = Math.ceil(ordered.length / laneCount);
   const slotMs = (heatDurationMinutes + transitionMinutes) * 60_000;
 
+  // A division that isn't fully sold out (or loses a team to a
+  // withdrawal) never divides evenly by laneCount — one heat has to be
+  // the short one. Tjokkie (2026-08-13): that gap belongs in Heat 1,
+  // not the final heat — a partial "show" heat at the end looks
+  // unfinished on the day. Putting the leftover first and every heat
+  // after it full-sized doesn't touch orderRoster's seeding at all:
+  // since remainder + (heatCount-1)*laneCount always equals
+  // ordered.length, the LAST heat still ends exactly on the tail of
+  // `ordered` — where orderRoster already put the best-seeded
+  // competitor — so "strongest heat last" for re-seeded rounds is
+  // unaffected.
+  const remainder = ordered.length % laneCount;
+  const firstHeatSize = remainder === 0 ? laneCount : remainder;
+
   const heats: HeatDraft[] = [];
   const assignments: AssignmentDraft[] = [];
 
+  let cursor = 0;
   for (let h = 0; h < heatCount; h++) {
     const heatNumber = h + 1;
     const heatStart = new Date(startTime.getTime() + h * slotMs);
     const heatEnd = new Date(heatStart.getTime() + heatDurationMinutes * 60_000);
     heats.push({ heatNumber, startTime: heatStart, endTime: heatEnd });
 
-    const slice = ordered.slice(h * laneCount, (h + 1) * laneCount);
+    const size = h === 0 ? firstHeatSize : laneCount;
+    const slice = ordered.slice(cursor, cursor + size);
+    cursor += size;
     slice.forEach((entry, i) => {
       assignments.push({ heatNumber, registrationId: entry.registrationId, laneNumber: i + 1 });
     });
