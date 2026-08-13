@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { enqueueScore, syncPendingScores, getAllPending, type PendingScore } from "@/lib/offline-queue";
+import { enqueueScore, syncPendingScores, getAllPending, getStatusForLanes, type PendingScore } from "@/lib/offline-queue";
 import { parseTime, formatTime } from "@/lib/scoring";
 import { setHeatStatus } from "./actions";
 
@@ -59,7 +59,14 @@ export default function ScorePage() {
   // For time-scored divisions: whether the judge is recording a finish
   // time or a rep count for an athlete who was capped out before finishing.
   const [modeByLane, setModeByLane] = useState<Record<string, "finished" | "capped">>({});
-  const [savedLanes, setSavedLanes] = useState<Set<string>>(new Set());
+  // Real save-confirmation state, sourced from the offline queue's
+  // actual per-item syncStatus (lib/offline-queue.ts) rather than an
+  // optimistic flag set the instant something is written locally — a
+  // judge navigating away right after tapping Save deserves to know
+  // whether it actually reached the server, not just that it was
+  // queued (Tjokkie, 2026-08-13 rehearsal: couldn't tell if a save had
+  // stuck, re-entered scores that were in fact already saved).
+  const [laneSyncStatus, setLaneSyncStatus] = useState<Record<string, "queued" | "synced" | "failed">>({});
   const [scoredLanes, setScoredLanes] = useState<Set<string>>(new Set());
   const [confirmingLanes, setConfirmingLanes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -72,10 +79,28 @@ export default function ScorePage() {
     setPendingCount(pending.length);
   }, []);
 
+  // Read via a ref rather than closing over `lanes` directly, so
+  // trySync's identity stays stable across heat switches — it's used
+  // in the mount effect below (setInterval/online/visibilitychange),
+  // and that effect's cleanup doesn't remove the visibilitychange
+  // listener, so letting trySync's identity change on every heat
+  // switch would re-run the effect and pile up duplicate listeners.
+  const lanesRef = useRef(lanes);
+  useEffect(() => {
+    lanesRef.current = lanes;
+  }, [lanes]);
+
+  const refreshLaneStatus = useCallback(async () => {
+    if (lanesRef.current.length === 0) return;
+    const statuses = await getStatusForLanes(lanesRef.current.map((l) => l.heatAssignmentId));
+    setLaneSyncStatus((prev) => ({ ...prev, ...statuses }));
+  }, []);
+
   const trySync = useCallback(async () => {
     await syncPendingScores(submitPendingScore);
     await refreshPendingCount();
-  }, [refreshPendingCount]);
+    await refreshLaneStatus();
+  }, [refreshPendingCount, refreshLaneStatus]);
 
   // Sync triggers: on mount, on reconnect, on tab refocus, and a flat
   // 15s poll while there's a nonempty queue — a short, simple interval
@@ -204,7 +229,7 @@ export default function ScorePage() {
       setLanes(result);
       setValues({});
       setTiebreakValues({});
-      setSavedLanes(new Set());
+      setLaneSyncStatus({});
       setScoredLanes(new Set());
 
       const mappedWorkouts: Workout[] = (workoutRows ?? []).map((w) => ({
@@ -305,7 +330,14 @@ export default function ScorePage() {
       setValues(nextValues);
       setTiebreakValues(nextTiebreak);
       setModeByLane(nextMode);
-      setSavedLanes(new Set(scored));
+      // Loaded straight from the server, so this is definitionally
+      // "synced" — merge rather than overwrite so a lane just queued
+      // locally (not yet visible here) doesn't get reset to unscored.
+      setLaneSyncStatus((prev) => {
+        const next = { ...prev };
+        for (const id of scored) next[id] = "synced";
+        return next;
+      });
       setScoredLanes(scored);
     }
     loadExistingScores();
@@ -345,8 +377,12 @@ export default function ScorePage() {
       }
     }
 
-    // Write to the local queue first and show "Saved" immediately — the
-    // UI never blocks on network. Sync happens in the background.
+    // Write to the local queue first — the UI never blocks on network —
+    // but only show "Saved ✓" once trySync confirms the row actually
+    // reached the server. Immediately after enqueue this lane is
+    // "queued", not "synced": there's a real gap between the two while
+    // offline or on a slow connection, and the judge should be able to
+    // see that gap rather than assume it's already safe.
     await enqueueScore({
       heatAssignmentId: lane.heatAssignmentId,
       workoutId: selectedWorkout?.name ?? freeTextWorkoutId,
@@ -355,7 +391,7 @@ export default function ScorePage() {
       tiebreakValue,
       valueRaw,
     });
-    setSavedLanes((prev) => new Set(prev).add(lane.heatAssignmentId));
+    setLaneSyncStatus((prev) => ({ ...prev, [lane.heatAssignmentId]: "queued" }));
     setConfirmingLanes((prev) => {
       const next = new Set(prev);
       next.delete(lane.heatAssignmentId);
@@ -516,14 +552,20 @@ export default function ScorePage() {
                           className={`rounded-lg px-3 py-2 text-xs font-semibold ${
                             confirmingLanes.has(lane.heatAssignmentId)
                               ? "bg-amber-500 text-white"
-                              : "bg-accent text-white"
+                              : laneSyncStatus[lane.heatAssignmentId] === "failed"
+                                ? "bg-red-600 text-white"
+                                : "bg-accent text-white"
                           }`}
                         >
-                          {savedLanes.has(lane.heatAssignmentId)
-                            ? "Saved ✓"
-                            : confirmingLanes.has(lane.heatAssignmentId)
-                              ? "Locked — confirm?"
-                              : "Save"}
+                          {confirmingLanes.has(lane.heatAssignmentId)
+                            ? "Locked — confirm?"
+                            : laneSyncStatus[lane.heatAssignmentId] === "synced"
+                              ? "Saved ✓"
+                              : laneSyncStatus[lane.heatAssignmentId] === "failed"
+                                ? "Failed — tap to retry"
+                                : laneSyncStatus[lane.heatAssignmentId] === "queued"
+                                  ? "Saving…"
+                                  : "Save"}
                         </button>
                       </div>
                     </div>
