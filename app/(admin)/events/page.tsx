@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { createEvent, updateEventStatus, updateEventBrandKit } from "./actions";
+import { createEvent, updateEventStatus, updateEventBrandKit, duplicateEvent } from "./actions";
 import Link from "next/link";
 
 export default async function EventsPage() {
@@ -16,7 +16,7 @@ export default async function EventsPage() {
   const [{ data: events }, { data: brandKits }] = await Promise.all([
     supabase
       .from("events")
-      .select("id, name, slug, start_date, end_date, status, brand_kit_id")
+      .select("id, name, slug, start_date, end_date, status, brand_kit_id, is_test")
       .order("start_date", { ascending: true }),
     // brand_kits' read policy is deliberately public (public event pages
     // render any org's kit), so this admin picker must filter to the
@@ -39,6 +39,11 @@ export default async function EventsPage() {
               <Link href={`/events/${e.id}/divisions`} className="font-semibold hover:underline">
                 {e.name}
               </Link>
+              {e.is_test && (
+                <span className="ml-2 text-xs font-semibold uppercase tracking-wider text-accent bg-accent/10 rounded px-1.5 py-0.5">
+                  Test copy
+                </span>
+              )}
               <p className="text-ink/60 text-sm">
                 {e.start_date}
                 {e.end_date ? ` – ${e.end_date}` : ""}
@@ -50,6 +55,17 @@ export default async function EventsPage() {
               <Link href={`/events/${e.id}/checkin`} className="text-accent text-xs hover:underline">
                 Gate check-in
               </Link>
+              {!e.is_test && (
+                <>
+                  {" · "}
+                  <form action={duplicateEvent} className="inline">
+                    <input type="hidden" name="id" value={e.id} />
+                    <button type="submit" className="text-accent text-xs hover:underline">
+                      Duplicate for testing
+                    </button>
+                  </form>
+                </>
+              )}
             </div>
             <div className="flex flex-col items-end gap-2">
               <form action={updateEventStatus} className="flex items-center gap-2">

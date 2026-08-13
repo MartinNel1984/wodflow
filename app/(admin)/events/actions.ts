@@ -86,6 +86,182 @@ export async function toggleResultsVisible(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+// Clones an event's divisions/workouts/teams into a brand-new draft
+// event so an organizer can rehearse heat assignment, scoring,
+// tie-breaks and points without touching the real event's rows
+// (Tjokkie, 2026-08-13 — migration-065's results-hidden toggle still
+// meant mucking with real registrations/heats/scores). Heats,
+// heat_assignments, scores, judge_assignments and notices are
+// deliberately NOT copied — those are exactly what the organizer
+// wants to build fresh in the copy. Registrations are copied so
+// heat-seeding has real team names to work with, but stripped of
+// financial/PII fields that don't belong on a rehearsal: payment
+// reset to "waived" (so it never inflates real revenue totals or
+// looks like an unpaid team needing a follow-up), captain_profile_id
+// and athlete profile_id cleared (so it never shows up in a real
+// athlete's own portal), and emails replaced with a non-deliverable
+// placeholder (nothing in this codebase emails from a direct insert,
+// but this stays true even if that ever changes).
+export async function duplicateEvent(formData: FormData) {
+  const { supabase, organizationId } = await requireOrganizer();
+  const sourceId = String(formData.get("id") ?? "");
+  if (!sourceId) return;
+
+  const { data: source } = await supabase
+    .from("events")
+    .select(
+      "name, slug, start_date, end_date, venue_name, venue_address, contact_email, contact_phone, waiver_text, default_price, brand_kit_id, payment_provider, organization_id"
+    )
+    .eq("id", sourceId)
+    .eq("organization_id", organizationId)
+    .single();
+  if (!source) return;
+
+  const suffix = Date.now().toString(36);
+  const { data: clone, error: cloneError } = await supabase
+    .from("events")
+    .insert({
+      name: `${source.name} (Test Copy)`,
+      slug: `${source.slug}-test-${suffix}`,
+      start_date: source.start_date,
+      end_date: source.end_date,
+      venue_name: source.venue_name,
+      venue_address: source.venue_address,
+      contact_email: source.contact_email,
+      contact_phone: source.contact_phone,
+      waiver_text: source.waiver_text,
+      default_price: source.default_price,
+      brand_kit_id: source.brand_kit_id,
+      payment_provider: source.payment_provider,
+      organization_id: organizationId,
+      status: "draft",
+      results_visible: false,
+      is_test: true,
+      cloned_from_event_id: sourceId,
+    })
+    .select("id")
+    .single();
+  if (cloneError || !clone) return;
+
+  const { data: divisions } = await supabase
+    .from("divisions")
+    .select(
+      "id, name, team_size, price_early, price_normal, price_late, early_bird_ends, late_starts, workout_scoring_type, max_entries, scoring_config, gender, season_tier"
+    )
+    .eq("event_id", sourceId);
+
+  const divisionIdMap = new Map<string, string>();
+  for (const d of divisions ?? []) {
+    const { data: newDivision } = await supabase
+      .from("divisions")
+      .insert({
+        event_id: clone.id,
+        name: d.name,
+        team_size: d.team_size,
+        price_early: d.price_early,
+        price_normal: d.price_normal,
+        price_late: d.price_late,
+        early_bird_ends: d.early_bird_ends,
+        late_starts: d.late_starts,
+        workout_scoring_type: d.workout_scoring_type,
+        max_entries: d.max_entries,
+        scoring_config: d.scoring_config,
+        gender: d.gender,
+        season_tier: d.season_tier,
+      })
+      .select("id")
+      .single();
+    if (newDivision) divisionIdMap.set(d.id, newDivision.id);
+  }
+  if (divisionIdMap.size === 0) return;
+
+  const sourceDivisionIds = [...divisionIdMap.keys()];
+
+  const { data: workouts } = await supabase
+    .from("workouts")
+    .select(
+      "id, division_id, name, sequence, cap_seconds, scoring_type, tiebreak_enabled, lane_count, heat_duration_minutes, transition_minutes, scoring_config, workout_movements(sequence, name, reps_rx, reps_scaled, load_rx, load_scaled, rounds)"
+    )
+    .in("division_id", sourceDivisionIds);
+
+  for (const w of workouts ?? []) {
+    const newDivisionId = divisionIdMap.get(w.division_id);
+    if (!newDivisionId) continue;
+    const { data: newWorkout } = await supabase
+      .from("workouts")
+      .insert({
+        division_id: newDivisionId,
+        name: w.name,
+        sequence: w.sequence,
+        cap_seconds: w.cap_seconds,
+        scoring_type: w.scoring_type,
+        tiebreak_enabled: w.tiebreak_enabled,
+        lane_count: w.lane_count,
+        heat_duration_minutes: w.heat_duration_minutes,
+        transition_minutes: w.transition_minutes,
+        scoring_config: w.scoring_config,
+      })
+      .select("id")
+      .single();
+    if (!newWorkout) continue;
+
+    const movements = w.workout_movements ?? [];
+    if (movements.length > 0) {
+      await supabase.from("workout_movements").insert(
+        movements.map((m) => ({
+          workout_id: newWorkout.id,
+          sequence: m.sequence,
+          name: m.name,
+          reps_rx: m.reps_rx,
+          reps_scaled: m.reps_scaled,
+          load_rx: m.load_rx,
+          load_scaled: m.load_scaled,
+          rounds: m.rounds,
+        }))
+      );
+    }
+  }
+
+  const { data: registrations } = await supabase
+    .from("registrations")
+    .select("id, division_id, team_name, registration_athletes(full_name, is_captain)")
+    .in("division_id", sourceDivisionIds);
+
+  for (const [i, r] of (registrations ?? []).entries()) {
+    const newDivisionId = divisionIdMap.get(r.division_id);
+    if (!newDivisionId) continue;
+    const { data: newRegistration } = await supabase
+      .from("registrations")
+      .insert({
+        event_id: clone.id,
+        division_id: newDivisionId,
+        team_name: r.team_name,
+        captain_profile_id: null,
+        price_paid: 0,
+        payment_status: "waived",
+      })
+      .select("id")
+      .single();
+    if (!newRegistration) continue;
+
+    const athletes = r.registration_athletes ?? [];
+    if (athletes.length > 0) {
+      await supabase.from("registration_athletes").insert(
+        athletes.map((a, j) => ({
+          registration_id: newRegistration.id,
+          profile_id: null,
+          full_name: a.full_name,
+          email: `test-${i}-${j}-${suffix}@rehearsal.invalid`,
+          is_captain: a.is_captain,
+        }))
+      );
+    }
+  }
+
+  revalidatePath("/events");
+  revalidatePath("/dashboard");
+}
+
 export async function updateEventBrandKit(formData: FormData) {
   const { supabase, organizationId } = await requireOrganizer();
   const id = String(formData.get("id") ?? "");
