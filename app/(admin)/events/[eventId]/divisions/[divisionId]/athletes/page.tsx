@@ -1,9 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { addAthleteManually, removeAthlete, resendPaymentLink, markPaidAndSendConfirmation, updateTeamName } from "./actions";
+import {
+  addAthleteManually,
+  removeAthlete,
+  resendPaymentLink,
+  markPaidAndSendConfirmation,
+  updateTeamName,
+  moveRegistrationDivision,
+} from "./actions";
 import { SendPaymentLinkButton } from "@/components/SendPaymentLinkButton";
 import { MarkPaidButton } from "@/components/MarkPaidButton";
 import { TeamNameField } from "@/components/TeamNameField";
+import { MoveDivisionField } from "@/components/MoveDivisionField";
 
 export default async function AthletesPage({
   params,
@@ -13,7 +21,7 @@ export default async function AthletesPage({
   const { eventId, divisionId } = await params;
   const supabase = await createClient();
 
-  const [{ data: division }, { data: registrations }] = await Promise.all([
+  const [{ data: division }, { data: registrations }, { data: otherDivisions }] = await Promise.all([
     supabase.from("divisions").select("name, team_size").eq("id", divisionId).single(),
     supabase
       .from("registrations")
@@ -21,6 +29,12 @@ export default async function AthletesPage({
         "id, team_name, payment_status, registration_athletes(id, full_name, id_number, is_minor, waiver_signed_name, waiver_signed_at, is_captain)"
       )
       .eq("division_id", divisionId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("divisions")
+      .select("id, name")
+      .eq("event_id", eventId)
+      .neq("id", divisionId)
       .order("created_at", { ascending: true }),
   ]);
 
@@ -91,6 +105,7 @@ export default async function AthletesPage({
           eventId={eventId}
           divisionId={divisionId}
           isTeam={isTeamDivision}
+          otherDivisions={otherDivisions ?? []}
           emptyMessage="No confirmed athletes yet."
         />
       </div>
@@ -106,6 +121,7 @@ export default async function AthletesPage({
               eventId={eventId}
               divisionId={divisionId}
               isTeam={isTeamDivision}
+              otherDivisions={otherDivisions ?? []}
               emptyMessage="Nothing archived."
             />
           </div>
@@ -198,6 +214,7 @@ function AthleteTable({
   eventId,
   divisionId,
   isTeam,
+  otherDivisions,
   emptyMessage,
 }: {
   athletes: Array<{
@@ -214,6 +231,7 @@ function AthleteTable({
   eventId: string;
   divisionId: string;
   isTeam: boolean;
+  otherDivisions: Array<{ id: string; name: string }>;
   emptyMessage: string;
 }) {
   return (
@@ -248,6 +266,15 @@ function AthleteTable({
                     divisionId={divisionId}
                     teamName={a.teamName}
                     action={updateTeamName}
+                  />
+                )}
+                {a.is_captain && otherDivisions.length > 0 && (
+                  <MoveDivisionField
+                    registrationId={a.registrationId}
+                    eventId={eventId}
+                    divisionId={divisionId}
+                    otherDivisions={otherDivisions}
+                    action={moveRegistrationDivision}
                   />
                 )}
               </td>

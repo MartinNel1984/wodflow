@@ -167,6 +167,45 @@ export async function updateTeamName(formData: FormData): Promise<{ success: boo
   return { success: true };
 }
 
+// Moves a team/athlete registration into a different division of the same
+// event — for entries that landed in the wrong division at signup (e.g. Not
+// So RXd instead of RXd). The target division is re-checked server-side
+// against event_id so a forged divisionId can't hop a registration into
+// another event's division. Any heat assignment is cleared: it belongs to
+// a heat in the OLD division, so it's meaningless (and could collide on
+// lane/seed) once the registration moves.
+export async function moveRegistrationDivision(formData: FormData): Promise<{ success: boolean }> {
+  const { supabase } = await requireOrganizer();
+  const eventId = String(formData.get("eventId") ?? "");
+  const divisionId = String(formData.get("divisionId") ?? "");
+  const registrationId = String(formData.get("registrationId") ?? "");
+  const targetDivisionId = String(formData.get("targetDivisionId") ?? "");
+  if (!registrationId || !targetDivisionId || targetDivisionId === divisionId) return { success: false };
+
+  const { data: targetDivision } = await supabase
+    .from("divisions")
+    .select("id, event_id")
+    .eq("id", targetDivisionId)
+    .single();
+  if (!targetDivision || targetDivision.event_id !== eventId) return { success: false };
+
+  const { error } = await supabase
+    .from("registrations")
+    .update({ division_id: targetDivisionId })
+    .eq("id", registrationId);
+  if (error) return { success: false };
+
+  await supabase
+    .from("heat_assignments")
+    .delete()
+    .eq("registration_id", registrationId);
+
+  if (eventId && divisionId) revalidatePath(path(eventId, divisionId));
+  revalidatePath(path(eventId, targetDivisionId));
+  revalidatePath("/athletes");
+  return { success: true };
+}
+
 // Removes a single athlete row. If they were the last person on their
 // registration, the (now-empty) registration is removed too, so a manual
 // remove doesn't leave an orphan "team of zero" behind.

@@ -83,7 +83,7 @@ export default async function SeriesLeaderboardPage({
 // oldest/most-recently-run first through to the newest — event names
 // not in this list (a future comp not yet named here) fall in
 // alphabetically at the end rather than disappearing.
-const EVENT_COLUMN_ORDER = ["Indy 2026", "Remix 2026", "Big Rumble 2025", "Rumble Indy 2025", "Rumble Teams 2025"];
+const EVENT_COLUMN_ORDER = ["Indy 2026", "Remix 2026", "Rumble In house 2025", "Rumble Indy 2025", "Rumble Teams 2025"];
 
 function orderEventNames(names: string[]): string[] {
   return [...names].sort((a, b) => {
