@@ -1,0 +1,39 @@
+-- Wodflow — migration 066: revoke anon access to public_historical_placements
+--
+-- Found in a full-repo security audit, 2026-08-13. public_historical_placements
+-- (migration-051/055/057) was always intended authenticated-only — every
+-- migration that (re)created it wrote `grant select ... to authenticated`
+-- only, never `anon, authenticated` like its sibling public views
+-- (public_leaderboard, public_heat_sheet, public_team_rosters,
+-- public_registration_profiles all explicitly grant to both). But
+-- Supabase's default-privilege scaffold grants ALL privileges (not
+-- just SELECT) to BOTH anon and authenticated on every new public-
+-- schema object unless explicitly stripped back — a broader version
+-- of the root-cause gotcha hit and documented on the tcrpv Portal
+-- project (2026-07-16). Nobody ever narrowed it here.
+--
+-- Confirmed live and exploitable with a plain, unauthenticated curl
+-- against the REST API: `select * from public_historical_placements`
+-- returns all 449 rows, including real athlete_email addresses, to
+-- anyone with no login at all. This column only exists so the season-
+-- ranking code (lib/seriesStandings.ts) can key an unmatched historical
+-- placement by email before the athlete signs up — it was never meant
+-- to be publicly browsable.
+--
+-- A first attempt at just `revoke select ... from anon` did NOT close
+-- the leak — a live curl re-probe straight after still returned data.
+-- `information_schema.role_table_grants` showed anon held every
+-- privilege (SELECT/INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER),
+-- not just SELECT, so a SELECT-only revoke left the rest untouched and
+-- (it turned out) hadn't even fully cleared SELECT either. Revoking
+-- ALL and re-granting only what's needed is the reliable fix — verified
+-- live afterward: anon now gets a clean 401 "permission denied for
+-- view", not an empty-but-200 response.
+--
+-- This does not change any real usage: every consumer of this view
+-- (lib/seriesStandings.ts, called only from the organizer-only admin
+-- series leaderboard and the athlete's own logged-in portal page)
+-- already runs on an authenticated session-scoped client.
+
+revoke all on public.public_historical_placements from anon, authenticated;
+grant select on public.public_historical_placements to authenticated;
