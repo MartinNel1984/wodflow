@@ -59,7 +59,7 @@ export default async function LeaderboardPage({
       : supabase
           .from("public_leaderboard")
           .select(
-            "heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value, workout_name, workout_scoring_config"
+            "heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value, workout_name, workout_scoring_config, rx_or_scaled"
           )
           .eq("division_id", divisionId),
   ]);

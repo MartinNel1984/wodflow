@@ -27,8 +27,16 @@ export default function LeaderboardView({
 }) {
   const [view, setView] = useState<string>("overall");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // Display/filter only — never affects points or position, just which
+  // rows show in the per-workout table (Tjokkie, 2026-08-14: leaderboard
+  // needs the same RX/Scaled toggle as Score Entry).
+  const [rxScaledFilter, setRxScaledFilter] = useState<"all" | "rx" | "scaled">("all");
   const selectedWorkout = workouts.find((w) => w.id === view);
   const isBigOne = brandKit?.name === "Rumble Big One";
+  const hasRxScaledTags = workouts.some((w) => w.results.some((r) => r.rxOrScaled != null));
+  const visibleWorkoutResults = selectedWorkout
+    ? selectedWorkout.results.filter((r) => rxScaledFilter === "all" || r.rxOrScaled === rxScaledFilter)
+    : [];
 
   function toggleExpanded(registrationId: string) {
     setExpanded((prev) => {
@@ -91,6 +99,23 @@ export default function LeaderboardView({
           )}
 
           {selectedWorkout ? (
+            <>
+            {hasRxScaledTags && (
+              <div className="flex text-xs border border-ink/10 rounded-lg overflow-hidden w-fit mx-auto">
+                {(["all", "rx", "scaled"] as const).map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setRxScaledFilter(tag)}
+                    className={`px-3 py-1.5 ${
+                      rxScaledFilter === tag ? "bg-accent text-white" : "bg-white text-ink/60"
+                    }`}
+                  >
+                    {tag === "all" ? "All" : tag === "rx" ? "RX" : "Scaled"}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="overflow-x-auto rounded-xl border border-ink/10">
             <table className="w-full bg-white text-sm">
               <thead>
@@ -103,12 +128,17 @@ export default function LeaderboardView({
                 </tr>
               </thead>
               <tbody>
-                {selectedWorkout.results.map((r) => (
+                {visibleWorkoutResults.map((r) => (
                   <Fragment key={r.registrationId}>
                     <tr className="border-t border-ink/10">
                       <td className="px-4 py-2 font-data font-bold text-accent">{r.position}</td>
                       <td className="px-4 py-2">
                         <NameCell registrationId={r.registrationId} displayName={r.displayName} />
+                        {r.rxOrScaled && (
+                          <span className="ml-2 text-[10px] uppercase tracking-wide text-ink/40 align-middle">
+                            {r.rxOrScaled}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-2 text-right font-data">{r.display}</td>
                       <td className="px-4 py-2 text-right font-data">{r.points}</td>
@@ -129,6 +159,7 @@ export default function LeaderboardView({
               </tbody>
             </table>
             </div>
+            </>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-ink/10">
             <table className="w-full bg-white text-sm">

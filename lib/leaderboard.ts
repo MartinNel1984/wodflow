@@ -9,6 +9,7 @@ export type LeaderboardRow = {
   display_name: string;
   workout_name?: string;
   workout_scoring_config?: ScoringConfig | null;
+  rx_or_scaled?: "rx" | "scaled" | null;
 };
 
 export type ScoringConfig =
@@ -23,6 +24,7 @@ export type WorkoutResult = {
   position: number;
   points: number;
   tiebreakDisplay: string | null; // formatted tiebreak_value, when the judge recorded one
+  rxOrScaled: "rx" | "scaled" | null; // display/filter tag only — never affects ranking or points
 };
 
 export type Standing = {
@@ -32,7 +34,14 @@ export type Standing = {
   place: number;
   workoutScores: Record<
     string,
-    { display: string; points: number; position: number; tiebreakDisplay: string | null } | undefined
+    | {
+        display: string;
+        points: number;
+        position: number;
+        tiebreakDisplay: string | null;
+        rxOrScaled: "rx" | "scaled" | null;
+      }
+    | undefined
   >;
 };
 
@@ -104,6 +113,7 @@ export function computeWorkoutResults(
 ): WorkoutResult[] {
   const nameByRegistration = new Map(rows.map((r) => [r.registration_id, r.display_name]));
   const tiebreakByRegistration = new Map(rows.map((r) => [r.registration_id, formatTiebreak(r.tiebreak_value)]));
+  const rxScaledByRegistration = new Map(rows.map((r) => [r.registration_id, r.rx_or_scaled ?? null]));
 
   const finishers = rows
     .filter((r) => !r.value_raw.no_rep && r.value_raw.time_seconds != null)
@@ -142,6 +152,7 @@ export function computeWorkoutResults(
     position: i + 1,
     points: pointsForPosition(i + 1, entrants, scoringConfig),
     tiebreakDisplay: tiebreakByRegistration.get(entry.registrationId) ?? null,
+    rxOrScaled: rxScaledByRegistration.get(entry.registrationId) ?? null,
   }));
 }
 
@@ -186,6 +197,7 @@ export function computeStandings(
         points: r.points,
         position: r.position,
         tiebreakDisplay: r.tiebreakDisplay,
+        rxOrScaled: r.rxOrScaled,
       };
       workoutScoresByRegistration.set(r.registrationId, scores);
     }

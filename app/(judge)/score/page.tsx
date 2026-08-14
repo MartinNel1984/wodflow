@@ -59,6 +59,13 @@ export default function ScorePage() {
   // For time-scored divisions: whether the judge is recording a finish
   // time or a rep count for an athlete who was capped out before finishing.
   const [modeByLane, setModeByLane] = useState<Record<string, "finished" | "capped">>({});
+  // Per-lane RX/Scaled tag (scores.rx_or_scaled) — the field has existed
+  // end-to-end since Milestone 12 (offline queue, /api/scores, DB column)
+  // but this page never rendered a control for it, so every score was
+  // silently saved with it null. Documented in the training manual
+  // (Section 14) as one of the four things shown per lane; Tjokkie
+  // couldn't find it because it was never actually there.
+  const [rxScaledByLane, setRxScaledByLane] = useState<Record<string, "rx" | "scaled" | null>>({});
   // Real save-confirmation state, sourced from the offline queue's
   // actual per-item syncStatus (lib/offline-queue.ts) rather than an
   // optimistic flag set the instant something is written locally — a
@@ -137,11 +144,18 @@ export default function ScorePage() {
       // Centralized-mode head_judge (or organizer, e.g. correcting) sees
       // every heat — heats are publicly readable so no extra join needed.
       // Distributed-mode judges only see heats they're assigned to.
+      // Both paths filter to events(status = 'live') — without this, every
+      // heat from every event an organizer has ever run (draft/archived
+      // events, "Duplicate for testing" clones, old test divisions) showed
+      // up mixed into one flat list (Tjokkie, 2026-08-14: "old workouts on
+      // there"). Only the event actually running on the day belongs here.
       if (userRole === "head_judge" || userRole === "organizer") {
         const { data: heatRows } = await supabase
           .from("heats")
-          .select("id, heat_number, status, division_id, workout_id, workouts(name), divisions(name, workout_scoring_type)")
-          .order("heat_number", { ascending: true });
+          .select(
+            "id, heat_number, status, division_id, workout_id, workouts(name), divisions(name, workout_scoring_type), events!inner(status)"
+          )
+          .eq("events.status", "live");
         setHeats(mapHeatRows(heatRows ?? []));
         setLoading(false);
         return;
@@ -159,8 +173,11 @@ export default function ScorePage() {
 
       const { data: heatRows } = await supabase
         .from("heats")
-        .select("id, heat_number, status, division_id, workout_id, workouts(name), divisions(name, workout_scoring_type)")
-        .in("id", heatIds);
+        .select(
+          "id, heat_number, status, division_id, workout_id, workouts(name), divisions(name, workout_scoring_type), events!inner(status)"
+        )
+        .in("id", heatIds)
+        .eq("events.status", "live");
       setHeats(mapHeatRows(heatRows ?? []));
       setLoading(false);
     }
@@ -176,20 +193,29 @@ export default function ScorePage() {
     };
 
     function mapHeatRows(rows: HeatRow[]): HeatOption[] {
-      return rows.map((h) => {
-        const div = Array.isArray(h.divisions) ? h.divisions[0] : h.divisions;
-        const workout = Array.isArray(h.workouts) ? h.workouts[0] : h.workouts;
-        return {
-          heatId: h.id,
-          heatNumber: h.heat_number,
-          workoutId: h.workout_id,
-          workoutName: workout?.name ?? null,
-          divisionId: h.division_id,
-          divisionName: div?.name ?? "Division",
-          scoringType: (div?.workout_scoring_type ?? "time") as HeatOption["scoringType"],
-          status: h.status,
-        };
-      });
+      return rows
+        .map((h) => {
+          const div = Array.isArray(h.divisions) ? h.divisions[0] : h.divisions;
+          const workout = Array.isArray(h.workouts) ? h.workouts[0] : h.workouts;
+          return {
+            heatId: h.id,
+            heatNumber: h.heat_number,
+            workoutId: h.workout_id,
+            workoutName: workout?.name ?? null,
+            divisionId: h.division_id,
+            divisionName: div?.name ?? "Division",
+            scoringType: (div?.workout_scoring_type ?? "time") as HeatOption["scoringType"],
+            status: h.status,
+          };
+        })
+        // Alphabetical by division name (Tjokkie, 2026-08-14: "sort from
+        // A-1"), heat number ascending within a division — the previous
+        // heat_number-only order interleaved every division's heats in
+        // whatever order the DB happened to return them.
+        .sort(
+          (a, b) =>
+            a.divisionName.localeCompare(b.divisionName) || a.heatNumber - b.heatNumber
+        );
     }
 
     loadHeats();
@@ -229,6 +255,7 @@ export default function ScorePage() {
       setLanes(result);
       setValues({});
       setTiebreakValues({});
+      setRxScaledByLane({});
       setLaneSyncStatus({});
       setScoredLanes(new Set());
 
@@ -295,7 +322,7 @@ export default function ScorePage() {
       const supabase = createClient();
       const { data } = await supabase
         .from("latest_scores")
-        .select("heat_assignment_id, value_raw, tiebreak_value")
+        .select("heat_assignment_id, value_raw, tiebreak_value, rx_or_scaled")
         .eq("workout_id", workoutLabel)
         .in(
           "heat_assignment_id",
@@ -305,6 +332,7 @@ export default function ScorePage() {
       const nextValues: Record<string, string> = {};
       const nextTiebreak: Record<string, string> = {};
       const nextMode: Record<string, "finished" | "capped"> = {};
+      const nextRxScaled: Record<string, "rx" | "scaled" | null> = {};
       const scored = new Set<string>();
 
       function formatRaw(raw: { time_seconds?: number; reps?: number; load_kg?: number }) {
@@ -321,6 +349,7 @@ export default function ScorePage() {
         scored.add(row.heat_assignment_id);
         nextValues[row.heat_assignment_id] = formatted.display;
         nextMode[row.heat_assignment_id] = formatted.mode;
+        nextRxScaled[row.heat_assignment_id] = (row.rx_or_scaled as "rx" | "scaled" | null) ?? null;
         if (row.tiebreak_value) {
           const tb = formatRaw(row.tiebreak_value as { time_seconds?: number; reps?: number });
           if (tb) nextTiebreak[row.heat_assignment_id] = tb.display;
@@ -330,6 +359,7 @@ export default function ScorePage() {
       setValues(nextValues);
       setTiebreakValues(nextTiebreak);
       setModeByLane(nextMode);
+      setRxScaledByLane(nextRxScaled);
       // Loaded straight from the server, so this is definitionally
       // "synced" — merge rather than overwrite so a lane just queued
       // locally (not yet visible here) doesn't get reset to unscored.
@@ -387,7 +417,7 @@ export default function ScorePage() {
       heatAssignmentId: lane.heatAssignmentId,
       workoutId: selectedWorkout?.name ?? freeTextWorkoutId,
       workoutRefId: selectedWorkout?.id ?? null,
-      rxOrScaled: null,
+      rxOrScaled: rxScaledByLane[lane.heatAssignmentId] ?? null,
       tiebreakValue,
       valueRaw,
     });
@@ -506,6 +536,28 @@ export default function ScorePage() {
                           {scoredLanes.has(lane.heatAssignmentId) ? "Scored" : "No score yet"}
                         </p>
                       </div>
+                    </div>
+
+                    <div className="flex text-xs border border-ink/10 rounded-lg overflow-hidden w-fit">
+                      {(["rx", "scaled"] as const).map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() =>
+                            setRxScaledByLane((prev) => ({
+                              ...prev,
+                              [lane.heatAssignmentId]: prev[lane.heatAssignmentId] === tag ? null : tag,
+                            }))
+                          }
+                          className={`px-2 py-1 ${
+                            rxScaledByLane[lane.heatAssignmentId] === tag
+                              ? "bg-accent text-white"
+                              : "bg-white text-ink/60"
+                          }`}
+                        >
+                          {tag === "rx" ? "RX" : "Scaled"}
+                        </button>
+                      ))}
                     </div>
 
                     <div className="flex items-center justify-between gap-3">
