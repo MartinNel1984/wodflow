@@ -20,6 +20,8 @@ export async function POST(request: Request) {
   const phone = (body?.phone as string | undefined)?.trim() || null;
   const idNumber = (body?.idNumber as string | undefined)?.trim() || null;
   const gymName = (body?.gymName as string | undefined)?.trim() || null;
+  const genderInput = (body?.gender as string | undefined)?.trim() || null;
+  const gender = genderInput === "male" || genderInput === "female" ? genderInput : null;
 
   if (!fullName || !email || !password || password.length < 8) {
     return NextResponse.json(
@@ -76,6 +78,7 @@ export async function POST(request: Request) {
         phone,
         id_number: idNumber,
         gym_name: gymName,
+        gender,
         role: "athlete",
       },
       { onConflict: "id" }

@@ -21,6 +21,7 @@ function AthleteSignupForm() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [idNumber, setIdNumber] = useState("");
+  const [gender, setGender] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,7 +34,7 @@ function AthleteSignupForm() {
       const res = await fetch("/api/auth/athlete-signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, email, phone, idNumber, password }),
+        body: JSON.stringify({ fullName, email, phone, idNumber, gender, password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -68,6 +69,18 @@ function AthleteSignupForm() {
           <Field label="Email" value={email} onChange={setEmail} type="email" />
           <Field label="Phone" value={phone} onChange={setPhone} />
           <Field label="ID number" value={idNumber} onChange={setIdNumber} />
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Gender</label>
+            <select
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+            >
+              <option value="">Prefer not to say</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
           <Field label="Password" value={password} onChange={setPassword} type="password" />
           <button
             type="submit"
