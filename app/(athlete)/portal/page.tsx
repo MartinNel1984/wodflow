@@ -168,6 +168,20 @@ export default async function PortalPage() {
   const eventsEntered = new Set(myRegistrations.map((r) => r.eventId)).size;
   const bestOverall = bestFinishes[0] ?? null;
 
+  // ATG-only PB tracker (migration-070) — mirrors the free-text
+  // gym_name match used to gate the /pbs route and nav tab.
+  const gymName = (myProfile?.gym_name ?? "").toLowerCase();
+  const isAtgAthlete = gymName.includes("atg") || gymName.includes("against the grain");
+  let bestPbRank: { rank: number; total: number } | null = null;
+  if (isAtgAthlete) {
+    const { data: rankings } = await supabase.rpc("get_my_pb_rankings");
+    for (const r of rankings ?? []) {
+      if (!bestPbRank || r.athlete_rank < bestPbRank.rank) {
+        bestPbRank = { rank: r.athlete_rank, total: r.total_athletes };
+      }
+    }
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <div className="py-2 flex flex-col items-center gap-3">
@@ -186,7 +200,7 @@ export default async function PortalPage() {
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className={`grid gap-3 ${isAtgAthlete ? "grid-cols-4" : "grid-cols-3"}`}>
         <StatBubble label="Upcoming events" value={String(eventsEntered)} />
         <StatBubble
           label="Best finish"
@@ -198,6 +212,15 @@ export default async function PortalPage() {
           value={seasonRank ? String(seasonRank.position) : "—"}
           sub={seasonRank ? `of ${seasonRank.total}` : undefined}
         />
+        {isAtgAthlete && (
+          <Link href="/pbs">
+            <StatBubble
+              label="Best PB rank"
+              value={bestPbRank ? String(bestPbRank.rank) : "—"}
+              sub={bestPbRank ? `of ${bestPbRank.total}` : "Log a PB"}
+            />
+          </Link>
+        )}
       </div>
 
       <div className="space-y-3">

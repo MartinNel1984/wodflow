@@ -16,8 +16,12 @@ export default async function AthleteLayout({ children }: { children: React.Reac
 
   if (!user) redirect("/athlete-login");
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: profile } = await supabase.from("profiles").select("role, gym_name").eq("id", user.id).single();
   const role = profile?.role ?? "athlete";
+  // Fuzzy free-text match, mirrors public.is_atg_athlete() (migration-070)
+  // — gates the PBs nav tab. The /pbs route re-checks server-side too.
+  const gymName = (profile?.gym_name ?? "").toLowerCase();
+  const isAtgAthlete = gymName.includes("atg") || gymName.includes("against the grain");
 
   // Enforce the role server-side (matches AthleteRouteGuard) so the portal
   // is never server-rendered to a non-athlete.
@@ -49,7 +53,11 @@ export default async function AthleteLayout({ children }: { children: React.Reac
     <div className="rumble-page min-h-screen" style={{ "--color-accent": "var(--rumble-blue-bright)" } as React.CSSProperties}>
       <div className="rumble-texture" aria-hidden="true" />
       <AthleteRouteGuard role={role} />
-      <AthleteNav currentDivisionId={currentDivisionId} latestNoticeAt={latestNotice?.created_at ?? null} />
+      <AthleteNav
+        currentDivisionId={currentDivisionId}
+        latestNoticeAt={latestNotice?.created_at ?? null}
+        showPbsTab={isAtgAthlete}
+      />
       {/* Hero logo moved into each page (AthleteHeroLogo) instead of living
           here — the portal home page needs its profile/rank blocks visible
           without scrolling, so it renders the logo lower down the page

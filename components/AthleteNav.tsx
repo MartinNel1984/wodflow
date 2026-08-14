@@ -15,9 +15,11 @@ function subscribe() {
 export default function AthleteNav({
   currentDivisionId,
   latestNoticeAt,
+  showPbsTab,
 }: {
   currentDivisionId: string | null;
   latestNoticeAt: string | null;
+  showPbsTab: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -51,6 +53,7 @@ export default function AthleteNav({
     { href: currentDivisionId ? `/heats/${currentDivisionId}` : null, label: "Heats" },
     { href: "/notice-board", label: "Notice Board" },
     { href: "/photos", label: "Photos" },
+    ...(showPbsTab ? [{ href: "/pbs", label: "PBs" }] : []),
   ];
 
   return (
