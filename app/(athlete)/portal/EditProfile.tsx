@@ -4,31 +4,35 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 // Column-level grant for self-updates (full_name, email, phone,
-// id_number, gym_name, updated_at) already exists — migration-035
+// id_number, gym_name, gender, updated_at) already exists — migration-035
 // locked profiles_update_self down to exactly these columns after
 // finding an athlete could otherwise PATCH their own role (migration-060
-// extended the grant to add gym_name). Email is handled separately below
-// via supabase.auth.updateUser rather than a plain table write, since
-// email is also the login credential (auth.users), not just profile
-// data — migration-059 syncs profiles.email once the athlete confirms
-// the change from their inbox.
+// extended the grant to add gym_name, migration-071 extended it again for
+// gender — used to split the PB tracker's ATG ranking by gender). Email is
+// handled separately below via supabase.auth.updateUser rather than a
+// plain table write, since email is also the login credential (auth.users),
+// not just profile data — migration-059 syncs profiles.email once the
+// athlete confirms the change from their inbox.
 export default function EditProfile({
   profileId,
   initialFullName,
   initialPhone,
   initialEmail,
   initialGymName,
+  initialGender,
 }: {
   profileId: string;
   initialFullName: string;
   initialPhone: string;
   initialEmail: string;
   initialGymName: string;
+  initialGender: string;
 }) {
   const [open, setOpen] = useState(false);
   const [fullName, setFullName] = useState(initialFullName);
   const [phone, setPhone] = useState(initialPhone);
   const [gymName, setGymName] = useState(initialGymName);
+  const [gender, setGender] = useState(initialGender);
   const [savingDetails, setSavingDetails] = useState(false);
   const [detailsError, setDetailsError] = useState("");
   const [detailsSaved, setDetailsSaved] = useState(false);
@@ -46,7 +50,12 @@ export default function EditProfile({
     const supabase = createClient();
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: fullName.trim(), phone: phone.trim() || null, gym_name: gymName.trim() || null })
+      .update({
+        full_name: fullName.trim(),
+        phone: phone.trim() || null,
+        gym_name: gymName.trim() || null,
+        gender: gender || null,
+      })
       .eq("id", profileId);
     setSavingDetails(false);
     if (error) {
@@ -109,6 +118,19 @@ export default function EditProfile({
             onChange={(e) => setGymName(e.target.value)}
             className="w-full bg-paper rounded-lg px-3 py-2 text-sm border border-ink/10 focus:outline-none focus:border-accent"
           />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider mb-1">Gender</label>
+          <select
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            className="w-full bg-paper rounded-lg px-3 py-2 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+          >
+            <option value="">Prefer not to say</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+          <p className="text-ink/50 text-xs mt-1">Used to split the ATG PB tracker&apos;s ranking by gender.</p>
         </div>
         {detailsError && <p className="text-red-700 text-xs">{detailsError}</p>}
         {detailsSaved && <p className="text-green-700 text-xs">Saved.</p>}

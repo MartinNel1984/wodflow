@@ -167,6 +167,11 @@ export default function PBCard({
             </span>
           </p>
         )}
+        {best && !ranking && (
+          <p className="text-ink/50 text-xs text-right max-w-[9rem]">
+            Set your gender in Edit my details to see your ATG rank
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-3 text-xs">

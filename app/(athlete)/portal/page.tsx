@@ -15,7 +15,7 @@ export default async function PortalPage() {
 
   const { data: myProfile } = await supabase
     .from("profiles")
-    .select("full_name, avatar_url, phone, gym_name")
+    .select("full_name, avatar_url, phone, gym_name, gender")
     .eq("id", user.id)
     .single();
 
@@ -197,6 +197,7 @@ export default async function PortalPage() {
           initialPhone={myProfile?.phone ?? ""}
           initialEmail={user.email ?? ""}
           initialGymName={myProfile?.gym_name ?? ""}
+          initialGender={myProfile?.gender ?? ""}
         />
       </div>
 
