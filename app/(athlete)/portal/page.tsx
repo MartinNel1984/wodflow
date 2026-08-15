@@ -173,16 +173,8 @@ export default async function PortalPage() {
   // gym_name match used to gate the /pbs route and nav tab.
   const gymName = (myProfile?.gym_name ?? "").toLowerCase();
   const isAtgAthlete = gymName.includes("atg") || gymName.includes("against the grain");
-  let bestPbRank: { rank: number; total: number } | null = null;
   let recentPbs: { liftKey: string; value: number; achievedDate: string }[] = [];
   if (isAtgAthlete) {
-    const { data: rankings } = await supabase.rpc("get_my_pb_rankings");
-    for (const r of rankings ?? []) {
-      if (!bestPbRank || r.athlete_rank < bestPbRank.rank) {
-        bestPbRank = { rank: r.athlete_rank, total: r.total_athletes };
-      }
-    }
-
     // Same "current PB per lift = most recent entry" rule PBCard uses
     // (rows[0] after a date-desc sort) — a lift's latest logged value is
     // treated as its PB, same assumption as the full /pbs page, so the
@@ -238,18 +230,6 @@ export default async function PortalPage() {
       </div>
 
       {isAtgAthlete && (
-        <div className="grid grid-cols-3 gap-3">
-          <Link href="/pbs">
-            <StatBubble
-              label="Best PB rank"
-              value={bestPbRank ? String(bestPbRank.rank) : "—"}
-              sub={bestPbRank ? `of ${bestPbRank.total}` : "Log a PB"}
-            />
-          </Link>
-        </div>
-      )}
-
-      {isAtgAthlete && recentPbs.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-sm uppercase tracking-wider text-paper/50">Personal Records</h2>
@@ -257,25 +237,34 @@ export default async function PortalPage() {
               View all →
             </Link>
           </div>
-          <div className="bg-white text-ink border-2 border-ink rounded-xl divide-y divide-ink/5">
-            {recentPbs.map((pb) => {
-              const lift = pbLiftByKey(pb.liftKey);
-              if (!lift) return null;
-              return (
-                <Link
-                  key={pb.liftKey}
-                  href="/pbs"
-                  className="flex items-center justify-between px-4 py-3 text-sm hover-lift"
-                >
-                  <div>
-                    <p className="font-semibold">{lift.label}</p>
-                    <p className="text-ink/40 text-xs">{new Date(pb.achievedDate).toLocaleDateString()}</p>
-                  </div>
-                  <p className="font-data font-bold text-accent">{formatPbValue(lift.unit, pb.value)}</p>
-                </Link>
-              );
-            })}
-          </div>
+          {recentPbs.length > 0 ? (
+            <div className="bg-white text-ink border-2 border-ink rounded-xl divide-y divide-ink/5">
+              {recentPbs.map((pb) => {
+                const lift = pbLiftByKey(pb.liftKey);
+                if (!lift) return null;
+                return (
+                  <Link
+                    key={pb.liftKey}
+                    href="/pbs"
+                    className="flex items-center justify-between px-4 py-3 text-sm hover-lift"
+                  >
+                    <div>
+                      <p className="font-semibold">{lift.label}</p>
+                      <p className="text-ink/40 text-xs">{new Date(pb.achievedDate).toLocaleDateString()}</p>
+                    </div>
+                    <p className="font-data font-bold text-accent">{formatPbValue(lift.unit, pb.value)}</p>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <Link
+              href="/pbs"
+              className="block bg-white text-ink border-2 border-ink rounded-xl px-4 py-6 text-center text-sm hover-lift"
+            >
+              No PBs logged yet — <span className="text-accent font-semibold">tap to log your first</span>
+            </Link>
+          )}
         </div>
       )}
 
