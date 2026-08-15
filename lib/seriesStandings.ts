@@ -45,104 +45,117 @@ function identityKey(row: HistoricalRow): string {
 export async function computeSeriesStandingsForEvents(
   supabase: SupabaseClient,
   eventIds: string[],
-  pointsConfig: ScoringConfig
+  pointsConfig: ScoringConfig,
+  seasonYear: number
 ): Promise<SeriesStanding[]> {
-  if (eventIds.length === 0) return [];
-
-  const [{ data: divisions }, { data: events }] = await Promise.all([
-    supabase.from("divisions").select("id, event_id, scoring_config, gender, season_tier").in("event_id", eventIds),
-    supabase.from("events").select("id, name").in("id", eventIds),
-  ]);
-  const eventNameById = new Map((events ?? []).map((e) => [e.id, e.name]));
-
-  const divisionStandings: DivisionStanding[] = [];
-  for (const division of divisions ?? []) {
-    const { data: rows } = await supabase
-      .from("public_leaderboard")
-      .select("heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value")
-      .eq("division_id", division.id);
-    if (!rows || rows.length === 0) continue;
-
-    const divisionScoringConfig = (division.scoring_config ?? { method: "rank_sum" }) as ScoringConfig;
-    const { standings } = computeStandings(rows as LeaderboardRow[], divisionScoringConfig);
-    if (standings.length === 0) continue;
-
-    divisionStandings.push({ division, standings });
-  }
-
-  // public_team_rosters (migration-055 adds profile_id) — every
-  // teammate's own profile, not just the captain. Same deliberate-RLS-
-  // bypass pattern as public_registration_profiles: a real athlete's
-  // own session otherwise can't see other competitors' rosters at all.
-  const allRegistrationIds = divisionStandings.flatMap((d) => d.standings.map((s) => s.registrationId));
-  const { data: roster } =
-    allRegistrationIds.length > 0
-      ? await supabase
-          .from("public_team_rosters")
-          .select("registration_id, profile_id")
-          .in("registration_id", allRegistrationIds)
-      : { data: [] as { registration_id: string; profile_id: string | null }[] };
-  const profileIdsByRegistration = new Map<string, string[]>();
-  for (const r of roster ?? []) {
-    if (!r.profile_id) continue;
-    const arr = profileIdsByRegistration.get(r.registration_id) ?? [];
-    arr.push(r.profile_id);
-    profileIdsByRegistration.set(r.registration_id, arr);
-  }
-
   const placements: SeriesEventPlacement[] = [];
-  function pushTeamPlacement(
-    registrationId: string,
-    displayName: string,
-    position: number,
-    entrants: number,
-    eventName: string,
-    gender: string | null
-  ) {
-    for (const profileId of profileIdsByRegistration.get(registrationId) ?? []) {
-      placements.push({ profileId, displayName, position, entrants, eventName, gender });
-    }
-  }
 
-  const tieredGroups = new Map<string, DivisionStanding[]>();
-  for (const ds of divisionStandings) {
-    const eventName = eventNameById.get(ds.division.event_id) ?? "Event";
-    // season_tier alone is enough to chain divisions together — gender
-    // only splits the chain into separate male/female tracks when it's
-    // actually tracked. Requiring both meant team events (never
-    // gender-tagged) silently skipped tiering and every division
-    // restarted its own points at the winner value.
-    if (ds.division.season_tier) {
-      const key = `${ds.division.event_id}::${ds.division.gender}`;
-      const group = tieredGroups.get(key) ?? [];
-      group.push(ds);
-      tieredGroups.set(key, group);
-    } else {
-      // Standalone — unchanged behavior, normalized entirely on its own.
-      for (const s of ds.standings) {
-        pushTeamPlacement(s.registrationId, s.displayName, s.place, ds.standings.length, eventName, ds.division.gender);
+  // Historical placements (events run outside Wodflow, e.g. Indy/Remix)
+  // don't depend on eventIds at all — they're pulled unconditionally
+  // below — so they must never be skipped just because the series'
+  // live event(s) haven't published results yet. Found 2026-08-15:
+  // season rank on the athlete portal was showing "—" for everyone
+  // because the only live event linked to the 2026 series was still
+  // hidden, which (via the old early-return) also silently excluded
+  // Indy 2026 and Remix 2026's already-final historical results.
+  if (eventIds.length > 0) {
+    const [{ data: divisions }, { data: events }] = await Promise.all([
+      supabase.from("divisions").select("id, event_id, scoring_config, gender, season_tier").in("event_id", eventIds),
+      supabase.from("events").select("id, name").in("id", eventIds),
+    ]);
+    const eventNameById = new Map((events ?? []).map((e) => [e.id, e.name]));
+
+    const divisionStandings: DivisionStanding[] = [];
+    for (const division of divisions ?? []) {
+      const { data: rows } = await supabase
+        .from("public_leaderboard")
+        .select("heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value")
+        .eq("division_id", division.id);
+      if (!rows || rows.length === 0) continue;
+
+      const divisionScoringConfig = (division.scoring_config ?? { method: "rank_sum" }) as ScoringConfig;
+      const { standings } = computeStandings(rows as LeaderboardRow[], divisionScoringConfig);
+      if (standings.length === 0) continue;
+
+      divisionStandings.push({ division, standings });
+    }
+
+    // public_team_rosters (migration-055 adds profile_id) — every
+    // teammate's own profile, not just the captain. Same deliberate-RLS-
+    // bypass pattern as public_registration_profiles: a real athlete's
+    // own session otherwise can't see other competitors' rosters at all.
+    const allRegistrationIds = divisionStandings.flatMap((d) => d.standings.map((s) => s.registrationId));
+    const { data: roster } =
+      allRegistrationIds.length > 0
+        ? await supabase
+            .from("public_team_rosters")
+            .select("registration_id, profile_id")
+            .in("registration_id", allRegistrationIds)
+        : { data: [] as { registration_id: string; profile_id: string | null }[] };
+    const profileIdsByRegistration = new Map<string, string[]>();
+    for (const r of roster ?? []) {
+      if (!r.profile_id) continue;
+      const arr = profileIdsByRegistration.get(r.registration_id) ?? [];
+      arr.push(r.profile_id);
+      profileIdsByRegistration.set(r.registration_id, arr);
+    }
+
+    function pushTeamPlacement(
+      registrationId: string,
+      displayName: string,
+      position: number,
+      entrants: number,
+      eventName: string,
+      gender: string | null
+    ) {
+      for (const profileId of profileIdsByRegistration.get(registrationId) ?? []) {
+        placements.push({ profileId, displayName, position, entrants, eventName, gender });
       }
     }
-  }
 
-  for (const group of tieredGroups.values()) {
-    group.sort((a, b) => (a.division.season_tier ?? 0) - (b.division.season_tier ?? 0));
-    const totalEntrants = group.reduce((sum, ds) => sum + ds.standings.length, 0);
-    let offset = 0;
-    for (const ds of group) {
+    const tieredGroups = new Map<string, DivisionStanding[]>();
+    for (const ds of divisionStandings) {
       const eventName = eventNameById.get(ds.division.event_id) ?? "Event";
-      for (const s of ds.standings) {
-        pushTeamPlacement(s.registrationId, s.displayName, offset + s.place, totalEntrants, eventName, ds.division.gender);
+      // season_tier alone is enough to chain divisions together — gender
+      // only splits the chain into separate male/female tracks when it's
+      // actually tracked. Requiring both meant team events (never
+      // gender-tagged) silently skipped tiering and every division
+      // restarted its own points at the winner value.
+      if (ds.division.season_tier) {
+        const key = `${ds.division.event_id}::${ds.division.gender}`;
+        const group = tieredGroups.get(key) ?? [];
+        group.push(ds);
+        tieredGroups.set(key, group);
+      } else {
+        // Standalone — unchanged behavior, normalized entirely on its own.
+        for (const s of ds.standings) {
+          pushTeamPlacement(s.registrationId, s.displayName, s.place, ds.standings.length, eventName, ds.division.gender);
+        }
       }
-      offset += ds.standings.length;
+    }
+
+    for (const group of tieredGroups.values()) {
+      group.sort((a, b) => (a.division.season_tier ?? 0) - (b.division.season_tier ?? 0));
+      const totalEntrants = group.reduce((sum, ds) => sum + ds.standings.length, 0);
+      let offset = 0;
+      for (const ds of group) {
+        const eventName = eventNameById.get(ds.division.event_id) ?? "Event";
+        for (const s of ds.standings) {
+          pushTeamPlacement(s.registrationId, s.displayName, offset + s.place, totalEntrants, eventName, ds.division.gender);
+        }
+        offset += ds.standings.length;
+      }
     }
   }
 
   // Historical placements (events run outside Wodflow, e.g. Indy/Remix —
-  // see migration-051), tiered the same way when tagged.
+  // see migration-051), tiered the same way when tagged. Scoped to this
+  // season's year (migration-073) — season rank is a per-year thing, not
+  // a lifetime total, so 2025 comps shouldn't bleed into a 2026 rank.
   const { data: historical } = await supabase
     .from("public_historical_placements")
-    .select("profile_id, athlete_email, display_name, event_name, position, entrants, gender, season_tier");
+    .select("profile_id, athlete_email, display_name, event_name, position, entrants, gender, season_tier")
+    .eq("season_year", seasonYear);
 
   const historicalTieredGroups = new Map<string, HistoricalRow[]>();
   for (const h of (historical ?? []) as HistoricalRow[]) {

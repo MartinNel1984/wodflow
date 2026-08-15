@@ -3,11 +3,12 @@ import { addHistoricalResult, removeHistoricalResult, updateHistoricalResult } f
 
 export default async function HistoricalResultsPage() {
   const { supabase, organizationId } = await requireOrganizer();
+  const currentYear = new Date().getFullYear();
 
   const { data: results } = await supabase
     .from("historical_results")
     .select(
-      "id, event_name, division_name, team_name, athlete_name, athlete_email, position, entrants, gender, season_tier"
+      "id, event_name, division_name, team_name, athlete_name, athlete_email, position, entrants, gender, season_tier, season_year"
     )
     .eq("organization_id", organizationId)
     .order("event_name", { ascending: true })
@@ -48,6 +49,19 @@ export default async function HistoricalResultsPage() {
               className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
             />
           </div>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+            Season year (which year&apos;s season rank this counts toward)
+          </label>
+          <input
+            type="number"
+            name="seasonYear"
+            required
+            defaultValue={currentYear}
+            min={2000}
+            className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+          />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -153,7 +167,10 @@ export default async function HistoricalResultsPage() {
           <tbody>
             {(results ?? []).map((r) => (
               <tr key={r.id} className="border-t border-ink/10">
-                <td className="px-4 py-2">{r.event_name}</td>
+                <td className="px-4 py-2">
+                  {r.event_name}
+                  <span className="text-ink/40"> · {r.season_year} season</span>
+                </td>
                 <td className="px-4 py-2 text-ink/60">
                   {r.division_name}
                   {r.team_name ? ` · ${r.team_name}` : ""}

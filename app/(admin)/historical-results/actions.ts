@@ -16,10 +16,12 @@ export async function addHistoricalResult(formData: FormData) {
   const gender = String(formData.get("gender") ?? "").trim() || null;
   const seasonTierRaw = formData.get("seasonTier");
   const seasonTier = seasonTierRaw ? Number(seasonTierRaw) : null;
+  const seasonYear = Number(formData.get("seasonYear"));
 
   if (!eventName || !divisionName || !athleteName || !athleteEmail) return;
   if (!Number.isInteger(position) || position < 1) return;
   if (!Number.isInteger(entrants) || entrants < 1) return;
+  if (!Number.isInteger(seasonYear) || seasonYear < 2000) return;
 
   await supabase.from("historical_results").insert({
     organization_id: organizationId,
@@ -32,6 +34,7 @@ export async function addHistoricalResult(formData: FormData) {
     entrants,
     gender,
     season_tier: seasonTier,
+    season_year: seasonYear,
   });
 
   revalidatePath("/historical-results");

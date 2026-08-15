@@ -30,7 +30,7 @@ export default async function SeriesLeaderboardPage({
   // a registration made without a signed-in account (still fully
   // supported for one-off events) can't be attributed to a season
   // identity and is excluded here. See lib/seriesStandings.ts.
-  const seriesStandings = await computeSeriesStandingsForEvents(supabase, eventIds, pointsConfig);
+  const seriesStandings = await computeSeriesStandingsForEvents(supabase, eventIds, pointsConfig, series.year);
 
   // Prefer the athlete's own profile name over whatever display name a
   // particular event happened to show (e.g. a team name) — a season

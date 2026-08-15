@@ -133,7 +133,7 @@ export default async function PortalPage() {
   // flag yet (one series per season is the only setup this app has).
   const { data: currentSeries } = await supabase
     .from("series")
-    .select("points_config, series_events(event_id, events(results_visible))")
+    .select("year, points_config, series_events(event_id, events(results_visible))")
     .order("year", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -150,7 +150,7 @@ export default async function PortalPage() {
       })
       .map((se) => se.event_id);
     const pointsConfig = (currentSeries.points_config ?? { method: "gap_formula", winner_points: 100 }) as ScoringConfig;
-    const seriesStandings = await computeSeriesStandingsForEvents(supabase, seriesEventIds, pointsConfig);
+    const seriesStandings = await computeSeriesStandingsForEvents(supabase, seriesEventIds, pointsConfig, currentSeries.year);
     const idx = seriesStandings.findIndex((s) => s.profileId === user.id);
     // Male and Female are separate competitions on the admin Season
     // Leaderboard (they're never ranked against each other), so an
