@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Anton, Hanken_Grotesk, Space_Mono, Permanent_Marker } from "next/font/google";
 import localFont from "next/font/local";
 import Script from "next/script";
@@ -45,6 +45,17 @@ const rumbleOptional = localFont({
 export const metadata: Metadata = {
   title: "Wodflow",
   description: "Competition management for CrossFit events.",
+  icons: {
+    apple: "/rumble/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    title: "Rumble",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#14161f",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
