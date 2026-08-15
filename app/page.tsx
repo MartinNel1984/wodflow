@@ -79,6 +79,11 @@ export default async function RumbleHubPage() {
             </Link>
           )}
         </div>
+        <div className="flex justify-center mt-6">
+          <Link href="/athlete-login" className="rumble-cta-fork rumble-cta-fork--volt hover-lift">
+            Athlete Sign In →
+          </Link>
+        </div>
         <div className="flex justify-center gap-4 mt-4 text-xs opacity-70">
           <a href="/login" className="underline">
             Organizer sign-in

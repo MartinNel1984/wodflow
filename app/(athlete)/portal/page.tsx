@@ -201,7 +201,7 @@ export default async function PortalPage() {
         />
       </div>
 
-      <div className={`grid gap-3 ${isAtgAthlete ? "grid-cols-4" : "grid-cols-3"}`}>
+      <div className="grid grid-cols-3 gap-3">
         <StatBubble label="Upcoming events" value={String(eventsEntered)} />
         <StatBubble
           label="Best finish"
@@ -213,7 +213,10 @@ export default async function PortalPage() {
           value={seasonRank ? String(seasonRank.position) : "—"}
           sub={seasonRank ? `of ${seasonRank.total}` : undefined}
         />
-        {isAtgAthlete && (
+      </div>
+
+      {isAtgAthlete && (
+        <div className="grid grid-cols-3 gap-3">
           <Link href="/pbs">
             <StatBubble
               label="Best PB rank"
@@ -221,8 +224,8 @@ export default async function PortalPage() {
               sub={bestPbRank ? `of ${bestPbRank.total}` : "Log a PB"}
             />
           </Link>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">

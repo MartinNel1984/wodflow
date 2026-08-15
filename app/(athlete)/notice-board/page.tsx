@@ -17,7 +17,6 @@ export default async function NoticeBoardPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <AthleteHeroLogo />
       <h1 className="text-2xl font-semibold text-paper">Notice Board</h1>
 
       <div className="space-y-3">
@@ -40,6 +39,8 @@ export default async function NoticeBoardPage() {
           <p className="text-paper/60 text-sm text-center py-10">Nothing posted yet — check back closer to your event.</p>
         )}
       </div>
+
+      <AthleteHeroLogo />
     </div>
   );
 }
