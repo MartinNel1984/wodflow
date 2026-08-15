@@ -4,6 +4,8 @@ export type HubDivision = { id: string; name: string };
 
 export type HubPhoto = { id: string; image_url: string; caption: string | null };
 
+export type HubNewsItem = { id: string; title: string; body: string | null; created_at: string };
+
 export type RumbleHubData = {
   event: {
     id: string;
@@ -16,9 +18,9 @@ export type RumbleHubData = {
   isLive: boolean;
   milestones: {
     registrationOpen: boolean;
-    heatsReleased: boolean;
     resultsLive: boolean;
   };
+  news: HubNewsItem[];
   photos: HubPhoto[];
 };
 
@@ -38,17 +40,18 @@ export async function getRumbleHubData(): Promise<RumbleHubData> {
     .limit(1)
     .maybeSingle();
 
-  const { data: photosData } = await supabase
-    .from("hub_photos")
-    .select("id, image_url, caption")
-    .order("sort_order", { ascending: true });
+  const [{ data: photosData }, { data: newsData }] = await Promise.all([
+    supabase.from("hub_photos").select("id, image_url, caption").order("sort_order", { ascending: true }),
+    supabase.from("hub_news").select("id, title, body, created_at").order("created_at", { ascending: false }).limit(5),
+  ]);
 
   if (!event) {
     return {
       event: null,
       divisions: [],
       isLive: false,
-      milestones: { registrationOpen: false, heatsReleased: false, resultsLive: false },
+      milestones: { registrationOpen: false, resultsLive: false },
+      news: newsData ?? [],
       photos: photosData ?? [],
     };
   }
@@ -65,14 +68,9 @@ export async function getRumbleHubData(): Promise<RumbleHubData> {
   const divisions = (divisionsData ?? []).filter((d) => d.name !== "RX Test");
   const divisionIds = divisions.map((d) => d.id);
 
-  let heatsReleased = false;
   let resultsLive = false;
   if (divisionIds.length > 0) {
-    const { data: heats } = await supabase
-      .from("heats")
-      .select("id, status")
-      .in("division_id", divisionIds);
-    heatsReleased = (heats ?? []).length > 0;
+    const { data: heats } = await supabase.from("heats").select("id, status").in("division_id", divisionIds);
     resultsLive = (heats ?? []).some((h) => h.status === "completed");
   }
 
@@ -89,7 +87,8 @@ export async function getRumbleHubData(): Promise<RumbleHubData> {
     },
     divisions,
     isLive,
-    milestones: { registrationOpen: true, heatsReleased, resultsLive },
+    milestones: { registrationOpen: true, resultsLive },
+    news: newsData ?? [],
     photos: photosData ?? [],
   };
 }

@@ -44,7 +44,7 @@ function formatDateRange(start: string, end: string | null): string {
 }
 
 export default async function RumbleHubPage() {
-  const { event, divisions, isLive, milestones, photos } = await getRumbleHubData();
+  const { event, divisions, isLive, milestones, news, photos } = await getRumbleHubData();
 
   return (
     <main className="rumble-page">
@@ -139,12 +139,17 @@ export default async function RumbleHubPage() {
       <section className="rumble-section">
         <h2 className="rumble-section-title">News</h2>
         <ul className="space-y-2">
+          {news.map((n) => (
+            <li key={n.id} className="rumble-card">
+              <p className="font-semibold">{n.title}</p>
+              {n.body && <p className="text-sm opacity-80 mt-1">{n.body}</p>}
+            </li>
+          ))}
           {milestones.registrationOpen && (
             <li className="rumble-card">Registration is open — grab your team&apos;s spot.</li>
           )}
-          {milestones.heatsReleased && <li className="rumble-card">Heats have been released.</li>}
           {milestones.resultsLive && <li className="rumble-card">Results are live on the leaderboard.</li>}
-          {!milestones.registrationOpen && (
+          {news.length === 0 && !milestones.registrationOpen && (
             <li className="rumble-card opacity-70">No news yet — check back closer to the event.</li>
           )}
         </ul>

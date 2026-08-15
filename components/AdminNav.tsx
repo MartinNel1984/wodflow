@@ -16,6 +16,8 @@ const links = [
   { href: "/historical-results", label: "Historical Results" },
   { href: "/brand-kits", label: "Brand Kits" },
   { href: "/hub-photos", label: "Hub Photos" },
+  { href: "/hub-news", label: "Hub News" },
+  { href: "/pb-board", label: "PB Board" },
   { href: "/judges", label: "Judges" },
   { href: "/judge-applications", label: "Judge Signups" },
   { href: "/settings", label: "Settings" },

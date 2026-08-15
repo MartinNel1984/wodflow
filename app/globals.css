@@ -481,6 +481,11 @@ button:hover, .hover-lift:hover {
   letter-spacing: 0.01em;
   text-transform: none;
   text-align: center;
+  /* Shortest label ("I'm Judging") otherwise renders visibly narrower
+     than its siblings since width is auto/content-based — Martin/
+     Tjokkie wanted all four hero buttons reading as one consistent
+     set, 2026-08-15. */
+  min-width: 15.5rem;
 }
 
 .rumble-cta-fork--blue {

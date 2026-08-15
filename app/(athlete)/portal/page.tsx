@@ -5,6 +5,7 @@ import Link from "next/link";
 import AvatarUpload from "./AvatarUpload";
 import EditProfile from "./EditProfile";
 import { AthleteHeroLogo } from "@/components/AthleteHeroLogo";
+import { pbLiftByKey, formatPbValue } from "@/lib/pbLifts";
 
 export default async function PortalPage() {
   const supabase = await createClient();
@@ -173,6 +174,7 @@ export default async function PortalPage() {
   const gymName = (myProfile?.gym_name ?? "").toLowerCase();
   const isAtgAthlete = gymName.includes("atg") || gymName.includes("against the grain");
   let bestPbRank: { rank: number; total: number } | null = null;
+  let recentPbs: { liftKey: string; value: number; achievedDate: string }[] = [];
   if (isAtgAthlete) {
     const { data: rankings } = await supabase.rpc("get_my_pb_rankings");
     for (const r of rankings ?? []) {
@@ -180,6 +182,26 @@ export default async function PortalPage() {
         bestPbRank = { rank: r.athlete_rank, total: r.total_athletes };
       }
     }
+
+    // Same "current PB per lift = most recent entry" rule PBCard uses
+    // (rows[0] after a date-desc sort) — a lift's latest logged value is
+    // treated as its PB, same assumption as the full /pbs page, so the
+    // two stay consistent. Show the 3 most recently achieved across all
+    // lifts as a preview, with "View all" through to the full list.
+    const { data: allPbs } = await supabase
+      .from("athlete_pbs")
+      .select("lift_key, value_numeric, achieved_date")
+      .eq("profile_id", user.id)
+      .order("achieved_date", { ascending: false });
+    const currentPbByLift = new Map<string, { liftKey: string; value: number; achievedDate: string }>();
+    for (const row of allPbs ?? []) {
+      if (!currentPbByLift.has(row.lift_key)) {
+        currentPbByLift.set(row.lift_key, { liftKey: row.lift_key, value: row.value_numeric, achievedDate: row.achieved_date });
+      }
+    }
+    recentPbs = [...currentPbByLift.values()]
+      .sort((a, b) => b.achievedDate.localeCompare(a.achievedDate))
+      .slice(0, 3);
   }
 
   return (
@@ -209,7 +231,7 @@ export default async function PortalPage() {
           sub={bestOverall ? `of ${bestOverall.total}` : undefined}
         />
         <StatBubble
-          label="Series rank"
+          label="Rumble rank"
           value={seasonRank ? String(seasonRank.position) : "—"}
           sub={seasonRank ? `of ${seasonRank.total}` : undefined}
         />
@@ -224,6 +246,36 @@ export default async function PortalPage() {
               sub={bestPbRank ? `of ${bestPbRank.total}` : "Log a PB"}
             />
           </Link>
+        </div>
+      )}
+
+      {isAtgAthlete && recentPbs.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-sm uppercase tracking-wider text-paper/50">Personal Records</h2>
+            <Link href="/pbs" className="text-accent text-xs hover:underline">
+              View all →
+            </Link>
+          </div>
+          <div className="bg-white text-ink border-2 border-ink rounded-xl divide-y divide-ink/5">
+            {recentPbs.map((pb) => {
+              const lift = pbLiftByKey(pb.liftKey);
+              if (!lift) return null;
+              return (
+                <Link
+                  key={pb.liftKey}
+                  href="/pbs"
+                  className="flex items-center justify-between px-4 py-3 text-sm hover-lift"
+                >
+                  <div>
+                    <p className="font-semibold">{lift.label}</p>
+                    <p className="text-ink/40 text-xs">{new Date(pb.achievedDate).toLocaleDateString()}</p>
+                  </div>
+                  <p className="font-data font-bold text-accent">{formatPbValue(lift.unit, pb.value)}</p>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       )}
 
