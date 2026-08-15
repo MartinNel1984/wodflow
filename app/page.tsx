@@ -63,24 +63,31 @@ export default async function RumbleHubPage() {
             {event.venue_name ? ` · ${event.venue_name}` : ""}
           </p>
         )}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-6">
-          <Link href="/all-events" className="rumble-cta-fork rumble-cta-fork--dark-blue hover-lift">
+        <div className="grid grid-cols-1 sm:grid-cols-[auto_auto_auto] gap-4 justify-center items-center mt-6">
+          <Link
+            href="/all-events"
+            className="rumble-cta-fork rumble-cta-fork--dark-blue hover-lift justify-self-center sm:col-start-1 sm:row-start-1"
+          >
             I&apos;m Competing →
           </Link>
-          <Link href="/tickets" className="rumble-cta-fork rumble-cta-fork--blue hover-lift">
+          <Link
+            href="/tickets"
+            className="rumble-cta-fork rumble-cta-fork--blue hover-lift justify-self-center sm:col-start-2 sm:row-start-1"
+          >
             I&apos;m Spectating →
           </Link>
           {event && (
             <Link
               href={`/events/${event.id}/judge-signup`}
-              className="rumble-cta-fork rumble-cta-fork--light-blue hover-lift"
+              className="rumble-cta-fork rumble-cta-fork--light-blue hover-lift justify-self-center sm:col-start-3 sm:row-start-1"
             >
               I&apos;m Judging →
             </Link>
           )}
-        </div>
-        <div className="flex justify-center mt-6">
-          <Link href="/athlete-login" className="rumble-cta-fork rumble-cta-fork--white hover-lift">
+          <Link
+            href="/athlete-login"
+            className="rumble-cta-fork rumble-cta-fork--white hover-lift justify-self-center sm:col-start-2 sm:row-start-2"
+          >
             Athlete Sign In →
           </Link>
         </div>
