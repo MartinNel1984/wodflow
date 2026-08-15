@@ -73,14 +73,14 @@ export default async function RumbleHubPage() {
           {event && (
             <Link
               href={`/events/${event.id}/judge-signup`}
-              className="rumble-cta-fork rumble-cta-fork--white hover-lift"
+              className="rumble-cta-fork rumble-cta-fork--light-blue hover-lift"
             >
               I&apos;m Judging →
             </Link>
           )}
         </div>
         <div className="flex justify-center mt-6">
-          <Link href="/athlete-login" className="rumble-cta-fork rumble-cta-fork--volt hover-lift">
+          <Link href="/athlete-login" className="rumble-cta-fork rumble-cta-fork--white hover-lift">
             Athlete Sign In →
           </Link>
         </div>
