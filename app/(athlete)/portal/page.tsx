@@ -173,22 +173,40 @@ export default async function PortalPage() {
   // gym_name match used to gate the /pbs route and nav tab.
   const gymName = (myProfile?.gym_name ?? "").toLowerCase();
   const isAtgAthlete = gymName.includes("atg") || gymName.includes("against the grain");
-  let recentPbs: { liftKey: string; value: number; achievedDate: string }[] = [];
+  type PbRanking = {
+    lift_key: string;
+    my_best_value: number;
+    my_best_date: string;
+    athlete_rank: number;
+    total_athletes: number;
+  };
+  let recentPbs: { liftKey: string; value: number; achievedDate: string; rank: number | null; totalAthletes: number | null }[] = [];
   if (isAtgAthlete) {
     // Same "current PB per lift = most recent entry" rule PBCard uses
     // (rows[0] after a date-desc sort) — a lift's latest logged value is
     // treated as its PB, same assumption as the full /pbs page, so the
     // two stay consistent. Show the 3 most recently achieved across all
     // lifts as a preview, with "View all" through to the full list.
-    const { data: allPbs } = await supabase
-      .from("athlete_pbs")
-      .select("lift_key, value_numeric, achieved_date")
-      .eq("profile_id", user.id)
-      .order("achieved_date", { ascending: false });
-    const currentPbByLift = new Map<string, { liftKey: string; value: number; achievedDate: string }>();
+    const [{ data: allPbs }, { data: rankings }] = await Promise.all([
+      supabase
+        .from("athlete_pbs")
+        .select("lift_key, value_numeric, achieved_date")
+        .eq("profile_id", user.id)
+        .order("achieved_date", { ascending: false }),
+      supabase.rpc("get_my_pb_rankings") as unknown as Promise<{ data: PbRanking[] | null }>,
+    ]);
+    const rankByLift = new Map((rankings ?? []).map((r: PbRanking) => [r.lift_key, r]));
+    const currentPbByLift = new Map<string, { liftKey: string; value: number; achievedDate: string; rank: number | null; totalAthletes: number | null }>();
     for (const row of allPbs ?? []) {
       if (!currentPbByLift.has(row.lift_key)) {
-        currentPbByLift.set(row.lift_key, { liftKey: row.lift_key, value: row.value_numeric, achievedDate: row.achieved_date });
+        const ranking = rankByLift.get(row.lift_key);
+        currentPbByLift.set(row.lift_key, {
+          liftKey: row.lift_key,
+          value: row.value_numeric,
+          achievedDate: row.achieved_date,
+          rank: ranking?.athlete_rank ?? null,
+          totalAthletes: ranking?.total_athletes ?? null,
+        });
       }
     }
     recentPbs = [...currentPbByLift.values()]
@@ -252,7 +270,14 @@ export default async function PortalPage() {
                       <p className="font-semibold">{lift.label}</p>
                       <p className="text-ink/40 text-xs">{new Date(pb.achievedDate).toLocaleDateString()}</p>
                     </div>
-                    <p className="font-data font-bold text-accent">{formatPbValue(lift.unit, pb.value)}</p>
+                    <div className="text-right">
+                      <p className="font-data font-bold text-accent">{formatPbValue(lift.unit, pb.value)}</p>
+                      {pb.rank && pb.totalAthletes && (
+                        <p className="text-ink/40 text-xs">
+                          ATG rank {pb.rank}/{pb.totalAthletes}
+                        </p>
+                      )}
+                    </div>
                   </Link>
                 );
               })}
