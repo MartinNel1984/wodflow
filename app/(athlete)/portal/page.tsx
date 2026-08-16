@@ -129,29 +129,36 @@ export default async function PortalPage() {
   const registeredEventIds = new Set(myRegistrations.map((r) => r.eventId));
   const registerableEvents = (upcomingEvents ?? []).filter((e) => !registeredEventIds.has(e.id));
 
-  // Season/BIG leaderboard rank — the current season is just "whichever
-  // series has the latest year", since there's no explicit "active"
-  // flag yet (one series per season is the only setup this app has).
-  const { data: currentSeries } = await supabase
+  // Rumble rank — a lifetime rank across every Rumble Series event the
+  // athlete has ever placed in (not just the current season), per
+  // Martin 2026-08-16: it should count all 5 prior events (Rumble Teams
+  // 2025, Rumble Indy 2025, Rumble In House 2025, Indy 2026, Remix 2026),
+  // not just the current season's live event. Pull every series (not
+  // just the latest year) for its live event ids, and pass
+  // seasonYear: null to computeSeriesStandingsForEvents so the historical
+  // placements query isn't scoped to a single year either. Points config
+  // comes from the most recent series, same formula the admin Season
+  // Leaderboard uses.
+  const { data: allSeries } = await supabase
     .from("series")
     .select("year, points_config, series_events(event_id, events(results_visible))")
-    .order("year", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("year", { ascending: false });
 
   let seasonRank: { position: number; total: number } | null = null;
-  if (currentSeries) {
+  if (allSeries && allSeries.length > 0) {
     // Skip events an organizer has hidden for rehearsal (migration-065)
     // — same boundary as the public leaderboard/heat-sheet pages, so a
     // rehearsal doesn't leak into the athlete's own season rank either.
-    const seriesEventIds = (currentSeries.series_events ?? [])
-      .filter((se) => {
-        const e = Array.isArray(se.events) ? se.events[0] : se.events;
-        return e?.results_visible !== false;
-      })
-      .map((se) => se.event_id);
-    const pointsConfig = (currentSeries.points_config ?? { method: "gap_formula", winner_points: 100 }) as ScoringConfig;
-    const seriesStandings = await computeSeriesStandingsForEvents(supabase, seriesEventIds, pointsConfig, currentSeries.year);
+    const seriesEventIds = allSeries.flatMap((series) =>
+      (series.series_events ?? [])
+        .filter((se) => {
+          const e = Array.isArray(se.events) ? se.events[0] : se.events;
+          return e?.results_visible !== false;
+        })
+        .map((se) => se.event_id)
+    );
+    const pointsConfig = (allSeries[0].points_config ?? { method: "gap_formula", winner_points: 100 }) as ScoringConfig;
+    const seriesStandings = await computeSeriesStandingsForEvents(supabase, seriesEventIds, pointsConfig, null);
     const idx = seriesStandings.findIndex((s) => s.profileId === user.id);
     // Male and Female are separate competitions on the admin Season
     // Leaderboard (they're never ranked against each other), so an

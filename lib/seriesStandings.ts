@@ -46,7 +46,7 @@ export async function computeSeriesStandingsForEvents(
   supabase: SupabaseClient,
   eventIds: string[],
   pointsConfig: ScoringConfig,
-  seasonYear: number
+  seasonYear: number | null
 ): Promise<SeriesStanding[]> {
   const placements: SeriesEventPlacement[] = [];
 
@@ -152,10 +152,16 @@ export async function computeSeriesStandingsForEvents(
   // see migration-051), tiered the same way when tagged. Scoped to this
   // season's year (migration-073) — season rank is a per-year thing, not
   // a lifetime total, so 2025 comps shouldn't bleed into a 2026 rank.
-  const { data: historical } = await supabase
+  // seasonYear === null opts out of that scoping entirely (the athlete
+  // portal's all-time "Rumble rank" — every season's results counts,
+  // not just the current one).
+  let historicalQuery = supabase
     .from("public_historical_placements")
-    .select("profile_id, athlete_email, display_name, event_name, position, entrants, gender, season_tier")
-    .eq("season_year", seasonYear);
+    .select("profile_id, athlete_email, display_name, event_name, position, entrants, gender, season_tier");
+  if (seasonYear !== null) {
+    historicalQuery = historicalQuery.eq("season_year", seasonYear);
+  }
+  const { data: historical } = await historicalQuery;
 
   const historicalTieredGroups = new Map<string, HistoricalRow[]>();
   for (const h of (historical ?? []) as HistoricalRow[]) {
