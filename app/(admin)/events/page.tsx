@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { createEvent, updateEventStatus, updateEventBrandKit, duplicateEvent } from "./actions";
+import { createEvent, updateEventStatus, updateEventBrandKit, duplicateEvent, deleteEvent } from "./actions";
+import { DeleteEventButton } from "./DeleteEventButton";
 import Link from "next/link";
 
 export default async function EventsPage() {
@@ -63,6 +64,15 @@ export default async function EventsPage() {
                     <button type="submit" className="text-accent text-xs hover:underline">
                       Duplicate for testing
                     </button>
+                  </form>
+                </>
+              )}
+              {e.is_test && (
+                <>
+                  {" · "}
+                  <form action={deleteEvent} className="inline">
+                    <input type="hidden" name="id" value={e.id} />
+                    <DeleteEventButton eventName={e.name} />
                   </form>
                 </>
               )}

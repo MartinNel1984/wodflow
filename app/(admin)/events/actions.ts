@@ -259,6 +259,20 @@ export async function duplicateEvent(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+// Scoped to test copies only (is_test=true) — those are throwaway
+// rehearsal events by design (see duplicateEvent above), so deleting
+// one can't touch a real event's registrations/payments/scores.
+// Deleting a real event isn't exposed here; that needs a deliberate,
+// separate confirmation flow given the financial/PII data at stake.
+export async function deleteEvent(formData: FormData) {
+  const { supabase, organizationId } = await requireOrganizer();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  await supabase.from("events").delete().eq("id", id).eq("organization_id", organizationId).eq("is_test", true);
+  revalidatePath("/events");
+}
+
 export async function updateEventBrandKit(formData: FormData) {
   const { supabase, organizationId } = await requireOrganizer();
   const id = String(formData.get("id") ?? "");
