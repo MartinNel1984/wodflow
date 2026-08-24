@@ -37,13 +37,15 @@ export function PhotoCarousel({ photos }: { photos: HubPhoto[] }) {
       onPointerLeave={() => (pausedRef.current = false)}
       className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1"
     >
-      {photos.map((p) => (
+      {photos.map((p, i) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           key={p.id}
           src={p.image_url}
           alt={p.caption ?? ""}
           className="h-56 w-auto rounded-xl object-cover snap-center shrink-0"
+          loading={i < 2 ? "eager" : "lazy"}
+          decoding="async"
         />
       ))}
     </div>
