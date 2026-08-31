@@ -108,6 +108,38 @@ jobs:
 
           check_no_workout_name_collision
 
+          # Regression guard for the 2026-08-13 PII leak (recurred
+          # 2026-08-20 via migration-073's drop+recreate resetting
+          # Supabase's default privilege grants, refixed in migration-076):
+          # public_historical_placements must NEVER return athlete_email to
+          # an anonymous caller. A 401/403 or an empty result is fine — any
+          # row with athlete_email populated is a live leak.
+          check_no_anon_email_leak() {
+            local code rows leaked
+            code=$(curl -s --max-time 15 -o /tmp/historical_placements.json -w "%{http_code}" \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              "$SUPABASE_URL/rest/v1/public_historical_placements?select=athlete_email&athlete_email=not.is.null&limit=1")
+            rows=$(cat /tmp/historical_placements.json 2>/dev/null)
+            if [ "$code" -eq 401 ] || [ "$code" -eq 403 ]; then
+              echo "OK: public_historical_placements -> anon correctly denied (HTTP ${code})"
+              return
+            fi
+            if [ "$code" -lt 200 ] || [ "$code" -ge 300 ] || ! echo "$rows" | jq -e 'type == "array"' >/dev/null 2>&1; then
+              failures="${failures}Anon email-leak check could not read public_historical_placements (HTTP ${code}). "
+              echo "FAIL: anon email-leak check -> HTTP ${code}, response: ${rows:0:200}"
+              return
+            fi
+            leaked=$(echo "$rows" | jq 'length')
+            if [ "$leaked" -gt 0 ]; then
+              failures="${failures}SECURITY: public_historical_placements is leaking athlete_email to anon (HTTP ${code}). "
+              echo "FAIL: public_historical_placements leaking athlete_email to anon!"
+            else
+              echo "OK: public_historical_placements -> no email leaked to anon"
+            fi
+          }
+
+          check_no_anon_email_leak
+
           if [ -n "$failures" ]; then
             echo "HEALTH CHECK FAILED: $failures"
             echo "FAILURES=$failures" >> "$GITHUB_ENV"
