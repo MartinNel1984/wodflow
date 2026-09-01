@@ -101,7 +101,7 @@ export async function getAll(): Promise<PendingScore[]> {
 // not the moment it's written to the local queue.
 export async function getStatusForLanes(
   heatAssignmentIds: string[]
-): Promise<Record<string, "queued" | "synced" | "failed">> {
+): Promise<Record<string, { status: "queued" | "synced" | "failed"; lastError?: string }>> {
   const all = await getAll();
   const latestByLane = new Map<string, PendingScore>();
   for (const item of all) {
@@ -110,11 +110,19 @@ export async function getStatusForLanes(
       latestByLane.set(item.heatAssignmentId, item);
     }
   }
-  const result: Record<string, "queued" | "synced" | "failed"> = {};
+  const result: Record<string, { status: "queued" | "synced" | "failed"; lastError?: string }> = {};
   for (const id of heatAssignmentIds) {
     const item = latestByLane.get(id);
     if (!item) continue;
-    result[id] = item.syncStatus === "synced" ? "synced" : item.syncStatus === "failed" ? "failed" : "queued";
+    result[id] = {
+      status: item.syncStatus === "synced" ? "synced" : item.syncStatus === "failed" ? "failed" : "queued",
+      // Surfaced in the UI next to "Failed — tap to retry" so a judge
+      // can read/report the real reason (expired session, permission,
+      // stale heat data, etc.) instead of every failure looking
+      // identical (Tjokkie, 2026-09-01: unexplained save failure with
+      // no way to tell what actually went wrong).
+      lastError: item.lastError,
+    };
   }
   return result;
 }

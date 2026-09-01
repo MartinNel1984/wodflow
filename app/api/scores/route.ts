@@ -60,8 +60,19 @@ export async function POST(request: Request) {
   );
 
   if (error) {
-    // RLS violation surfaces here as a plain error (not a 403) — a
-    // judge submitting for a heat they're not assigned to lands here.
+    // Postgres 23503 = foreign key violation, e.g. heat_assignment_id
+    // no longer exists because heats were regenerated after this page
+    // loaded — a genuinely different failure from "not allowed to
+    // score this heat" (RLS, code 42501) but both used to collapse
+    // into the same generic 403, leaving a judge with a "Failed" button
+    // and zero way to tell "reload the page" apart from "ask the
+    // organizer" (Tjokkie, 2026-09-01: unexplained recurring failure).
+    if (error.code === "23503") {
+      return NextResponse.json(
+        { error: "This heat's roster has changed since you loaded it — refresh the page and try again." },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ error: error.message }, { status: 403 });
   }
 

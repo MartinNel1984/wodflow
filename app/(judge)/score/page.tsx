@@ -74,6 +74,11 @@ export default function ScorePage() {
   // queued (Tjokkie, 2026-08-13 rehearsal: couldn't tell if a save had
   // stuck, re-entered scores that were in fact already saved).
   const [laneSyncStatus, setLaneSyncStatus] = useState<Record<string, "queued" | "synced" | "failed">>({});
+  // Populated only for "failed" lanes, from the offline queue's real
+  // server error text, so a judge (or whoever they show the screen to)
+  // can read/report the actual reason instead of every failure looking
+  // identical (Tjokkie, 2026-09-01).
+  const [laneErrors, setLaneErrors] = useState<Record<string, string | undefined>>({});
   const [scoredLanes, setScoredLanes] = useState<Set<string>>(new Set());
   const [confirmingLanes, setConfirmingLanes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -100,7 +105,16 @@ export default function ScorePage() {
   const refreshLaneStatus = useCallback(async () => {
     if (lanesRef.current.length === 0) return;
     const statuses = await getStatusForLanes(lanesRef.current.map((l) => l.heatAssignmentId));
-    setLaneSyncStatus((prev) => ({ ...prev, ...statuses }));
+    setLaneSyncStatus((prev) => {
+      const next = { ...prev };
+      for (const [id, s] of Object.entries(statuses)) next[id] = s.status;
+      return next;
+    });
+    setLaneErrors((prev) => {
+      const next = { ...prev };
+      for (const [id, s] of Object.entries(statuses)) next[id] = s.lastError;
+      return next;
+    });
   }, []);
 
   const trySync = useCallback(async () => {
@@ -627,6 +641,10 @@ export default function ScorePage() {
                         </button>
                       </div>
                     </div>
+
+                    {laneSyncStatus[lane.heatAssignmentId] === "failed" && laneErrors[lane.heatAssignmentId] && (
+                      <p className="text-[11px] text-red-600 text-right">{laneErrors[lane.heatAssignmentId]}</p>
+                    )}
 
                     {tiebreakEnabled && (
                       <div className="flex items-center justify-between gap-3 border-t border-ink/5 pt-2">
