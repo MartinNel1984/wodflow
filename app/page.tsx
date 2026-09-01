@@ -107,37 +107,62 @@ export default async function RumbleHubPage() {
         </div>
       </section>
 
-      {/* ---------- Leaderboard / Heats ---------- */}
+      {/* ---------- Leaderboard ---------- */}
       <section className="rumble-section">
-        <h2 className="rumble-section-title">Leaderboard &amp; Heats</h2>
+        <h2 className="rumble-section-title">Leaderboard</h2>
         {isLive && event && divisions.length > 0 ? (
           <div className="grid grid-cols-1 gap-3">
             {divisions.map((d) => (
-              <div key={d.id} className="rumble-card flex items-center justify-between gap-3">
+              <a
+                key={d.id}
+                href={`/leaderboard/${d.id}`}
+                className="rumble-card flex items-center justify-between gap-3"
+              >
                 <span className="font-semibold">{d.name}</span>
-                <div className="flex gap-2 shrink-0">
-                  <a
-                    href={`/leaderboard/${d.id}`}
-                    className="rumble-display text-sm px-3 py-1.5 rounded-full"
-                    style={{ background: "var(--rumble-blue-bright)", color: "#0a0b10" }}
-                  >
-                    Leaderboard
-                  </a>
-                  <a
-                    href={`/heats/${d.id}`}
-                    className="rumble-display text-sm px-3 py-1.5 rounded-full border"
-                    style={{ borderColor: "var(--rumble-blue-bright)", color: "var(--rumble-blue-bright)" }}
-                  >
-                    Heats
-                  </a>
-                </div>
-              </div>
+                <span
+                  className="rumble-display text-sm px-3 py-1.5 rounded-full shrink-0"
+                  style={{ background: "var(--rumble-blue-bright)", color: "#0a0b10" }}
+                >
+                  View
+                </span>
+              </a>
             ))}
           </div>
         ) : (
           <div className="rumble-card text-center">
             <p className="rumble-headline text-xl" style={{ color: "var(--rumble-blue-bright)" }}>
               {event ? `Leaderboard opens ${formatDateRange(event.start_date, null)}` : "Leaderboard opens soon"}
+            </p>
+            <p className="text-sm mt-2 opacity-70">Check back once The Big One kicks off.</p>
+          </div>
+        )}
+      </section>
+
+      {/* ---------- Heats ---------- */}
+      <section className="rumble-section">
+        <h2 className="rumble-section-title">Heats</h2>
+        {isLive && event && divisions.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3">
+            {divisions.map((d) => (
+              <a
+                key={d.id}
+                href={`/heats/${d.id}`}
+                className="rumble-card flex items-center justify-between gap-3"
+              >
+                <span className="font-semibold">{d.name}</span>
+                <span
+                  className="rumble-display text-sm px-3 py-1.5 rounded-full border shrink-0"
+                  style={{ borderColor: "var(--rumble-blue-bright)", color: "var(--rumble-blue-bright)" }}
+                >
+                  View
+                </span>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div className="rumble-card text-center">
+            <p className="rumble-headline text-xl" style={{ color: "var(--rumble-blue-bright)" }}>
+              {event ? `Heats open ${formatDateRange(event.start_date, null)}` : "Heats open soon"}
             </p>
             <p className="text-sm mt-2 opacity-70">Check back once The Big One kicks off.</p>
           </div>
