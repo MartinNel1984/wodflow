@@ -14,7 +14,29 @@
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { computeStandings, type LeaderboardRow, type ScoringConfig } from "../lib/leaderboard";
-import { generateHeats, type RosterEntry } from "../lib/heats";
+import { buildHeatSchedule, assignRosterToHeats, type RosterEntry } from "../lib/heats";
+
+function generateHeats(params: {
+  laneCount: number;
+  heatDurationMinutes: number;
+  transitionMinutes: number;
+  startTime: Date;
+  roster: RosterEntry[];
+}) {
+  const heats = buildHeatSchedule({
+    laneCount: params.laneCount,
+    heatDurationMinutes: params.heatDurationMinutes,
+    transitionMinutes: params.transitionMinutes,
+    startTime: params.startTime,
+    rosterSize: params.roster.length,
+  });
+  const assignments = assignRosterToHeats({
+    laneCount: params.laneCount,
+    roster: params.roster,
+    heatNumbers: heats.map((h) => h.heatNumber),
+  });
+  return { heats, assignments };
+}
 
 function loadEnv(path: string) {
   const text = readFileSync(path, "utf8");

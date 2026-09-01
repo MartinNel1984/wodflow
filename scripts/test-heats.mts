@@ -1,8 +1,8 @@
 // One-off verification: hand-worked edge cases for lib/heats.ts,
-// exercised against the real pure function via tsx (no test framework
+// exercised against the real pure functions via tsx (no test framework
 // wired up yet for a single-file check — add vitest properly if this
 // module grows more cases). Run: npx tsx scripts/test-heats.mts
-import { generateHeats, type RosterEntry } from "../lib/heats";
+import { buildHeatSchedule, assignRosterToHeats, type RosterEntry } from "../lib/heats";
 
 let failures = 0;
 function assertEqual(actual: unknown, expected: unknown, label: string) {
@@ -18,6 +18,28 @@ function assertEqual(actual: unknown, expected: unknown, label: string) {
 
 const start = new Date("2026-08-01T08:00:00Z");
 
+function generate(params: {
+  laneCount: number;
+  heatDurationMinutes: number;
+  transitionMinutes: number;
+  startTime: Date;
+  roster: RosterEntry[];
+}) {
+  const heats = buildHeatSchedule({
+    laneCount: params.laneCount,
+    heatDurationMinutes: params.heatDurationMinutes,
+    transitionMinutes: params.transitionMinutes,
+    startTime: params.startTime,
+    rosterSize: params.roster.length,
+  });
+  const assignments = assignRosterToHeats({
+    laneCount: params.laneCount,
+    roster: params.roster,
+    heatNumbers: heats.map((h) => h.heatNumber),
+  });
+  return { heats, assignments };
+}
+
 // --- Case 1: even split, no seeding (workout 1 scenario) ---
 {
   const roster: RosterEntry[] = Array.from({ length: 12 }, (_, i) => ({
@@ -25,7 +47,7 @@ const start = new Date("2026-08-01T08:00:00Z");
     registrationOrder: i,
     seedRank: null,
   }));
-  const result = generateHeats({
+  const result = generate({
     laneCount: 6,
     heatDurationMinutes: 6,
     transitionMinutes: 2,
@@ -52,7 +74,7 @@ const start = new Date("2026-08-01T08:00:00Z");
     registrationOrder: i,
     seedRank: null,
   }));
-  const result = generateHeats({
+  const result = generate({
     laneCount: 6,
     heatDurationMinutes: 6,
     transitionMinutes: 2,
@@ -78,15 +100,19 @@ const start = new Date("2026-08-01T08:00:00Z");
 
 // --- Case 3: empty division ---
 {
-  const result = generateHeats({
-    laneCount: 6,
-    heatDurationMinutes: 6,
-    transitionMinutes: 2,
-    startTime: start,
-    roster: [],
-  });
-  assertEqual(result.heats.length, 0, "empty division: zero heats generated, no crash");
-  assertEqual(result.assignments.length, 0, "empty division: zero assignments");
+  let threw = false;
+  try {
+    buildHeatSchedule({
+      laneCount: 6,
+      heatDurationMinutes: 6,
+      transitionMinutes: 2,
+      startTime: start,
+      rosterSize: 0,
+    });
+  } catch {
+    threw = true;
+  }
+  assertEqual(threw, true, "empty division: buildHeatSchedule throws rather than silently no-op");
 }
 
 // --- Case 4: re-seeding between rounds — best seed lands in final heat ---
@@ -96,7 +122,7 @@ const start = new Date("2026-08-01T08:00:00Z");
     { registrationId: "best", registrationOrder: 1, seedRank: 1 },
     { registrationId: "mid", registrationOrder: 2, seedRank: 3 },
   ];
-  const result = generateHeats({
+  const result = generate({
     laneCount: 2,
     heatDurationMinutes: 6,
     transitionMinutes: 2,
@@ -122,7 +148,7 @@ const start = new Date("2026-08-01T08:00:00Z");
     { registrationId: "seeded-worst", registrationOrder: 2, seedRank: 2 },
     { registrationId: "seeded-best", registrationOrder: 3, seedRank: 1 },
   ];
-  const result = generateHeats({
+  const result = generate({
     laneCount: 2,
     heatDurationMinutes: 6,
     transitionMinutes: 2,
@@ -139,6 +165,22 @@ const start = new Date("2026-08-01T08:00:00Z");
     ["seeded-worst", "seeded-best"],
     "mixed: seeded athletes fill heat 2, worst-seed-first within it"
   );
+}
+
+// --- Case 6: assignRosterToHeats rejects a roster too big for the schedule ---
+{
+  const roster: RosterEntry[] = Array.from({ length: 7 }, (_, i) => ({
+    registrationId: `r${i}`,
+    registrationOrder: i,
+    seedRank: null,
+  }));
+  let threw = false;
+  try {
+    assignRosterToHeats({ laneCount: 6, roster, heatNumbers: [1] });
+  } catch {
+    threw = true;
+  }
+  assertEqual(threw, true, "over-capacity roster: assignRosterToHeats throws instead of silently dropping athletes");
 }
 
 if (failures > 0) {

@@ -3,18 +3,63 @@
 import { requireOrganizer, requirePrivileged } from "@/lib/auth";
 
 import { revalidatePath } from "next/cache";
-import { generateHeats, type RosterEntry } from "@/lib/heats";
+import { buildHeatSchedule, assignRosterToHeats, type RosterEntry } from "@/lib/heats";
 import { parseTime } from "@/lib/scoring";
 import { validateScoreValue } from "@/lib/scoreValidation";
 import { computeStandings, type LeaderboardRow, type ScoringConfig } from "@/lib/leaderboard";
 
-// Whole-workout regeneration. Only ever touches heats/assignments in
-// 'scheduled' status — heats already 'in_progress' or 'completed' are
-// left untouched, so re-running this mid-event can't wipe a workout
-// that's already underway. Heats belong to a specific workout (not
-// just the division) since lane count and heat duration change
-// workout to workout.
-export async function generateHeatsForDivision(formData: FormData) {
+// Registrations still needing a heat slot for this workout: paid/waived,
+// minus anyone already locked into an in-progress/completed heat. Shared
+// by both the schedule step and the fill step so they always agree on
+// who needs placing — without this exclusion an athlete already scored
+// in a completed heat would get a second assignment in a freshly
+// generated one, and computeWorkoutResults/computeStandings would then
+// rank and count them twice, silently corrupting the leaderboard.
+async function unplacedRegistrations(
+  supabase: Awaited<ReturnType<typeof requireOrganizer>>["supabase"],
+  divisionId: string,
+  workoutId: string
+) {
+  const { data: registrations, error: regError } = await supabase
+    .from("registrations")
+    .select("id, registration_order")
+    .eq("division_id", divisionId)
+    .in("payment_status", ["paid", "waived"])
+    .order("registration_order", { ascending: true });
+  if (regError) throw regError;
+  if (!registrations || registrations.length === 0) {
+    throw new Error(
+      "No paid or waived registrations found for this division — heats can't be generated until athletes have registered and paid."
+    );
+  }
+
+  const { data: lockedHeats } = await supabase
+    .from("heats")
+    .select("id")
+    .eq("workout_id", workoutId)
+    .neq("status", "scheduled");
+  const lockedHeatIds = (lockedHeats ?? []).map((h) => h.id);
+  const alreadyAssignedIds = new Set<string>();
+  if (lockedHeatIds.length > 0) {
+    const { data: lockedAssignments } = await supabase
+      .from("heat_assignments")
+      .select("registration_id")
+      .in("heat_id", lockedHeatIds);
+    for (const a of lockedAssignments ?? []) alreadyAssignedIds.add(a.registration_id);
+  }
+
+  return registrations.filter((r) => !alreadyAssignedIds.has(r.id));
+}
+
+// Step 1 (Tjokkie, 2026-09-01): blank heat slots — timing only, no teams
+// — so athletes can see roughly when they'll compete before seeding is
+// decided. Only ever touches heats in 'scheduled' status — heats already
+// 'in_progress' or 'completed' are left untouched, so re-running this
+// mid-event can't wipe a workout that's already underway. Regenerating
+// the schedule clears any teams already filled into it (step 2 needs
+// re-running after), since a changed heat count/timing invalidates the
+// old lane assignments.
+export async function generateHeatSchedule(formData: FormData) {
   const { supabase } = await requireOrganizer();
   const eventId = String(formData.get("eventId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
@@ -40,40 +85,82 @@ export async function generateHeatsForDivision(formData: FormData) {
     throw new Error(`Invalid date/time: "${startDate} ${startTimeOfDay}". Please re-enter both fields.`);
   }
 
-  const { data: registrations, error: regError } = await supabase
-    .from("registrations")
-    .select("id, registration_order")
-    .eq("division_id", divisionId)
-    .in("payment_status", ["paid", "waived"])
-    .order("registration_order", { ascending: true });
-  if (regError) throw regError;
-  if (!registrations || registrations.length === 0) {
-    throw new Error(
-      "No paid or waived registrations found for this division — heats can't be generated until athletes have registered and paid."
-    );
-  }
+  const registrations = await unplacedRegistrations(supabase, divisionId, workoutId);
+  const heats = buildHeatSchedule({
+    laneCount,
+    heatDurationMinutes,
+    transitionMinutes,
+    startTime,
+    rosterSize: registrations.length,
+  });
 
-  // Exclude registrations already locked into an in-progress/completed
-  // heat for THIS workout. Only 'scheduled' heats/assignments get wiped
-  // above, so without this exclusion an athlete already scored in a
-  // completed heat would also get a fresh assignment in a new heat here
-  // — two heat_assignments rows for the same registration+workout, which
-  // computeWorkoutResults/computeStandings would then rank and count
-  // twice, silently corrupting the leaderboard.
-  const { data: lockedHeats } = await supabase
+  // Only remove heats that haven't started — never touch in-progress/completed.
+  // Scoped to this workout so regenerating one WOD's heats can't wipe
+  // another workout's already-scheduled heats in the same division.
+  const { data: scheduledHeats } = await supabase
     .from("heats")
     .select("id")
     .eq("workout_id", workoutId)
-    .neq("status", "scheduled");
-  const lockedHeatIds = (lockedHeats ?? []).map((h) => h.id);
-  const alreadyAssignedIds = new Set<string>();
-  if (lockedHeatIds.length > 0) {
-    const { data: lockedAssignments } = await supabase
-      .from("heat_assignments")
-      .select("registration_id")
-      .in("heat_id", lockedHeatIds);
-    for (const a of lockedAssignments ?? []) alreadyAssignedIds.add(a.registration_id);
+    .eq("status", "scheduled");
+  const scheduledHeatIds = (scheduledHeats ?? []).map((h) => h.id);
+  if (scheduledHeatIds.length > 0) {
+    await supabase.from("heat_assignments").delete().in("heat_id", scheduledHeatIds);
+    await supabase.from("heats").delete().in("id", scheduledHeatIds);
   }
+
+  const { error: heatsError } = await supabase.from("heats").insert(
+    heats.map((h) => ({
+      event_id: eventId,
+      division_id: divisionId,
+      workout_id: workoutId,
+      heat_number: h.heatNumber,
+      start_time: h.startTime.toISOString(),
+      end_time: h.endTime.toISOString(),
+    }))
+  );
+  if (heatsError) throw heatsError;
+
+  revalidatePath(`/events/${eventId}/divisions/${divisionId}/heats`);
+}
+
+// Step 2 (Tjokkie, 2026-09-01): fills teams into an already-generated
+// blank schedule, seeded by standings or registration order. Never
+// creates or resizes heats — run generateHeatSchedule first (or again,
+// if the roster's changed since). Only replaces assignments in
+// 'scheduled' heats, same in-progress/completed protection as the
+// schedule step.
+export async function fillHeats(formData: FormData) {
+  const { supabase } = await requireOrganizer();
+  const eventId = String(formData.get("eventId") ?? "");
+  const divisionId = String(formData.get("divisionId") ?? "");
+  const workoutId = String(formData.get("workoutId") ?? "");
+  if (!eventId || !divisionId || !workoutId) {
+    throw new Error("Missing required fields — workout is required.");
+  }
+
+  const { data: workout, error: workoutError } = await supabase
+    .from("workouts")
+    .select("lane_count, sequence")
+    .eq("id", workoutId)
+    .single();
+  if (workoutError) throw workoutError;
+  const laneCount = workout?.lane_count;
+  if (!laneCount) {
+    throw new Error("This workout has no lane count set — set it before filling heats.");
+  }
+
+  const { data: scheduledHeats, error: scheduledError } = await supabase
+    .from("heats")
+    .select("id, heat_number")
+    .eq("workout_id", workoutId)
+    .eq("status", "scheduled")
+    .order("heat_number", { ascending: true });
+  if (scheduledError) throw scheduledError;
+  if (!scheduledHeats || scheduledHeats.length === 0) {
+    throw new Error("No heat schedule yet for this workout — generate the heat schedule first.");
+  }
+
+  const registrations = await unplacedRegistrations(supabase, divisionId, workoutId);
 
   // ---- Re-seeding by prior standings -------------------------------
   // lib/heats.ts has always supported seedRank (worst-seed-first, so the
@@ -95,96 +182,58 @@ export async function generateHeatsForDivision(formData: FormData) {
   const seedMode = String(formData.get("seedMode") ?? "standings");
   const seedRankByRegistration = new Map<string, number>();
 
-  if (seedMode === "standings") {
-    const { data: targetWorkout } = await supabase
+  if (seedMode === "standings" && workout?.sequence != null) {
+    const { data: priorWorkouts } = await supabase
       .from("workouts")
-      .select("sequence")
-      .eq("id", workoutId)
-      .single();
+      .select("id")
+      .eq("division_id", divisionId)
+      .lt("sequence", workout.sequence);
 
-    if (targetWorkout?.sequence != null) {
-      const { data: priorWorkouts } = await supabase
-        .from("workouts")
-        .select("id")
-        .eq("division_id", divisionId)
-        .lt("sequence", targetWorkout.sequence);
+    const priorIds = new Set((priorWorkouts ?? []).map((w) => w.id as string));
+    if (priorIds.size > 0) {
+      const [{ data: division }, { data: rows }] = await Promise.all([
+        supabase.from("divisions").select("scoring_config").eq("id", divisionId).single(),
+        supabase
+          .from("public_leaderboard")
+          .select(
+            "heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value, workout_name, workout_scoring_config"
+          )
+          .eq("division_id", divisionId),
+      ]);
 
-      const priorIds = new Set((priorWorkouts ?? []).map((w) => w.id as string));
-      if (priorIds.size > 0) {
-        const [{ data: division }, { data: rows }] = await Promise.all([
-          supabase.from("divisions").select("scoring_config").eq("id", divisionId).single(),
-          supabase
-            .from("public_leaderboard")
-            .select(
-              "heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value, workout_name, workout_scoring_config"
-            )
-            .eq("division_id", divisionId),
-        ]);
+      // public_leaderboard.workout_id is coalesce(workout_ref_id::text,
+      // legacy text label) per migration-042, so comparing against
+      // workouts.id as text is the correct join for any modern score.
+      const priorRows = ((rows ?? []) as LeaderboardRow[]).filter((r) => priorIds.has(r.workout_id));
 
-        // public_leaderboard.workout_id is coalesce(workout_ref_id::text,
-        // legacy text label) per migration-042, so comparing against
-        // workouts.id as text is the correct join for any modern score.
-        const priorRows = ((rows ?? []) as LeaderboardRow[]).filter((r) => priorIds.has(r.workout_id));
-
-        if (priorRows.length > 0) {
-          const scoringConfig = (division?.scoring_config ?? { method: "rank_sum" }) as ScoringConfig;
-          const { standings } = computeStandings(priorRows, scoringConfig);
-          // standings is sorted best-first, so index 0 is rank 1.
-          standings.forEach((s, i) => seedRankByRegistration.set(s.registrationId, i + 1));
-        }
+      if (priorRows.length > 0) {
+        const scoringConfig = (division?.scoring_config ?? { method: "rank_sum" }) as ScoringConfig;
+        const { standings } = computeStandings(priorRows, scoringConfig);
+        // standings is sorted best-first, so index 0 is rank 1.
+        standings.forEach((s, i) => seedRankByRegistration.set(s.registrationId, i + 1));
       }
     }
   }
 
-  const roster: RosterEntry[] = (registrations ?? [])
-    .filter((r) => !alreadyAssignedIds.has(r.id))
-    .map((r) => ({
-      registrationId: r.id,
-      registrationOrder: r.registration_order,
-      // null for anyone with no prior score (a late entry joining at WOD
-      // 3, say) — orderRoster puts unseeded athletes in the earliest
-      // heats, which is the right place for them.
-      seedRank: seedRankByRegistration.get(r.id) ?? null,
-    }));
+  const roster: RosterEntry[] = registrations.map((r) => ({
+    registrationId: r.id,
+    registrationOrder: r.registration_order,
+    // null for anyone with no prior score (a late entry joining at WOD
+    // 3, say) — orderRoster puts unseeded athletes in the earliest
+    // heats, which is the right place for them.
+    seedRank: seedRankByRegistration.get(r.id) ?? null,
+  }));
 
-  const { heats, assignments } = generateHeats({
+  const assignments = assignRosterToHeats({
     laneCount,
-    heatDurationMinutes,
-    transitionMinutes,
-    startTime,
     roster,
+    heatNumbers: scheduledHeats.map((h) => h.heat_number),
   });
 
-  // Only remove heats that haven't started — never touch in-progress/completed.
-  // Scoped to this workout so regenerating one WOD's heats can't wipe
-  // another workout's already-scheduled heats in the same division.
-  const { data: scheduledHeats } = await supabase
-    .from("heats")
-    .select("id")
-    .eq("workout_id", workoutId)
-    .eq("status", "scheduled");
-  const scheduledHeatIds = (scheduledHeats ?? []).map((h) => h.id);
-  if (scheduledHeatIds.length > 0) {
-    await supabase.from("heat_assignments").delete().in("heat_id", scheduledHeatIds);
-    await supabase.from("heats").delete().in("id", scheduledHeatIds);
-  }
+  const scheduledHeatIds = scheduledHeats.map((h) => h.id);
+  await supabase.from("heat_assignments").delete().in("heat_id", scheduledHeatIds);
 
-  const { data: insertedHeats, error: heatsError } = await supabase
-    .from("heats")
-    .insert(
-      heats.map((h) => ({
-        event_id: eventId,
-        division_id: divisionId,
-        workout_id: workoutId,
-        heat_number: h.heatNumber,
-        start_time: h.startTime.toISOString(),
-        end_time: h.endTime.toISOString(),
-      }))
-    )
-    .select("id, heat_number");
-  if (heatsError) throw heatsError;
-
-  const heatIdByNumber = new Map((insertedHeats ?? []).map((h) => [h.heat_number, h.id]));
+  const heatIdByNumber = new Map(scheduledHeats.map((h) => [h.heat_number, h.id]));
   const assignmentRows = assignments.map((a) => ({
     heat_id: heatIdByNumber.get(a.heatNumber),
     registration_id: a.registrationId,

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatTime } from "@/lib/scoring";
-import { generateHeatsForDivision, moveAssignment, correctScore, deleteScore } from "./actions";
+import { generateHeatSchedule, fillHeats, moveAssignment, correctScore, deleteScore } from "./actions";
 
 type ValueRaw = { time_seconds?: number; reps?: number; load_kg?: number };
 
@@ -56,6 +56,7 @@ export default async function HeatsPage({
     : { data: [] as never[] };
 
   const allHeats = heats ?? [];
+  const hasScheduledHeats = allHeats.some((h) => h.status === "scheduled");
 
   // Outstanding-scores dashboard: how many lanes in each heat have at
   // least one score recorded, vs the total lane count — the product-
@@ -151,16 +152,18 @@ export default async function HeatsPage({
 
       {activeWorkout && (
       <form
-        action={generateHeatsForDivision}
+        action={generateHeatSchedule}
         className="bg-white border border-ink/10 rounded-xl p-6 space-y-4"
       >
         <input type="hidden" name="eventId" value={eventId} />
         <input type="hidden" name="divisionId" value={divisionId} />
         <input type="hidden" name="workoutId" value={activeWorkout.id} />
-        <h2 className="font-semibold">Generate heats for &ldquo;{activeWorkout.name}&rdquo;</h2>
+        <h2 className="font-semibold">1. Generate heat schedule for &ldquo;{activeWorkout.name}&rdquo;</h2>
         <p className="text-ink/60 text-sm">
-          Only regenerates heats that haven&apos;t started — in-progress or completed heats are
-          never touched.
+          Creates blank heat slots with timing only — no teams assigned yet — so athletes can see
+          roughly when they&apos;ll compete. Only regenerates heats that haven&apos;t started;
+          in-progress or completed heats are never touched. Regenerating clears any teams already
+          filled in below.
         </p>
         <div className="grid grid-cols-3 gap-4">
           <Field
@@ -186,6 +189,25 @@ export default async function HeatsPage({
           <Field label="First heat date" name="startDate" type="date" required />
           <Field label="First heat time" name="startTimeOfDay" type="time" required />
         </div>
+        <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
+          Generate schedule
+        </button>
+      </form>
+      )}
+
+      {activeWorkout && (
+      <form
+        action={fillHeats}
+        className="bg-white border border-ink/10 rounded-xl p-6 space-y-4"
+      >
+        <input type="hidden" name="eventId" value={eventId} />
+        <input type="hidden" name="divisionId" value={divisionId} />
+        <input type="hidden" name="workoutId" value={activeWorkout.id} />
+        <h2 className="font-semibold">2. Generate heats for &ldquo;{activeWorkout.name}&rdquo;</h2>
+        <p className="text-ink/60 text-sm">
+          Fills teams into the heat schedule above. Only fills heats that haven&apos;t started —
+          in-progress or completed heats are never touched.
+        </p>
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-ink/50 mb-1">
             Lane order
@@ -203,9 +225,16 @@ export default async function HeatsPage({
             workout has no earlier results, so it always falls back to registration order.
           </p>
         </div>
-        <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
-          Generate
+        <button
+          type="submit"
+          disabled={!hasScheduledHeats}
+          className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Generate heats
         </button>
+        {!hasScheduledHeats && (
+          <p className="text-ink/50 text-xs">Generate the heat schedule above first.</p>
+        )}
       </form>
       )}
 
