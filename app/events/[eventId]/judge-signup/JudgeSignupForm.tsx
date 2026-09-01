@@ -26,6 +26,7 @@ export default function JudgeSignupForm() {
   const [cell, setCell] = useState("");
   const [tshirtSize, setTshirtSize] = useState("");
   const [judgedBefore, setJudgedBefore] = useState(false);
+  const [competingInBigOne, setCompetingInBigOne] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -72,6 +73,7 @@ export default function JudgeSignupForm() {
           cell: cell.trim(),
           tshirtSize,
           judgedBefore,
+          competingInBigOne,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -140,6 +142,16 @@ export default function JudgeSignupForm() {
                 className="rounded"
               />
               I&apos;ve judged before
+            </label>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={competingInBigOne}
+                onChange={(e) => setCompetingInBigOne(e.target.checked)}
+                className="rounded"
+              />
+              I&apos;m also competing at Rumble &quot;The Big One&quot;
             </label>
 
             {error && <p className="text-center text-red-700 text-sm bg-red-50 rounded-lg px-3 py-2">{error}</p>}

@@ -13,7 +13,9 @@ export default async function EventJudgeApplicationsPage({
     supabase.from("events").select("id, name").eq("id", eventId).single(),
     supabase
       .from("judge_applications")
-      .select("id, first_name, last_name, email, cell, tshirt_size, judged_before, created_at")
+      .select(
+        "id, first_name, last_name, email, cell, tshirt_size, judged_before, competing_in_big_one, created_at"
+      )
       .eq("event_id", eventId)
       .order("created_at", { ascending: false }),
   ]);
@@ -36,6 +38,7 @@ export default async function EventJudgeApplicationsPage({
               <th className="px-4 py-2">Cell</th>
               <th className="px-4 py-2">Shirt</th>
               <th className="px-4 py-2">Judged before</th>
+              <th className="px-4 py-2">Competing at Big One</th>
               <th className="px-4 py-2">Submitted</th>
             </tr>
           </thead>
@@ -49,6 +52,7 @@ export default async function EventJudgeApplicationsPage({
                 <td className="px-4 py-2 text-ink/70">{a.cell}</td>
                 <td className="px-4 py-2 text-ink/70">{a.tshirt_size}</td>
                 <td className="px-4 py-2 text-ink/70">{a.judged_before ? "Yes" : "No"}</td>
+                <td className="px-4 py-2 text-ink/70">{a.competing_in_big_one ? "Yes" : "No"}</td>
                 <td className="px-4 py-2 text-ink/50 font-data">
                   {new Date(a.created_at).toLocaleDateString()}
                 </td>
@@ -56,7 +60,7 @@ export default async function EventJudgeApplicationsPage({
             ))}
             {(!applications || applications.length === 0) && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-ink/60 text-sm">
+                <td colSpan={7} className="px-4 py-6 text-center text-ink/60 text-sm">
                   No applications yet.
                 </td>
               </tr>

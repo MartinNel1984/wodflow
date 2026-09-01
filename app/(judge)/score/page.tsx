@@ -422,6 +422,12 @@ export default function ScorePage() {
       valueRaw,
     });
     setLaneSyncStatus((prev) => ({ ...prev, [lane.heatAssignmentId]: "queued" }));
+    // Reflect the save immediately in "N of M scored" / the per-lane
+    // "Scored" label — these were only ever populated from the initial
+    // loadExistingScores fetch, so a judge saving a score saw "Saved ✓"
+    // on the button but the summary line above stayed stuck at the old
+    // count until a full page reload (Tjokkie, 2026-09-01).
+    setScoredLanes((prev) => new Set(prev).add(lane.heatAssignmentId));
     setConfirmingLanes((prev) => {
       const next = new Set(prev);
       next.delete(lane.heatAssignmentId);

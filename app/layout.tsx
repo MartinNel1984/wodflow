@@ -56,6 +56,14 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#14161f",
+  // Next.js doesn't merge a custom viewport export with its defaults —
+  // omitting width/initialScale here meant the emitted meta tag had no
+  // width=device-width at all, so mobile Safari fell back to its legacy
+  // ~980px desktop-emulation viewport and scaled/cropped the page
+  // instead of laying it out at the real screen width (Tjokkie,
+  // 2026-09-01: athlete portal nav cut off on both edges on mobile).
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

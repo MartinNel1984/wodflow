@@ -14,6 +14,7 @@ export async function POST(request: Request) {
   const cell = (body?.cell as string | undefined)?.trim();
   const tshirtSize = body?.tshirtSize as string | undefined;
   const judgedBefore = Boolean(body?.judgedBefore);
+  const competingInBigOne = Boolean(body?.competingInBigOne);
 
   if (!eventId || !firstName || !lastName || !email || !email.includes("@") || !cell) {
     return NextResponse.json({ error: "Please fill in all the required fields." }, { status: 400 });
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
     cell,
     tshirt_size: tshirtSize,
     judged_before: judgedBefore,
+    competing_in_big_one: competingInBigOne,
   });
 
   if (insertError) {
