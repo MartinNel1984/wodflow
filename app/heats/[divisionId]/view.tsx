@@ -76,12 +76,16 @@ export default function HeatsView({
                   Heat {heat.heatNumber} · {new Date(heat.startTime).toLocaleTimeString()}
                 </p>
                 <div className="space-y-1 text-sm">
-                  {heat.lanes.map((lane) => (
-                    <p key={lane.laneNumber}>
-                      <span className="font-data text-ink/50">Lane {lane.laneNumber}</span> —{" "}
-                      {lane.displayName ?? "Unnamed"}
-                    </p>
-                  ))}
+                  {heat.lanes.length === 0 ? (
+                    <p className="text-ink/50 italic">Lane assignments not published yet</p>
+                  ) : (
+                    heat.lanes.map((lane) => (
+                      <p key={lane.laneNumber}>
+                        <span className="font-data text-ink/50">Lane {lane.laneNumber}</span> —{" "}
+                        {lane.displayName ?? "Unnamed"}
+                      </p>
+                    ))
+                  )}
                 </div>
               </div>
             ))}

@@ -113,7 +113,12 @@ export default async function PublicHeatSheetPage({
     if (!workout.heats.has(row.heat_id)) {
       workout.heats.set(row.heat_id, { heatNumber: row.heat_number, startTime: row.start_time, lanes: [] });
     }
-    workout.heats.get(row.heat_id)!.lanes.push({ laneNumber: row.lane_number, displayName: row.display_name });
+    // A scheduled-but-unfilled heat (step 1 done, step 2 not yet run) has
+    // no heat_assignments row, so the left join yields a null lane_number
+    // — skip it instead of pushing a fake blank lane.
+    if (row.lane_number != null) {
+      workout.heats.get(row.heat_id)!.lanes.push({ laneNumber: row.lane_number, displayName: row.display_name });
+    }
   }
 
   const workouts = [...workoutMap.values()]
