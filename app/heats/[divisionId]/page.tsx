@@ -36,31 +36,37 @@ export default async function PublicHeatSheetPage({
   const { divisionId } = await params;
   const supabase = createPublicClient();
 
-  const { data: divisionEvent } = await supabase
+  // Division + brand kit fetched up front (not just after the gate) so the
+  // "not available yet" message can still render inside the event's Rumble
+  // branding instead of falling back to a plain unbranded page (Tjokkie,
+  // 2026-09-02).
+  const { data: division } = await supabase
     .from("divisions")
-    .select("events(organization_id, results_visible)")
+    .select(
+      "name, events(organization_id, results_visible, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline))"
+    )
     .eq("id", divisionId)
     .single();
-  const gateEvent = Array.isArray(divisionEvent?.events) ? divisionEvent.events[0] : divisionEvent?.events;
+  const gateEvent = Array.isArray(division?.events) ? division.events[0] : division?.events;
   const isPreview = gateEvent?.results_visible === false && (await isPrivilegedFor(gateEvent.organization_id));
   const isHidden = gateEvent?.results_visible === false && !isPreview;
+  const brandKit = (Array.isArray(gateEvent?.brand_kits) ? gateEvent.brand_kits[0] : gateEvent?.brand_kits) as
+    | BrandKit
+    | null
+    | undefined;
 
   if (isHidden) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <p className="text-ink/60 text-sm">Heat sheet isn&apos;t available yet — check back on event day.</p>
-      </div>
+      <HeatsView
+        divisionName={division?.name ?? "Heat sheet"}
+        workouts={[]}
+        brandKit={brandKit ?? null}
+        hiddenMessage="Heat sheet isn't available yet — check back on event day."
+      />
     );
   }
 
-  const [{ data: division }, { data: rows }, { data: allWorkouts }] = await Promise.all([
-    supabase
-      .from("divisions")
-      .select(
-        "name, events(brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline))"
-      )
-      .eq("id", divisionId)
-      .single(),
+  const [{ data: rows }, { data: allWorkouts }] = await Promise.all([
     supabase
       .from("public_heat_sheet")
       .select(
@@ -135,12 +141,6 @@ export default async function PublicHeatSheetPage({
           lanes: h.lanes.sort((a, b) => a.laneNumber - b.laneNumber),
         })),
     }));
-
-  const event = Array.isArray(division?.events) ? division.events[0] : division?.events;
-  const brandKit = (Array.isArray(event?.brand_kits) ? event.brand_kits[0] : event?.brand_kits) as
-    | BrandKit
-    | null
-    | undefined;
 
   return (
     <HeatsView

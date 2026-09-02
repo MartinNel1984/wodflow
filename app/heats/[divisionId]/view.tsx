@@ -23,11 +23,17 @@ export default function HeatsView({
   workouts,
   brandKit,
   isPreview,
+  hiddenMessage,
 }: {
   divisionName: string;
   workouts: Workout[];
   brandKit?: BrandKit | null;
   isPreview?: boolean;
+  // Set when the event has results_visible=false and the viewer isn't
+  // privileged — renders this message inside the branded wrapper instead
+  // of the workout list, rather than the page bailing out early with a
+  // plain unbranded fallback (Tjokkie, 2026-09-02).
+  hiddenMessage?: string;
 }) {
   const [selectedWorkoutId, setSelectedWorkoutId] = useState(workouts[0]?.id ?? "");
   const selectedWorkout = workouts.find((w) => w.id === selectedWorkoutId) ?? workouts[0];
@@ -47,7 +53,9 @@ export default function HeatsView({
         <h1 className="text-2xl font-semibold">{divisionName}</h1>
       </div>
 
-      {workouts.length === 0 ? (
+      {hiddenMessage ? (
+        <p className="text-center text-ink/60 text-sm">{hiddenMessage}</p>
+      ) : workouts.length === 0 ? (
         <p className="text-center text-ink/60 text-sm">Heats haven&apos;t been published yet.</p>
       ) : (
         <>

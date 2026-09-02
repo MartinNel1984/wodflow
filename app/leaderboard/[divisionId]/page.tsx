@@ -37,49 +37,46 @@ export default async function LeaderboardPage({
   const { divisionId } = await params;
   const supabase = createPublicClient();
 
-  const { data: divisionEvent } = await supabase
+  // Division + brand kit fetched up front (not just after the gate) so the
+  // "not available yet" message can still render inside the event's Rumble
+  // branding instead of falling back to a plain unbranded page (Tjokkie,
+  // 2026-09-02).
+  const { data: division } = await supabase
     .from("divisions")
-    .select("events(organization_id, results_visible)")
+    .select(
+      "name, workout_scoring_type, scoring_config, events(organization_id, results_visible, start_date, end_date, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline))"
+    )
     .eq("id", divisionId)
     .single();
-  const gateEvent = Array.isArray(divisionEvent?.events) ? divisionEvent.events[0] : divisionEvent?.events;
-  const isPreview = gateEvent?.results_visible === false && (await isPrivilegedFor(gateEvent.organization_id));
-  const isHidden = gateEvent?.results_visible === false && !isPreview;
-
-  const [{ data: division }, { data: rows }] = await Promise.all([
-    supabase
-      .from("divisions")
-      .select(
-        "name, workout_scoring_type, scoring_config, events(start_date, end_date, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline))"
-      )
-      .eq("id", divisionId)
-      .single(),
-    isHidden
-      ? Promise.resolve({ data: [] })
-      : supabase
-          .from("public_leaderboard")
-          .select(
-            "heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value, workout_name, workout_scoring_config, rx_or_scaled"
-          )
-          .eq("division_id", divisionId),
-  ]);
-
-  if (isHidden) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <p className="text-ink/60 text-sm">Leaderboard isn&apos;t available yet — check back on event day.</p>
-      </div>
-    );
-  }
-
-  const scoringConfig = (division?.scoring_config ?? { method: "rank_sum" }) as ScoringConfig;
-  const { standings, workouts } = computeStandings((rows ?? []) as LeaderboardRow[], scoringConfig);
-
   const event = Array.isArray(division?.events) ? division.events[0] : division?.events;
+  const isPreview = event?.results_visible === false && (await isPrivilegedFor(event.organization_id));
+  const isHidden = event?.results_visible === false && !isPreview;
   const brandKit = (Array.isArray(event?.brand_kits) ? event.brand_kits[0] : event?.brand_kits) as
     | BrandKit
     | null
     | undefined;
+
+  if (isHidden) {
+    return (
+      <LeaderboardView
+        divisionName={division?.name ?? "Leaderboard"}
+        standings={[]}
+        workouts={[]}
+        brandKit={brandKit ?? null}
+        hiddenMessage="Leaderboard isn't available yet — check back on event day."
+      />
+    );
+  }
+
+  const { data: rows } = await supabase
+    .from("public_leaderboard")
+    .select(
+      "heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value, workout_name, workout_scoring_config, rx_or_scaled"
+    )
+    .eq("division_id", divisionId);
+
+  const scoringConfig = (division?.scoring_config ?? { method: "rank_sum" }) as ScoringConfig;
+  const { standings, workouts } = computeStandings((rows ?? []) as LeaderboardRow[], scoringConfig);
 
   // Team rosters for the "tap a team name" expand — only fetched for the
   // registrations actually on this leaderboard, so a solo division pays

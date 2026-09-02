@@ -15,6 +15,7 @@ export default function LeaderboardView({
   eventStartDate,
   eventEndDate,
   isPreview,
+  hiddenMessage,
 }: {
   divisionName: string;
   standings: Standing[];
@@ -24,6 +25,11 @@ export default function LeaderboardView({
   eventStartDate?: string | null;
   eventEndDate?: string | null;
   isPreview?: boolean;
+  // Set when the event has results_visible=false and the viewer isn't
+  // privileged — renders this message inside the branded wrapper instead
+  // of the standings, rather than the page bailing out early with a
+  // plain unbranded fallback (Tjokkie, 2026-09-02).
+  hiddenMessage?: string;
 }) {
   const [view, setView] = useState<string>("overall");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -79,7 +85,9 @@ export default function LeaderboardView({
         <h1 className="text-2xl font-semibold">{divisionName}</h1>
       </div>
 
-      {workouts.length === 0 ? (
+      {hiddenMessage ? (
+        <p className="text-center text-ink/60 text-sm">{hiddenMessage}</p>
+      ) : workouts.length === 0 ? (
         <NotLiveYet startDate={eventStartDate} endDate={eventEndDate} />
       ) : (
         <>
