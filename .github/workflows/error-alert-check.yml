@@ -54,16 +54,24 @@ jobs:
           MESSAGE="Wodflow: ${COUNT} new/recurring error(s)
           ${SUMMARY}"
 
+          # Missing credentials must fail the run loudly, not silently
+          # mark these rows as alert_sent — that would swallow the alert
+          # forever with no visible sign anything went wrong (found this
+          # exact bug 2026-09-07 building this same workflow for
+          # tcrpv-portal, where the WhatsApp secret was missing entirely).
+          if [ -z "$CALLMEBOT_API_KEY" ] || [ -z "$NOTIFY_WHATSAPP_NUMBER" ]; then
+            echo "FAIL: CALLMEBOT_API_KEY/NOTIFY_WHATSAPP_NUMBER not set — cannot alert."
+            exit 1
+          fi
+
           # CallMeBot requires GET with query params — a POST body
           # (curl's --data-urlencode default) sometimes returns 201 but
           # never actually queues the message, a confirmed silent-failure
           # trap. Always use -G here.
-          if [ -n "$CALLMEBOT_API_KEY" ] && [ -n "$NOTIFY_WHATSAPP_NUMBER" ]; then
-            curl -s -G "https://api.callmebot.com/whatsapp.php" \
-              --data-urlencode "phone=${NOTIFY_WHATSAPP_NUMBER}" \
-              --data-urlencode "text=${MESSAGE}" \
-              --data-urlencode "apikey=${CALLMEBOT_API_KEY}"
-          fi
+          curl -s -G "https://api.callmebot.com/whatsapp.php" \
+            --data-urlencode "phone=${NOTIFY_WHATSAPP_NUMBER}" \
+            --data-urlencode "text=${MESSAGE}" \
+            --data-urlencode "apikey=${CALLMEBOT_API_KEY}"
 
           curl -sS -X PATCH \
             -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
