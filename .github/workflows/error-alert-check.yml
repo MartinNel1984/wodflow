@@ -1,0 +1,73 @@
+name: Error Alert Check
+
+# Runs frequently (every 15 min) because it's the ONLY thing watching
+# for runtime errors that don't take the whole site down — a crash for
+# one specific athlete, an API route that fails silently — which the
+# daily health-check workflow never sees. Queries error_logs directly
+# via the service-role key (bypasses RLS, same as expire-stale-
+# registrations.yml), so it doesn't depend on the app itself being
+# reachable.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for new/recurring errors and alert
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CALLMEBOT_API_KEY: ${{ secrets.CALLMEBOT_API_KEY }}
+          NOTIFY_WHATSAPP_NUMBER: ${{ secrets.NOTIFY_WHATSAPP_NUMBER }}
+        run: |
+          set -e
+
+          RESP=$(curl -sS \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            "$SUPABASE_URL/rest/v1/error_logs?select=id,message,route,occurrence_count&severity=eq.error&alert_sent=eq.false&order=last_seen_at.desc&limit=20")
+
+          if ! echo "$RESP" | jq -e 'type == "array"' >/dev/null 2>&1; then
+            echo "FAIL: could not read error_logs (response: ${RESP:0:300})"
+            exit 1
+          fi
+
+          COUNT=$(echo "$RESP" | jq 'length')
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No new errors."
+            exit 0
+          fi
+
+          echo "$COUNT new/recurring error(s) found."
+
+          SUMMARY=$(echo "$RESP" | jq -r '
+            .[:3]
+            | map("- \(.message[0:80]) (\(.route // "unknown"), x\(.occurrence_count))")
+            | join("\n")
+          ')
+          IDS=$(echo "$RESP" | jq -r '[.[].id] | join(",")')
+
+          MESSAGE="Wodflow: ${COUNT} new/recurring error(s)
+          ${SUMMARY}"
+
+          # CallMeBot requires GET with query params — a POST body
+          # (curl's --data-urlencode default) sometimes returns 201 but
+          # never actually queues the message, a confirmed silent-failure
+          # trap. Always use -G here.
+          if [ -n "$CALLMEBOT_API_KEY" ] && [ -n "$NOTIFY_WHATSAPP_NUMBER" ]; then
+            curl -s -G "https://api.callmebot.com/whatsapp.php" \
+              --data-urlencode "phone=${NOTIFY_WHATSAPP_NUMBER}" \
+              --data-urlencode "text=${MESSAGE}" \
+              --data-urlencode "apikey=${CALLMEBOT_API_KEY}"
+          fi
+
+          curl -sS -X PATCH \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            "$SUPABASE_URL/rest/v1/error_logs?id=in.(${IDS})" \
+            -d '{"alert_sent": true}'

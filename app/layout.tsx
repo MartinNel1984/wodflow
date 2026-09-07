@@ -3,6 +3,7 @@ import { Anton, Hanken_Grotesk, Space_Mono, Permanent_Marker } from "next/font/g
 import localFont from "next/font/local";
 import Script from "next/script";
 import { WodflowBadge } from "@/components/WodflowBadge";
+import { ErrorReporter } from "@/components/ErrorReporter";
 import "./globals.css";
 
 // Font pairing chosen for this app specifically, not reused from other
@@ -73,6 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${display.variable} ${sans.variable} ${mono.variable} ${script.variable} ${rumbleDisplay.variable} ${rumbleHeadline.variable} ${rumbleAccent.variable} ${rumbleOptional.variable}`}
     >
       <body>
+        <ErrorReporter />
         {children}
         <WodflowBadge />
         <Script
