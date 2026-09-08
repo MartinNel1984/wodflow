@@ -7,9 +7,20 @@ import { useEffect } from "react";
 // inside an event handler, a timer, or an un-awaited promise never
 // reaches them, so it can fail silently forever unless something else
 // is listening. These two listeners are that "something else."
+// Errors injected by third-party in-app browsers (Instagram/Facebook/TikTok
+// on Android, Safari-based in-app browsers on iOS) that have nothing to do
+// with Wodflow's own code — their native JS bridge throws when its WebView
+// is torn down mid-callback. Filtered here so they don't spam alerts.
+const NOISE_PATTERNS = [
+  /Error invoking postMessage/i,
+  /window\.webkit\.messageHandlers/i,
+  /^Script error\.?$/i,
+];
+
 export function ErrorReporter() {
   useEffect(() => {
     function report(message: string, stack?: string) {
+      if (NOISE_PATTERNS.some((pattern) => pattern.test(message))) return;
       fetch("/api/log-error", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
