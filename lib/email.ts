@@ -28,7 +28,8 @@ type EmailType =
   | "registration_organizer_notification"
   | "payment_reminder"
   | "ticket_confirmation"
-  | "ticket_organizer_notification";
+  | "ticket_organizer_notification"
+  | "password_reset";
 
 // One row per send attempt, success or failure — so "did the athlete's
 // confirmation actually send" is a lookup instead of the investigation
@@ -341,4 +342,41 @@ export async function sendTicketConfirmationEmail(ticketId: string) {
   }
 
   await Promise.all(sends);
+}
+
+// Never reveals whether the email matched an account (caller always shows
+// the same "if that email exists…" message) — this just best-effort sends
+// when it does. Failures are logged, not thrown: a forgot-password request
+// should never surface delivery errors to the requester.
+export async function sendPasswordResetEmail(email: string, token: string) {
+  const supabase = createServiceClient();
+
+  let env;
+  try {
+    ({ env } = getCloudflareContext());
+  } catch (err) {
+    console.error("sendPasswordResetEmail: could not get Cloudflare context", err);
+    return;
+  }
+
+  const resetUrl = `https://wodflow.co.za/reset-password/${token}`;
+
+  try {
+    await env.EMAIL.send({
+      to: email,
+      from: FROM,
+      subject: "Reset your Wodflow password",
+      html: `<p>We received a request to reset your Wodflow password.</p><p><a href="${resetUrl}">Choose a new password</a> — this link expires in 1 hour.</p><p>If you didn't request this, you can ignore this email.</p>`,
+      text: `We received a request to reset your Wodflow password. Choose a new password: ${resetUrl} — this link expires in 1 hour. If you didn't request this, you can ignore this email.`,
+    });
+    await logEmailAttempt(supabase, { recipientEmail: email, emailType: "password_reset", status: "sent" });
+  } catch (err) {
+    console.error("Password reset email failed", email, err);
+    await logEmailAttempt(supabase, {
+      recipientEmail: email,
+      emailType: "password_reset",
+      status: "failed",
+      errorMessage: String(err),
+    });
+  }
 }

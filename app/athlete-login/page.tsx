@@ -64,7 +64,15 @@ function AthleteLoginForm() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Password</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider">Password</label>
+              <a
+                href={`/forgot-password?next=${encodeURIComponent(next)}`}
+                className="text-xs text-accent hover:underline"
+              >
+                Forgot password?
+              </a>
+            </div>
             <input
               type="password"
               required
