@@ -294,6 +294,13 @@ export default function RegisterContent() {
         )}
       </div>
 
+      {isBigOne && (
+        <p className="bg-ink/5 border border-ink/10 rounded-xl px-4 py-3 text-sm text-ink/70">
+          Please note that entries after the 14th of September will not receive an athlete pack, as we had to place
+          orders already. We&apos;d still love to see you on the competition floor!
+        </p>
+      )}
+
       {step === 1 && (
         <div className="space-y-3">
           <h2 className="font-semibold">Choose your division</h2>
