@@ -13,6 +13,7 @@ export async function addHistoricalResult(formData: FormData) {
   const athleteEmail = String(formData.get("athleteEmail") ?? "").trim().toLowerCase();
   const position = Number(formData.get("position"));
   const entrants = Number(formData.get("entrants"));
+  const gymName = String(formData.get("gymName") ?? "").trim();
   const gender = String(formData.get("gender") ?? "").trim() || null;
   const seasonTierRaw = formData.get("seasonTier");
   const seasonTier = seasonTierRaw ? Number(seasonTierRaw) : null;
@@ -30,6 +31,7 @@ export async function addHistoricalResult(formData: FormData) {
     team_name: teamName || null,
     athlete_name: athleteName,
     athlete_email: athleteEmail,
+    gym_name: gymName || null,
     position,
     entrants,
     gender,
@@ -56,10 +58,11 @@ export async function updateHistoricalResult(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const athleteName = String(formData.get("athleteName") ?? "").trim();
   const athleteEmail = String(formData.get("athleteEmail") ?? "").trim().toLowerCase();
+  const gymName = String(formData.get("gymName") ?? "").trim();
   if (!id || !athleteName || !athleteEmail) return;
   await supabase
     .from("historical_results")
-    .update({ athlete_name: athleteName, athlete_email: athleteEmail })
+    .update({ athlete_name: athleteName, athlete_email: athleteEmail, gym_name: gymName || null })
     .eq("id", id);
   revalidatePath("/historical-results");
 }

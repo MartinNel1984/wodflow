@@ -31,6 +31,7 @@ type Row = {
   team_name: string | null;
   athlete_name: string;
   athlete_email: string;
+  gym_name?: string | null;
   division_name: string;
   gender: "male" | "female" | null;
   season_tier: number | null;
@@ -107,6 +108,7 @@ const toInsert = file.rows
     team_name: r.team_name,
     athlete_name: r.athlete_name,
     athlete_email: r.athlete_email,
+    gym_name: r.gym_name?.trim() || null,
     position: r.position,
     entrants: r.entrants,
     gender: r.gender,

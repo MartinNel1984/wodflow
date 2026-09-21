@@ -8,7 +8,7 @@ export default async function HistoricalResultsPage() {
   const { data: results } = await supabase
     .from("historical_results")
     .select(
-      "id, event_name, division_name, team_name, athlete_name, athlete_email, position, entrants, gender, season_tier, season_year"
+      "id, event_name, division_name, team_name, athlete_name, athlete_email, position, entrants, gender, season_tier, season_year, gym_name"
     )
     .eq("organization_id", organizationId)
     .order("event_name", { ascending: true })
@@ -16,7 +16,7 @@ export default async function HistoricalResultsPage() {
     .order("position", { ascending: true });
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-semibold">Historical results</h1>
         <p className="text-ink/60 text-sm mt-1">
@@ -89,6 +89,16 @@ export default async function HistoricalResultsPage() {
               className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
             />
           </div>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+            Gym (optional)
+          </label>
+          <input
+            type="text"
+            name="gymName"
+            className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+          />
         </div>
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
@@ -190,6 +200,13 @@ export default async function HistoricalResultsPage() {
                       name="athleteEmail"
                       defaultValue={r.athlete_email}
                       className="w-40 bg-paper rounded px-2 py-1 text-xs font-data border border-ink/10 focus:outline-none focus:border-accent"
+                    />
+                    <input
+                      type="text"
+                      name="gymName"
+                      defaultValue={r.gym_name ?? ""}
+                      placeholder="Gym"
+                      className="w-32 bg-paper rounded px-2 py-1 text-xs border border-ink/10 focus:outline-none focus:border-accent"
                     />
                     <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
                       Save

@@ -20,6 +20,7 @@ export type AthleteRow = {
   waiverHref: string;
   registrationId: string | null;
   isCaptain: boolean;
+  gymName: string | null;
 };
 
 export default function AthletesTable({
@@ -38,21 +39,41 @@ export default function AthletesTable({
   markPaidAction: (formData: FormData) => Promise<{ sent: boolean }>;
 }) {
   const [query, setQuery] = useState("");
+  const [gymFilter, setGymFilter] = useState("");
   const [selectedDivisionId, setSelectedDivisionId] = useState("");
   const selectedDivision = divisions.find((d) => d.id === selectedDivisionId);
   const teamSize = selectedDivision?.teamSize ?? 1;
 
+  // Gym is free text, so the same gym can be typed several ways. Group
+  // case-insensitively for the filter dropdown, keeping the first
+  // spelling seen as the label.
+  const gymOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const r of rows) {
+      const g = r.gymName?.trim();
+      if (g && !seen.has(g.toLowerCase())) seen.set(g.toLowerCase(), g);
+    }
+    return [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [rows]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (r) =>
+    return rows.filter((r) => {
+      if (gymFilter === "__none") {
+        if (r.gymName?.trim()) return false;
+      } else if (gymFilter && (r.gymName ?? "").trim().toLowerCase() !== gymFilter) {
+        return false;
+      }
+      if (!q) return true;
+      return (
         r.fullName.toLowerCase().includes(q) ||
         r.eventName.toLowerCase().includes(q) ||
         (r.teamName ?? "").toLowerCase().includes(q) ||
-        (r.idNumber ?? "").toLowerCase().includes(q)
-    );
-  }, [rows, query]);
+        (r.idNumber ?? "").toLowerCase().includes(q) ||
+        (r.gymName ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [rows, query, gymFilter]);
 
   return (
     <div className="space-y-4">
@@ -60,16 +81,30 @@ export default function AthletesTable({
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search name, event, team, or ID number…"
+        placeholder="Search name, event, team, gym, or ID number…"
         className="w-full bg-white border border-ink/10 rounded-lg px-4 py-3 text-sm"
       />
+      <select
+        value={gymFilter}
+        onChange={(e) => setGymFilter(e.target.value)}
+        className="w-full sm:w-72 bg-white border border-ink/10 rounded-lg px-4 py-2.5 text-sm"
+      >
+        <option value="">All gyms</option>
+        {gymOptions.map(([key, label]) => (
+          <option key={key} value={key}>
+            {label}
+          </option>
+        ))}
+        <option value="__none">No gym given</option>
+      </select>
       <div className="bg-white border border-ink/10 rounded-xl overflow-x-auto">
-        <table className="w-full text-sm min-w-[900px]">
+        <table className="w-full text-sm min-w-[1000px]">
           <thead>
             <tr className="bg-ink/5 text-left">
               <th className="px-4 py-2 whitespace-nowrap">Name</th>
               <th className="px-4 py-2 whitespace-nowrap">Event</th>
               <th className="px-4 py-2 whitespace-nowrap">Team</th>
+              <th className="px-4 py-2 whitespace-nowrap">Gym</th>
               <th className="px-4 py-2 whitespace-nowrap">ID number</th>
               <th className="px-4 py-2 whitespace-nowrap">Waiver</th>
               <th className="px-4 py-2 whitespace-nowrap">Payment</th>
@@ -91,6 +126,7 @@ export default function AthletesTable({
                   {r.eventName} · {r.divisionName}
                 </td>
                 <td className="px-4 py-2 font-semibold">{r.teamName || "—"}</td>
+                <td className="px-4 py-2 text-ink/60 whitespace-nowrap">{r.gymName || "—"}</td>
                 <td className="px-4 py-2 font-data text-ink/50">{r.idNumber || "—"}</td>
                 <td className="px-4 py-2">
                   <span
@@ -149,7 +185,7 @@ export default function AthletesTable({
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-ink/60 text-sm">
+                <td colSpan={8} className="px-4 py-6 text-center text-ink/60 text-sm">
                   No matches.
                 </td>
               </tr>

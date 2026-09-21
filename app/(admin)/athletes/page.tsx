@@ -17,7 +17,7 @@ export default async function AthletesDirectoryPage() {
     supabase
       .from("registration_athletes")
       .select(
-        "id, full_name, id_number, is_minor, waiver_signed_at, is_captain, registrations(id, payment_status, division_id, team_name, divisions(id, name, event_id, events(name)))"
+        "id, full_name, id_number, gym_name, is_minor, waiver_signed_at, is_captain, registrations(id, payment_status, division_id, team_name, divisions(id, name, event_id, events(name)))"
       )
       .order("waiver_signed_at", { ascending: false }),
     supabase
@@ -53,6 +53,7 @@ export default async function AthletesDirectoryPage() {
         waiverHref: `/events/${division.event_id}/divisions/${division.id}/athletes/${a.id}/waiver`,
         registrationId: reg?.id ?? null,
         isCaptain: a.is_captain,
+        gymName: a.gym_name,
       };
     })
     .filter((r): r is AthleteRow => r !== null);
