@@ -86,6 +86,18 @@ export async function toggleResultsVisible(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+// Heat sheet has its own switch (migration-084) so heats can go live
+// before the leaderboard does.
+export async function toggleHeatsVisible(formData: FormData) {
+  const { supabase } = await requireOrganizer();
+  const id = String(formData.get("id") ?? "");
+  const heatsVisible = formData.get("heatsVisible") === "true";
+  if (!id) return;
+
+  await supabase.from("events").update({ heats_visible: heatsVisible }).eq("id", id);
+  revalidatePath("/dashboard");
+}
+
 // Clones an event's divisions/workouts/teams into a brand-new draft
 // event so an organizer can rehearse heat assignment, scoring,
 // tie-breaks and points without touching the real event's rows
@@ -135,6 +147,7 @@ export async function duplicateEvent(formData: FormData) {
       organization_id: organizationId,
       status: "draft",
       results_visible: false,
+      heats_visible: false,
       is_test: true,
       cloned_from_event_id: sourceId,
     })

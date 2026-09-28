@@ -18,6 +18,30 @@ type Workout = {
   heats: Heat[];
 };
 
+// Explicit zone so the day/date and heat times read the same for everyone,
+// not in each viewer's browser timezone (event is in Johannesburg).
+const EVENT_TZ = "Africa/Johannesburg";
+
+function workoutDayLabel(heats: Heat[]): string | null {
+  if (heats.length === 0) return null;
+  const first = heats.reduce((a, b) => (new Date(a.startTime) <= new Date(b.startTime) ? a : b));
+  return new Date(first.startTime).toLocaleDateString("en-ZA", {
+    timeZone: EVENT_TZ,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+function heatTimeLabel(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-ZA", {
+    timeZone: EVENT_TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 export default function HeatsView({
   divisionName,
   workouts,
@@ -37,13 +61,14 @@ export default function HeatsView({
 }) {
   const [selectedWorkoutId, setSelectedWorkoutId] = useState(workouts[0]?.id ?? "");
   const selectedWorkout = workouts.find((w) => w.id === selectedWorkoutId) ?? workouts[0];
+  const selectedDay = selectedWorkout ? workoutDayLabel(selectedWorkout.heats) : null;
   const isBigOne = brandKit?.name === "Rumble Big One";
 
   const content = (
     <div className="max-w-2xl mx-auto px-4 py-10 space-y-6" style={brandKitStyle(brandKit)}>
       {isPreview && (
         <p className="text-center text-xs font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 rounded-full px-3 py-1.5">
-          🔒 Preview — hidden from athletes until you make results live
+          🔒 Preview — hidden from athletes until you make heats live
         </p>
       )}
       <div className="text-center">
@@ -67,10 +92,17 @@ export default function HeatsView({
             >
               {workouts.map((w) => (
                 <option key={w.id} value={w.id}>
-                  {w.name}
+                  {[w.name, workoutDayLabel(w.heats)].filter(Boolean).join(" · ")}
                 </option>
               ))}
             </select>
+          )}
+
+          {selectedWorkout && (
+            <div className="text-center">
+              <p className="font-semibold">{selectedWorkout.name}</p>
+              {selectedDay && <p className="text-sm text-ink/60">{selectedDay}</p>}
+            </div>
           )}
 
           <div className="space-y-3">
@@ -81,7 +113,7 @@ export default function HeatsView({
                 style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
               >
                 <p className="font-data font-bold text-accent mb-2">
-                  Heat {heat.heatNumber} · {new Date(heat.startTime).toLocaleTimeString()}
+                  Heat {heat.heatNumber} · {heatTimeLabel(heat.startTime)}
                 </p>
                 <div className="space-y-1 text-sm">
                   {heat.lanes.length === 0 ? (

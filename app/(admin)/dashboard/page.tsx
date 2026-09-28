@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeAllChecks } from "@/lib/checklist";
 import { requireOrganizer } from "@/lib/auth";
-import { toggleResultsVisible } from "../events/actions";
+import { toggleHeatsVisible, toggleResultsVisible } from "../events/actions";
 import Link from "next/link";
 
 export default async function DashboardPage() {
@@ -11,7 +11,7 @@ export default async function DashboardPage() {
   const { data: events } = await supabase
     .from("events")
     .select(
-      "id, name, status, start_date, venue_name, venue_address, contact_email, contact_phone, waiver_text, results_visible"
+      "id, name, status, start_date, venue_name, venue_address, contact_email, contact_phone, waiver_text, results_visible, heats_visible"
     )
     .eq("organization_id", organizationId)
     .order("start_date", { ascending: true });
@@ -134,6 +134,24 @@ export default async function DashboardPage() {
                 <input type="hidden" name="resultsVisible" value={event.results_visible ? "false" : "true"} />
                 <button type="submit" className="text-xs font-semibold uppercase tracking-wider underline shrink-0">
                   {event.results_visible ? "Hide for rehearsal" : "Make results live"}
+                </button>
+              </form>
+            </div>
+            <div
+              className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 mb-3 text-sm ${
+                event.heats_visible ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-800"
+              }`}
+            >
+              <span className="font-semibold">
+                {event.heats_visible
+                  ? "Heats visible to athletes"
+                  : "🔒 Heats hidden from athletes/spectators"}
+              </span>
+              <form action={toggleHeatsVisible}>
+                <input type="hidden" name="id" value={event.id} />
+                <input type="hidden" name="heatsVisible" value={event.heats_visible ? "false" : "true"} />
+                <button type="submit" className="text-xs font-semibold uppercase tracking-wider underline shrink-0">
+                  {event.heats_visible ? "Hide heats" : "Make heats live"}
                 </button>
               </form>
             </div>

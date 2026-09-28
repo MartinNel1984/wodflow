@@ -43,13 +43,13 @@ export default async function PublicHeatSheetPage({
   const { data: division } = await supabase
     .from("divisions")
     .select(
-      "name, events(organization_id, results_visible, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline))"
+      "name, events(organization_id, heats_visible, brand_kits(id, name, logo_url, color_primary, color_secondary, color_accent, tagline))"
     )
     .eq("id", divisionId)
     .single();
   const gateEvent = Array.isArray(division?.events) ? division.events[0] : division?.events;
-  const isPreview = gateEvent?.results_visible === false && (await isPrivilegedFor(gateEvent.organization_id));
-  const isHidden = gateEvent?.results_visible === false && !isPreview;
+  const isPreview = gateEvent?.heats_visible === false && (await isPrivilegedFor(gateEvent.organization_id));
+  const isHidden = gateEvent?.heats_visible === false && !isPreview;
   const brandKit = (Array.isArray(gateEvent?.brand_kits) ? gateEvent.brand_kits[0] : gateEvent?.brand_kits) as
     | BrandKit
     | null
