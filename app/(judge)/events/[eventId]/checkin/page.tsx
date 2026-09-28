@@ -213,7 +213,7 @@ export default function CheckinPage() {
         <div className="bg-white border border-ink/10 rounded-xl p-5 space-y-3 animate-settle-in">
           <div>
             <p className="text-xs uppercase tracking-wider text-ink/50">
-              Spectator pass
+              {ticket.ticket_type === "weekend_pass" ? "Weekend pass" : "Day pass"}
             </p>
             <p className="text-lg font-semibold">{ticket.buyer_name}</p>
             <p className="text-ink/60 text-sm">

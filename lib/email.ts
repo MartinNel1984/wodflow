@@ -264,7 +264,13 @@ export async function sendTicketConfirmationEmail(ticketId: string) {
 
   const event = Array.isArray(ticket.events) ? ticket.events[0] : ticket.events;
   const firstName = ticket.buyer_name.split(" ")[0];
-  const typeLabel = "Spectator pass";
+  // Matches the labelling already used on /tickets/[qr_token]
+  // (TicketContent.tsx) — this was hardcoded to "Spectator pass"
+  // regardless of ticket_type, so every weekend-pass buyer's
+  // confirmation and the organizer's sale notification both said
+  // "spectator pass" even though the ticket itself (and its price) was
+  // correct. Cosmetic only — QR/check-in/capacity were never affected.
+  const typeLabel = ticket.ticket_type === "weekend_pass" ? "Weekend pass" : "Day pass";
 
   let env;
   try {
