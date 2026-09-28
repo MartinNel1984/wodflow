@@ -44,7 +44,7 @@ function formatDateRange(start: string, end: string | null): string {
 }
 
 export default async function RumbleHubPage() {
-  const { event, divisions, isLive, milestones, news, photos } = await getRumbleHubData();
+  const { event, divisions, isLive, heatsVisible, milestones, news, photos } = await getRumbleHubData();
 
   return (
     <main className="rumble-page">
@@ -141,7 +141,7 @@ export default async function RumbleHubPage() {
       {/* ---------- Heats ---------- */}
       <section className="rumble-section">
         <h2 className="rumble-section-title">Heats</h2>
-        {isLive && event && divisions.length > 0 ? (
+        {heatsVisible && event && divisions.length > 0 ? (
           <div className="grid grid-cols-1 gap-3">
             {divisions.map((d) => (
               <a
