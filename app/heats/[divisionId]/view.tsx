@@ -25,12 +25,16 @@ const EVENT_TZ = "Africa/Johannesburg";
 function workoutDayLabel(heats: Heat[]): string | null {
   if (heats.length === 0) return null;
   const first = heats.reduce((a, b) => (new Date(a.startTime) <= new Date(b.startTime) ? a : b));
-  return new Date(first.startTime).toLocaleDateString("en-ZA", {
+  // Built from parts so the day never gets zero-padded ("02") the way
+  // en-ZA formats it on the server.
+  const parts = new Intl.DateTimeFormat("en-ZA", {
     timeZone: EVENT_TZ,
     weekday: "long",
     day: "numeric",
     month: "long",
-  });
+  }).formatToParts(new Date(first.startTime));
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${get("weekday")}, ${Number(get("day"))} ${get("month")}`;
 }
 
 function heatTimeLabel(iso: string): string {
