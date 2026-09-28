@@ -118,8 +118,13 @@ export default function TicketContent({ qrToken }: { qrToken: string }) {
               )}
               <p className="text-xs text-ink/50">Show this at the gate — a staff member will scan it to check you in.</p>
               <p className="text-sm font-semibold">
-                {ticket.checkedInCount} of {ticket.quantity} checked in
-                {remaining > 0 ? ` — ${remaining} left to use` : " — fully used"}
+                {ticket.ticketType === "weekend_pass"
+                  ? `${ticket.checkedInCount} of ${ticket.quantity} checked in today${
+                      remaining > 0 ? ` — ${remaining} left today` : " — all used for today"
+                    }`
+                  : `${ticket.checkedInCount} of ${ticket.quantity} checked in${
+                      remaining > 0 ? ` — ${remaining} left to use` : " — fully used"
+                    }`}
               </p>
             </>
           )}

@@ -38,11 +38,25 @@ export async function lookupTicket(
   if (!data) return { error: "No matching ticket for this event." };
   if (data.payment_status !== "paid") return { error: "This ticket hasn't been paid for." };
 
+  // Weekend passes gate on today's count, not the lifetime total
+  // (migration-083), so show the same number check_in_ticket() uses.
+  if (data.ticket_type === "weekend_pass") {
+    const { data: today, error: todayError } = await supabase.rpc("ticket_checked_in_now", {
+      p_ticket_id: data.id,
+    });
+    if (todayError || today === null) {
+      console.error("Ticket check-in status failed", todayError);
+      return { error: "Lookup failed." };
+    }
+    return { ticket: { ...(data as TicketRow), checked_in_count: today as number } };
+  }
+
   return { ticket: data as TicketRow };
 }
 
 export async function confirmCheckin(
-  ticketId: string
+  ticketId: string,
+  ticketType: TicketRow["ticket_type"]
 ): Promise<{ checkedInCount: number; quantity: number } | { error: string }> {
   const { supabase } = await requirePrivileged();
 
@@ -59,7 +73,12 @@ export async function confirmCheckin(
 
   const row = data as { checked_in_count: number; quantity: number; already_full: boolean };
   if (row.already_full) {
-    return { error: `Already fully used — ${row.quantity}/${row.quantity} checked in.` };
+    return {
+      error:
+        ticketType === "weekend_pass"
+          ? `Already used today — ${row.quantity}/${row.quantity} checked in today.`
+          : `Already fully used — ${row.quantity}/${row.quantity} checked in.`,
+    };
   }
   return { checkedInCount: row.checked_in_count, quantity: row.quantity };
 }

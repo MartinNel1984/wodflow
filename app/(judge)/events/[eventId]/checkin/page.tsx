@@ -144,7 +144,7 @@ export default function CheckinPage() {
   async function commitCheckin() {
     if (!ticket) return;
     setConfirming(true);
-    const result = await confirmCheckin(ticket.id);
+    const result = await confirmCheckin(ticket.id, ticket.ticket_type);
     setConfirming(false);
     if ("error" in result) {
       setMessage(result.error);
@@ -164,6 +164,8 @@ export default function CheckinPage() {
   }
 
   const remaining = ticket ? Math.max(0, ticket.quantity - ticket.checked_in_count) : 0;
+  // Weekend passes reset each day (migration-083), so counts are "today".
+  const today = ticket?.ticket_type === "weekend_pass" ? " today" : "";
 
   return (
     <div className="max-w-md mx-auto space-y-6">
@@ -217,13 +219,14 @@ export default function CheckinPage() {
             </p>
             <p className="text-lg font-semibold">{ticket.buyer_name}</p>
             <p className="text-ink/60 text-sm">
-              ×{ticket.quantity} — {ticket.checked_in_count}/{ticket.quantity} checked in
+              ×{ticket.quantity} — {ticket.checked_in_count}/{ticket.quantity} checked in{today}
             </p>
           </div>
 
           {remaining === 0 ? (
             <p className="text-center text-red-700 bg-red-50 rounded-lg px-3 py-2 text-sm font-semibold">
-              Already fully used — {ticket.quantity}/{ticket.quantity} checked in.
+              {ticket.ticket_type === "weekend_pass" ? "Already used today" : "Already fully used"} —{" "}
+              {ticket.quantity}/{ticket.quantity} checked in{today}.
             </p>
           ) : (
             <button
@@ -232,7 +235,7 @@ export default function CheckinPage() {
               disabled={confirming}
               className="w-full bg-accent text-white rounded-lg py-3 text-sm font-semibold disabled:opacity-40"
             >
-              {confirming ? "Confirming…" : `Confirm check-in (${remaining} left after this)`}
+              {confirming ? "Confirming…" : `Confirm check-in (${remaining - 1} left${today} after this)`}
             </button>
           )}
 

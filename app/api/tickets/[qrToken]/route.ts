@@ -29,12 +29,26 @@ export async function GET(_request: Request, { params }: { params: Promise<{ qrT
 
   const event = Array.isArray(ticket.events) ? ticket.events[0] : ticket.events;
 
+  // Weekend passes reset each day (migration-083): show today's count,
+  // the same number the gate checks.
+  let checkedInCount = ticket.checked_in_count;
+  if (ticket.ticket_type === "weekend_pass") {
+    const { data: today, error: todayError } = await supabase.rpc("ticket_checked_in_now", {
+      p_ticket_id: ticket.id,
+    });
+    if (todayError) {
+      console.error("Ticket check-in status failed", todayError);
+      return NextResponse.json({ error: "Lookup failed." }, { status: 500 });
+    }
+    checkedInCount = (today as number | null) ?? 0;
+  }
+
   return NextResponse.json({
     ticketType: ticket.ticket_type,
     buyerName: ticket.buyer_name,
     quantity: ticket.quantity,
     paymentStatus: ticket.payment_status,
-    checkedInCount: ticket.checked_in_count,
+    checkedInCount,
     eventName: event?.name ?? null,
     eventStartDate: event?.start_date ?? null,
     eventVenueName: event?.venue_name ?? null,
