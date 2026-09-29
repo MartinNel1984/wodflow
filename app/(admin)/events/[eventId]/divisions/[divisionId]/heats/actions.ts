@@ -80,7 +80,13 @@ export async function generateHeatSchedule(formData: FormData) {
   // fixing a real bug where a garbled datetime-local value would fail
   // native browser validation silently, making "Generate" appear to do
   // nothing at all.
-  const startTime = new Date(`${startDate}T${startTimeOfDay}`);
+  //
+  // Explicit +02:00 offset: the organizer always enters wall-clock time
+  // for the Johannesburg venue, but this action runs on Cloudflare's edge
+  // (UTC), so a bare "YYYY-MM-DDTHH:MM" string was parsed as UTC and every
+  // heat came out 2 hours late. Africa/Johannesburg has no DST, so the
+  // offset is always +02:00.
+  const startTime = new Date(`${startDate}T${startTimeOfDay}:00+02:00`);
   if (isNaN(startTime.getTime())) {
     throw new Error(`Invalid date/time: "${startDate} ${startTimeOfDay}". Please re-enter both fields.`);
   }
