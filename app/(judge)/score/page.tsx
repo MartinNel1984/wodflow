@@ -49,6 +49,7 @@ async function submitPendingScore(item: PendingScore): Promise<Response> {
 export default function ScorePage() {
   const [role, setRole] = useState<string>("");
   const [heats, setHeats] = useState<HeatOption[]>([]);
+  const [selectedDivisionId, setSelectedDivisionId] = useState("");
   const [selectedHeatId, setSelectedHeatId] = useState("");
   const [lanes, setLanes] = useState<Lane[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -310,6 +311,20 @@ export default function ScorePage() {
     );
   }
 
+  // Division-first picker (Tjokkie, 2026-09-29: the old single flat
+  // dropdown of every heat across every division/workout was too
+  // cluttered — pick a division first, like the Heats tab, then only
+  // that division's heats show up).
+  const divisions = Array.from(new Map(heats.map((h) => [h.divisionId, h.divisionName])).entries()).map(
+    ([id, name]) => ({ id, name })
+  );
+  const divisionHeats = heats.filter((h) => h.divisionId === selectedDivisionId);
+
+  function selectDivision(divisionId: string) {
+    setSelectedDivisionId(divisionId);
+    setSelectedHeatId("");
+  }
+
   const selectedHeat = heats.find((h) => h.heatId === selectedHeatId);
   const selectedWorkout = workouts.find((w) => w.id === selectedWorkoutId);
   const tiebreakEnabled = selectedWorkout?.tiebreakEnabled ?? false;
@@ -471,20 +486,40 @@ export default function ScorePage() {
         </p>
       ) : (
         <>
-          <select
-            value={selectedHeatId}
-            onChange={(e) => setSelectedHeatId(e.target.value)}
-            className="w-full bg-white border border-ink/10 rounded-lg px-4 py-3 text-sm"
-          >
-            <option value="">Choose a heat…</option>
-            {heats.map((h) => (
-              <option key={h.heatId} value={h.heatId}>
-                {h.divisionName}
-                {h.workoutName ? ` — ${h.workoutName}` : ""} — Heat {h.heatNumber}{" "}
-                {h.status === "completed" ? "(locked)" : ""}
-              </option>
-            ))}
-          </select>
+          {divisions.length > 1 && (
+            <div className="flex flex-wrap gap-2 justify-center">
+              {divisions.map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => selectDivision(d.id)}
+                  className={`rounded-lg px-3 py-1.5 text-sm border ${
+                    d.id === selectedDivisionId
+                      ? "bg-ink text-white border-ink"
+                      : "bg-paper border-ink/10 hover:bg-ink/5"
+                  }`}
+                >
+                  {d.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(divisions.length <= 1 || selectedDivisionId) && (
+            <select
+              value={selectedHeatId}
+              onChange={(e) => setSelectedHeatId(e.target.value)}
+              className="w-full bg-white border border-ink/10 rounded-lg px-4 py-3 text-sm"
+            >
+              <option value="">Choose a heat…</option>
+              {(divisions.length <= 1 ? heats : divisionHeats).map((h) => (
+                <option key={h.heatId} value={h.heatId}>
+                  {h.workoutName ? `${h.workoutName} — ` : ""}Heat {h.heatNumber}{" "}
+                  {h.status === "completed" ? "(locked)" : ""}
+                </option>
+              ))}
+            </select>
+          )}
 
           {selectedHeatId && (
             <>
