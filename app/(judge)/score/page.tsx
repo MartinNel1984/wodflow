@@ -11,6 +11,7 @@ type HeatOption = {
   heatNumber: number;
   workoutId: string | null;
   workoutName: string | null;
+  workoutSequence: number;
   divisionId: string;
   divisionName: string;
   scoringType: "time" | "reps" | "load";
@@ -178,7 +179,7 @@ export default function ScorePage() {
         const { data: heatRows } = await supabase
           .from("heats")
           .select(
-            "id, heat_number, status, division_id, workout_id, workouts(name), divisions(name, workout_scoring_type), events!inner(status)"
+            "id, heat_number, status, division_id, workout_id, workouts(name, sequence), divisions(name, workout_scoring_type), events!inner(status)"
           )
           .eq("events.status", "live");
         setHeats(mapHeatRows(heatRows ?? []));
@@ -199,7 +200,7 @@ export default function ScorePage() {
       const { data: heatRows } = await supabase
         .from("heats")
         .select(
-          "id, heat_number, status, division_id, workout_id, workouts(name), divisions(name, workout_scoring_type), events!inner(status)"
+          "id, heat_number, status, division_id, workout_id, workouts(name, sequence), divisions(name, workout_scoring_type), events!inner(status)"
         )
         .in("id", heatIds)
         .eq("events.status", "live");
@@ -213,7 +214,7 @@ export default function ScorePage() {
       status: HeatOption["status"];
       division_id: string;
       workout_id: string | null;
-      workouts: { name: string } | { name: string }[] | null;
+      workouts: { name: string; sequence: number } | { name: string; sequence: number }[] | null;
       divisions: { name: string; workout_scoring_type: string } | { name: string; workout_scoring_type: string }[] | null;
     };
 
@@ -227,6 +228,7 @@ export default function ScorePage() {
             heatNumber: h.heat_number,
             workoutId: h.workout_id,
             workoutName: workout?.name ?? null,
+            workoutSequence: workout?.sequence ?? 0,
             divisionId: h.division_id,
             divisionName: div?.name ?? "Division",
             scoringType: (div?.workout_scoring_type ?? "time") as HeatOption["scoringType"],
@@ -234,12 +236,16 @@ export default function ScorePage() {
           };
         })
         // Alphabetical by division name (Tjokkie, 2026-08-14: "sort from
-        // A-1"), heat number ascending within a division — the previous
-        // heat_number-only order interleaved every division's heats in
-        // whatever order the DB happened to return them.
+        // A-1"), then workout sequence, then heat number within that
+        // workout — the order the events actually happen (Tjokkie,
+        // 2026-09-29). Sorting by heat_number alone interleaved heats
+        // from different workouts since each workout restarts its own
+        // heat numbering at 1.
         .sort(
           (a, b) =>
-            a.divisionName.localeCompare(b.divisionName) || a.heatNumber - b.heatNumber
+            a.divisionName.localeCompare(b.divisionName) ||
+            a.workoutSequence - b.workoutSequence ||
+            a.heatNumber - b.heatNumber
         );
     }
 
