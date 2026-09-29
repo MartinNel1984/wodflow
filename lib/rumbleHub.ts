@@ -19,6 +19,8 @@ export type RumbleHubData = {
   // Organizer-controlled (migration-084), independent of the event dates:
   // heats can be published before the event starts.
   heatsVisible: boolean;
+  // Organizer-controlled (events.results_visible), independent of the event dates.
+  resultsVisible: boolean;
   milestones: {
     registrationOpen: boolean;
     resultsLive: boolean;
@@ -36,7 +38,7 @@ export async function getRumbleHubData(): Promise<RumbleHubData> {
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, name, start_date, end_date, venue_name, status, heats_visible, brand_kits!inner(name)")
+    .select("id, name, start_date, end_date, venue_name, status, heats_visible, results_visible, brand_kits!inner(name)")
     .eq("brand_kits.name", "Rumble Big One")
     .in("status", ["published", "live"])
     .order("start_date", { ascending: true })
@@ -54,6 +56,7 @@ export async function getRumbleHubData(): Promise<RumbleHubData> {
       divisions: [],
       isLive: false,
       heatsVisible: false,
+      resultsVisible: false,
       milestones: { registrationOpen: false, resultsLive: false },
       news: newsData ?? [],
       photos: photosData ?? [],
@@ -92,6 +95,7 @@ export async function getRumbleHubData(): Promise<RumbleHubData> {
     divisions,
     isLive,
     heatsVisible: event.heats_visible !== false,
+    resultsVisible: event.results_visible === true,
     milestones: { registrationOpen: true, resultsLive },
     news: newsData ?? [],
     photos: photosData ?? [],
