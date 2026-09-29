@@ -15,11 +15,31 @@ const NOISE_PATTERNS = [
   /Error invoking postMessage/i,
   /window\.webkit\.messageHandlers/i,
   /^Script error\.?$/i,
+  // Native-bridge call from an in-app browser's injected script, not our code.
+  /Object Not Found Matching Id:\d+, MethodName:/i,
 ];
+
+// A page opened before a deploy calls a server action ID the new build
+// no longer has. Not a bug, but the page is dead until refreshed, so
+// reload once (guarded so a persistent failure can't loop).
+const STALE_ACTION = /Server Action .* was not found on the server/i;
+const RELOAD_KEY = "wodflow:stale-action-reload";
 
 export function ErrorReporter() {
   useEffect(() => {
     function report(message: string, stack?: string) {
+      if (STALE_ACTION.test(message)) {
+        try {
+          const last = Number(sessionStorage.getItem(RELOAD_KEY) ?? 0);
+          if (Date.now() - last > 30_000) {
+            sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+            window.location.reload();
+          }
+        } catch {
+          // sessionStorage unavailable; skip the reload rather than risk a loop.
+        }
+        return;
+      }
       if (NOISE_PATTERNS.some((pattern) => pattern.test(message))) return;
       fetch("/api/log-error", {
         method: "POST",

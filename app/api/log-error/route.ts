@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     source: "client",
     route: typeof body.route === "string" ? body.route : undefined,
     stack: typeof body.stack === "string" ? body.stack : undefined,
+    extra: { userAgent: request.headers.get("user-agent")?.slice(0, 300) ?? null },
   });
 
   return NextResponse.json({ ok: true });
