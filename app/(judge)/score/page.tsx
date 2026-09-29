@@ -95,6 +95,13 @@ export default function ScorePage() {
   const [confirmingClear, setConfirmingClear] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [showSavedToast, setShowSavedToast] = useState(false);
+  const [savingAll, setSavingAll] = useState(false);
+  // Tracks whether the previous render was already "every lane synced",
+  // so the toast fires once on the transition into that state rather
+  // than every render while it holds (Tjokkie, 2026-09-29: "little
+  // green pop up when everything is saved").
+  const wasAllSyncedRef = useRef(false);
 
   const isPrivileged = role === "head_judge" || role === "organizer";
 
@@ -290,6 +297,8 @@ export default function ScorePage() {
       setLaneSyncStatus({});
       setScoredLanes(new Set());
       setConfirmingClear(false);
+      setShowSavedToast(false);
+      wasAllSyncedRef.current = false;
 
       const mappedWorkouts: Workout[] = (workoutRows ?? []).map((w) => ({
         id: w.id,
@@ -500,6 +509,36 @@ export default function ScorePage() {
     trySync();
   }
 
+  // Save-all just fires submitLane for every lane with a value typed
+  // in, sequentially — reuses the same locked-heat confirm guard and
+  // offline-queue path as a single Save tap, nothing new to keep in
+  // sync (Tjokkie, 2026-09-29: "Save all button per heat").
+  async function saveAllLanes() {
+    setSavingAll(true);
+    for (const lane of lanes) {
+      if (values[lane.heatAssignmentId]) {
+        await submitLane(lane);
+      }
+    }
+    setSavingAll(false);
+  }
+
+  // Fires the "All saved" toast once, on the transition into every
+  // lane being confirmed synced — not on every render while it holds,
+  // and not just after Save all (an individual Save on the last
+  // missing lane should show it too).
+  useEffect(() => {
+    const allSynced =
+      lanes.length > 0 && lanes.every((l) => laneSyncStatus[l.heatAssignmentId] === "synced");
+    if (allSynced && !wasAllSyncedRef.current) {
+      setShowSavedToast(true);
+      const t = setTimeout(() => setShowSavedToast(false), 2500);
+      wasAllSyncedRef.current = true;
+      return () => clearTimeout(t);
+    }
+    wasAllSyncedRef.current = allSynced;
+  }, [lanes, laneSyncStatus]);
+
   if (loading) return <p className="text-center py-20 text-ink/50">Loading…</p>;
 
   return (
@@ -610,10 +649,20 @@ export default function ScorePage() {
               )}
 
               {lanes.length > 0 && (
-                <p className="text-center text-xs text-ink/50">
-                  {scoredLanes.size} of {lanes.length} scored
-                  {scoredLanes.size < lanes.length ? ` — ${lanes.length - scoredLanes.size} missing` : ""}
-                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs text-ink/50">
+                    {scoredLanes.size} of {lanes.length} scored
+                    {scoredLanes.size < lanes.length ? ` — ${lanes.length - scoredLanes.size} missing` : ""}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={saveAllLanes}
+                    disabled={savingAll || lanes.every((l) => !values[l.heatAssignmentId])}
+                    className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-accent text-white disabled:opacity-40"
+                  >
+                    {savingAll ? "Saving all…" : "Save all"}
+                  </button>
+                </div>
               )}
 
               <div className="space-y-3">
@@ -736,6 +785,12 @@ export default function ScorePage() {
             </>
           )}
         </>
+      )}
+
+      {showSavedToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-lg z-50 animate-settle-in">
+          All saved ✓
+        </div>
       )}
     </div>
   );
