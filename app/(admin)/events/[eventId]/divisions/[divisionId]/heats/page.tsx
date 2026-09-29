@@ -251,7 +251,7 @@ export default async function HeatsPage({
           <div key={heat.id} className="bg-white border border-ink/10 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="font-semibold">
-                Heat {heat.heat_number} · {new Date(heat.start_time).toLocaleTimeString()}
+                Heat {heat.heat_number} · {new Date(heat.start_time).toLocaleTimeString("en-ZA", { timeZone: "Africa/Johannesburg", hour: "2-digit", minute: "2-digit", hour12: false })}
               </p>
               <div className="flex items-center gap-2">
                 {totalCount > 0 && (
