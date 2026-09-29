@@ -654,3 +654,17 @@ button:hover, .hover-lift:hover {
 .event-markdown > *:last-child {
   margin-bottom: 0;
 }
+
+/* iOS Safari/Chrome auto-zooms the page whenever an input under 16px is
+   focused, and the zoom persists after the client-side navigation that
+   follows (login -> athlete portal), leaving the portal slightly
+   zoomed and cropped on both edges (Tjokkie, 2026-09-29). Every form
+   field uses Tailwind text-sm (14px), so pin them to 16px on phones.
+   Unlayered, so it beats Tailwind's layered text-* utilities. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
