@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { enqueueScore, syncPendingScores, getAllPending, getStatusForLanes, type PendingScore } from "@/lib/offline-queue";
 import { parseTime, formatTime } from "@/lib/scoring";
-import { setHeatStatus } from "./actions";
+import { setHeatStatus, clearHeatScores } from "./actions";
 
 type HeatOption = {
   heatId: string;
@@ -29,6 +29,15 @@ type Lane = {
   laneNumber: number;
   displayName: string;
 };
+
+// Auto-insert the mm:ss colon as the judge types digits (Tjokkie,
+// 2026-09-29: "going to be a lot of Shift + : on every entry"). Strips
+// down to digits each keystroke and reformats, rather than tracking
+// cursor position, so it behaves the same whether typing or deleting.
+function formatTimeInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 4);
+  return digits.length <= 2 ? digits : `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
 
 async function submitPendingScore(item: PendingScore): Promise<Response> {
   return fetch("/api/scores", {
@@ -82,6 +91,7 @@ export default function ScorePage() {
   const [laneErrors, setLaneErrors] = useState<Record<string, string | undefined>>({});
   const [scoredLanes, setScoredLanes] = useState<Set<string>>(new Set());
   const [confirmingLanes, setConfirmingLanes] = useState<Set<string>>(new Set());
+  const [confirmingClear, setConfirmingClear] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
 
@@ -273,6 +283,7 @@ export default function ScorePage() {
       setRxScaledByLane({});
       setLaneSyncStatus({});
       setScoredLanes(new Set());
+      setConfirmingClear(false);
 
       const mappedWorkouts: Workout[] = (workoutRows ?? []).map((w) => ({
         id: w.id,
@@ -309,6 +320,23 @@ export default function ScorePage() {
     setHeats((prev) =>
       prev.map((h) => (h.heatId === selectedHeatId ? { ...h, status: nextStatus } : h))
     );
+  }
+
+  // Same two-tap confirm pattern as submitLane's "Locked — confirm?" —
+  // this deletes every score in the heat, so a stray tap shouldn't do it.
+  async function clearAllScores() {
+    if (!selectedHeatId) return;
+    if (!confirmingClear) {
+      setConfirmingClear(true);
+      return;
+    }
+    const fd = new FormData();
+    fd.set("heatId", selectedHeatId);
+    await clearHeatScores(fd);
+    setValues({});
+    setTiebreakValues({});
+    setScoredLanes(new Set());
+    setConfirmingClear(false);
   }
 
   // Division-first picker (Tjokkie, 2026-09-29: the old single flat
@@ -524,13 +552,23 @@ export default function ScorePage() {
           {selectedHeatId && (
             <>
               {isPrivileged && (
-                <div className="bg-white border border-ink/10 rounded-lg p-3 flex items-center justify-between">
+                <div className="bg-white border border-ink/10 rounded-lg p-3 flex items-center justify-between gap-2">
                   <span className="text-xs uppercase tracking-wider text-ink/50">
                     Heat status: <strong className="text-ink">{selectedHeat?.status}</strong>
                   </span>
-                  <button type="button" onClick={toggleHeatLock} className="text-xs font-semibold text-accent">
-                    {heatLocked ? "Unlock heat" : "Lock heat (end scoring)"}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={clearAllScores}
+                      onBlur={() => setConfirmingClear(false)}
+                      className={`text-xs font-semibold ${confirmingClear ? "text-red-600" : "text-ink/50"}`}
+                    >
+                      {confirmingClear ? "Tap to confirm — clear all" : "Clear all scores"}
+                    </button>
+                    <button type="button" onClick={toggleHeatLock} className="text-xs font-semibold text-accent">
+                      {heatLocked ? "Unlock heat" : "Lock heat (end scoring)"}
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -593,28 +631,6 @@ export default function ScorePage() {
                       </div>
                     </div>
 
-                    <div className="flex text-xs border border-ink/10 rounded-lg overflow-hidden w-fit">
-                      {(["rx", "scaled"] as const).map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() =>
-                            setRxScaledByLane((prev) => ({
-                              ...prev,
-                              [lane.heatAssignmentId]: prev[lane.heatAssignmentId] === tag ? null : tag,
-                            }))
-                          }
-                          className={`px-2 py-1 ${
-                            rxScaledByLane[lane.heatAssignmentId] === tag
-                              ? "bg-accent text-white"
-                              : "bg-white text-ink/60"
-                          }`}
-                        >
-                          {tag === "rx" ? "RX" : "Scaled"}
-                        </button>
-                      ))}
-                    </div>
-
                     <div className="flex items-center justify-between gap-3">
                       {activeScoringType === "time" && (
                         <div className="flex text-xs border border-ink/10 rounded-lg overflow-hidden">
@@ -649,9 +665,16 @@ export default function ScorePage() {
                                 : "kg"
                           }
                           value={values[lane.heatAssignmentId] ?? ""}
-                          onChange={(e) =>
-                            setValues((prev) => ({ ...prev, [lane.heatAssignmentId]: e.target.value }))
-                          }
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            const isTimeEntry =
+                              activeScoringType === "time" &&
+                              (modeByLane[lane.heatAssignmentId] ?? "finished") === "finished";
+                            setValues((prev) => ({
+                              ...prev,
+                              [lane.heatAssignmentId]: isTimeEntry ? formatTimeInput(raw) : raw,
+                            }));
+                          }}
                           className="w-24 border border-ink/10 rounded-lg px-2 py-2 text-sm"
                         />
                         <button
@@ -690,9 +713,13 @@ export default function ScorePage() {
                             activeScoringType === "time" ? "mm:ss" : activeScoringType === "load" ? "kg" : "reps"
                           }
                           value={tiebreakValues[lane.heatAssignmentId] ?? ""}
-                          onChange={(e) =>
-                            setTiebreakValues((prev) => ({ ...prev, [lane.heatAssignmentId]: e.target.value }))
-                          }
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            setTiebreakValues((prev) => ({
+                              ...prev,
+                              [lane.heatAssignmentId]: activeScoringType === "time" ? formatTimeInput(raw) : raw,
+                            }));
+                          }}
                           className="w-24 border border-ink/10 rounded-lg px-2 py-2 text-sm"
                         />
                       </div>

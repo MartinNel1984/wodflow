@@ -139,12 +139,22 @@ export function computeWorkoutResults(
     .sort((a, b) => b.value - a.value || (b.tiebreak ?? -Infinity) - (a.tiebreak ?? -Infinity));
 
   const ordered = [
-    ...finishers.map((f) => ({ registrationId: f.registrationId, display: formatTime(f.time), capped: false })),
-    ...secondary.map((s) => ({ registrationId: s.registrationId, display: `${s.value} ${s.unit}`, capped: true })),
+    ...finishers.map((f) => ({
+      registrationId: f.registrationId,
+      display: formatTime(f.time),
+      capped: false,
+      tieKey: `${f.time}|${f.tiebreak ?? ""}`,
+    })),
+    ...secondary.map((s) => ({
+      registrationId: s.registrationId,
+      display: `${s.value} ${s.unit}`,
+      capped: true,
+      tieKey: `${s.value}|${s.tiebreak ?? ""}`,
+    })),
   ];
 
   const entrants = registrationIds.length;
-  return ordered.map((entry, i) => ({
+  const results = ordered.map((entry, i) => ({
     registrationId: entry.registrationId,
     displayName: nameByRegistration.get(entry.registrationId) ?? "Unnamed",
     display: entry.display,
@@ -154,6 +164,22 @@ export function computeWorkoutResults(
     tiebreakDisplay: tiebreakByRegistration.get(entry.registrationId) ?? null,
     rxOrScaled: rxScaledByRegistration.get(entry.registrationId) ?? null,
   }));
+
+  // Standard competition ranking within a workout too (Tjokkie,
+  // 2026-09-29) — a genuine tie (same time/value, and either the same
+  // tiebreak or neither entered one) now shares the higher position and
+  // points, the same "1, 1, 3" rule computeStandings already applies to
+  // overall totals. Before this, two identical times still got
+  // sequential positions from the stable sort, so whichever row the DB
+  // happened to return first quietly won the tie.
+  for (let i = 1; i < results.length; i++) {
+    if (ordered[i].capped === ordered[i - 1].capped && ordered[i].tieKey === ordered[i - 1].tieKey) {
+      results[i].position = results[i - 1].position;
+      results[i].points = results[i - 1].points;
+    }
+  }
+
+  return results;
 }
 
 // Full-division standings — one workout's results feed into an overall

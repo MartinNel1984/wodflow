@@ -95,5 +95,40 @@ function row(regId: string, time: number, tiebreak?: number): LeaderboardRow {
   assertEqual(results.length, 2, "no tiebreak recorded: still produces 2 ranked results without erroring");
 }
 
+// --- a genuine tie (same time, no tiebreak) shares position AND points ---
+// Tjokkie, 2026-09-29: two teams with the identical time and no tiebreak
+// entered were getting sequential positions/points from the stable sort
+// — whichever row the DB happened to return first quietly "won". Now
+// they share the higher position, same "1, 1, 3" rule computeStandings
+// already applies to overall totals.
+{
+  const rows = [row("a", 300), row("b", 300), row("c", 400)];
+  const results = computeWorkoutResults(rows, ["a", "b", "c"], { method: "rank_sum" });
+  assertEqual(
+    results.map((r) => [r.registrationId, r.position, r.points]),
+    [
+      ["a", 1, 3],
+      ["b", 1, 3],
+      ["c", 3, 1],
+    ],
+    "genuine tie: both tied athletes share position 1 and 3 points; next distinct time resumes at position 3"
+  );
+}
+
+// --- a tie broken by tiebreak is NOT treated as a tie ---
+{
+  const rows = [row("a", 300, 50), row("b", 300, 45), row("c", 400)];
+  const results = computeWorkoutResults(rows, ["a", "b", "c"], { method: "rank_sum" });
+  assertEqual(
+    results.map((r) => [r.registrationId, r.position, r.points]),
+    [
+      ["b", 1, 3],
+      ["a", 2, 2],
+      ["c", 3, 1],
+    ],
+    "a recorded tiebreak still resolves the tie into distinct positions, not shared ones"
+  );
+}
+
 console.log(failures === 0 ? "\nAll scoring formula checks passed." : `\n${failures} check(s) failed.`);
 process.exit(failures > 0 ? 1 : 0);
