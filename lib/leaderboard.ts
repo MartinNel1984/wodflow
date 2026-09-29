@@ -10,6 +10,7 @@ export type LeaderboardRow = {
   workout_name?: string;
   workout_scoring_config?: ScoringConfig | null;
   rx_or_scaled?: "rx" | "scaled" | null;
+  workout_sequence?: number | null;
 };
 
 export type ScoringConfig =
@@ -196,9 +197,21 @@ export function computeStandings(
   standings: Standing[];
   workouts: { id: string; name: string; results: WorkoutResult[] }[];
 } {
-  const workoutIds = [...new Set(rows.map((r) => r.workout_id))].sort();
   const registrationIds = [...new Set(rows.map((r) => r.registration_id))];
   const nameByRegistration = new Map(rows.map((r) => [r.registration_id, r.display_name]));
+
+  // Column order follows the event's running order (Tjokkie, 2026-09-29):
+  // sort by each workout's `sequence`, falling back to workout_id for
+  // rows from before migration-085 added it so nothing crashes on stale
+  // cached data — that fallback is arbitrary but stable, not "correct"
+  // order, it just keeps ties from reshuffling on every render.
+  const sequenceByWorkout = new Map(rows.map((r) => [r.workout_id, r.workout_sequence ?? null]));
+  const workoutIds = [...new Set(rows.map((r) => r.workout_id))].sort((a, b) => {
+    const seqA = sequenceByWorkout.get(a);
+    const seqB = sequenceByWorkout.get(b);
+    if (seqA != null && seqB != null && seqA !== seqB) return seqA - seqB;
+    return a.localeCompare(b);
+  });
 
   const resultsByWorkout = new Map<string, WorkoutResult[]>();
   const nameByWorkout = new Map<string, string>();

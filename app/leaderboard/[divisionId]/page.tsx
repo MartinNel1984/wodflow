@@ -71,7 +71,7 @@ export default async function LeaderboardPage({
   const { data: rows } = await supabase
     .from("public_leaderboard")
     .select(
-      "heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value, workout_name, workout_scoring_config, rx_or_scaled"
+      "heat_assignment_id, workout_id, value_raw, registration_id, display_name, tiebreak_value, workout_name, workout_scoring_config, rx_or_scaled, workout_sequence"
     )
     .eq("division_id", divisionId);
 
