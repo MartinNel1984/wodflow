@@ -10,6 +10,7 @@ export type MissingWaiverRow = {
   eventName: string;
   divisionName: string;
   isCaptain: boolean;
+  inviteUrl: string | null;
 };
 
 // Compact "who still needs a waiver" list at the top of the Athletes
@@ -177,30 +178,60 @@ function MissingRow({
           </p>
         )}
       </div>
-      <form
-        action={(fd) => {
-          startTransition(async () => {
-            const res = await resendAction(fd);
-            setStatus(res.sent ? "sent" : "failed");
-          });
-        }}
-      >
-        <input type="hidden" name="athleteId" value={row.athleteId} />
-        <button
-          type="submit"
-          disabled={pending || status === "sent" || !emailLooksValid || editingEmail}
-          title={!emailLooksValid ? "Fix the email first" : undefined}
-          className="bg-accent text-white rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+      <div className="flex items-center gap-2 shrink-0">
+        {row.inviteUrl && <CopyLinkButton url={row.inviteUrl} />}
+        <form
+          action={(fd) => {
+            startTransition(async () => {
+              const res = await resendAction(fd);
+              setStatus(res.sent ? "sent" : "failed");
+            });
+          }}
         >
-          {status === "sent"
-            ? "✓ Sent"
-            : status === "failed"
-              ? "Retry send"
-              : pending
-                ? "Sending…"
-                : "Send waiver link"}
-        </button>
-      </form>
+          <input type="hidden" name="athleteId" value={row.athleteId} />
+          <button
+            type="submit"
+            disabled={pending || status === "sent" || !emailLooksValid || editingEmail}
+            title={!emailLooksValid ? "Fix the email first" : undefined}
+            className="bg-accent text-white rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+          >
+            {status === "sent"
+              ? "✓ Sent"
+              : status === "failed"
+                ? "Retry send"
+                : pending
+                  ? "Sending…"
+                  : "Send waiver link"}
+          </button>
+        </form>
+      </div>
     </li>
+  );
+}
+
+// Copies the athlete's personal invite URL to the clipboard so the
+// organizer can paste it into WhatsApp / a captain's DM when email
+// isn't reachable. Falls back to a manual-select prompt if the
+// Clipboard API isn't available (older browsers, insecure contexts).
+function CopyLinkButton({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("Copy this link:", url);
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="bg-white border border-ink/20 text-ink rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-ink/5"
+      title="Copy this athlete's invite link so you can WhatsApp it to them or their captain"
+    >
+      {copied ? "✓ Copied" : "Copy link"}
+    </button>
   );
 }

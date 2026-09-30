@@ -78,17 +78,30 @@ export default async function AthletesDirectoryPage() {
     !!a.email &&
     !a.email.endsWith("@wodflow.local");
 
-  const unsigned: MissingWaiverRow[] = enriched
-    .filter((a) => !a.waiverSignedAt && !a.isCaptain && isChasable(a))
-    .map((a) => ({
-      athleteId: a.id,
-      fullName: a.fullName,
-      email: a.email,
-      teamName: a.teamName,
-      eventName: a.eventName,
-      divisionName: a.divisionName,
-      isCaptain: a.isCaptain,
-    }));
+  const unsignedRaw = enriched.filter(
+    (a) => !a.waiverSignedAt && !a.isCaptain && isChasable(a)
+  );
+  const unsignedIds = unsignedRaw.map((a) => a.id);
+  const { data: invites } = unsignedIds.length
+    ? await supabase
+        .from("team_invites")
+        .select("registration_athlete_id, token")
+        .in("registration_athlete_id", unsignedIds)
+    : { data: [] };
+  const tokenByAthleteId = new Map((invites ?? []).map((i) => [i.registration_athlete_id, i.token]));
+
+  const unsigned: MissingWaiverRow[] = unsignedRaw.map((a) => ({
+    athleteId: a.id,
+    fullName: a.fullName,
+    email: a.email,
+    teamName: a.teamName,
+    eventName: a.eventName,
+    divisionName: a.divisionName,
+    isCaptain: a.isCaptain,
+    inviteUrl: tokenByAthleteId.get(a.id)
+      ? `https://wodflow.co.za/invite/${tokenByAthleteId.get(a.id)}`
+      : null,
+  }));
 
   // Captain rows where the signature name doesn't share any word with the
   // captain's listed full name — surfaced for review, not auto-cleared.
@@ -110,6 +123,7 @@ export default async function AthletesDirectoryPage() {
       eventName: a.eventName,
       divisionName: a.divisionName,
       isCaptain: a.isCaptain,
+      inviteUrl: null,
       signedName: a.waiverSignedName ?? "",
     }));
 
