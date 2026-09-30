@@ -9,6 +9,7 @@ import {
   resendPaymentLink,
   markPaidAndSendConfirmation,
   resendWaiverInvite,
+  updateAthleteEmail,
 } from "../events/[eventId]/divisions/[divisionId]/athletes/actions";
 
 export default async function AthletesDirectoryPage() {
@@ -131,6 +132,7 @@ export default async function AthletesDirectoryPage() {
         unsigned={unsigned}
         captainMismatches={captainMismatches}
         resendAction={resendWaiverInvite}
+        updateEmailAction={updateAthleteEmail}
       />
 
 

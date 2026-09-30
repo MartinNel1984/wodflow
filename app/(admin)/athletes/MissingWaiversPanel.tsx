@@ -25,10 +25,12 @@ export default function MissingWaiversPanel({
   unsigned,
   captainMismatches,
   resendAction,
+  updateEmailAction,
 }: {
   unsigned: MissingWaiverRow[];
   captainMismatches: (MissingWaiverRow & { signedName: string })[];
   resendAction: (formData: FormData) => Promise<{ sent: boolean }>;
+  updateEmailAction: (formData: FormData) => Promise<{ success: boolean; error?: string }>;
 }) {
   if (unsigned.length === 0 && captainMismatches.length === 0) return null;
   return (
@@ -43,7 +45,12 @@ export default function MissingWaiversPanel({
           </p>
           <ul className="divide-y divide-amber-200">
             {unsigned.map((r) => (
-              <MissingRow key={r.athleteId} row={r} resendAction={resendAction} />
+              <MissingRow
+                key={r.athleteId}
+                row={r}
+                resendAction={resendAction}
+                updateEmailAction={updateEmailAction}
+              />
             ))}
           </ul>
         </div>
@@ -84,24 +91,91 @@ export default function MissingWaiversPanel({
 function MissingRow({
   row,
   resendAction,
+  updateEmailAction,
 }: {
   row: MissingWaiverRow;
   resendAction: (formData: FormData) => Promise<{ sent: boolean }>;
+  updateEmailAction: (formData: FormData) => Promise<{ success: boolean; error?: string }>;
 }) {
   const [pending, startTransition] = useTransition();
   const [status, setStatus] = useState<"idle" | "sent" | "failed">("idle");
+  const [email, setEmail] = useState(row.email);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [emailDraft, setEmailDraft] = useState(row.email);
+  const [savingEmail, startEmailSave] = useTransition();
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  function saveEmail(e: React.FormEvent) {
+    e.preventDefault();
+    setEmailError(null);
+    const trimmed = emailDraft.trim();
+    startEmailSave(async () => {
+      const fd = new FormData();
+      fd.set("athleteId", row.athleteId);
+      fd.set("email", trimmed);
+      const res = await updateEmailAction(fd);
+      if (res.success) {
+        setEmail(trimmed.toLowerCase());
+        setEditingEmail(false);
+        setStatus("idle");
+      } else {
+        setEmailError(res.error ?? "Save failed.");
+      }
+    });
+  }
 
   return (
     <li className="py-2 flex items-center justify-between gap-4">
-      <div>
+      <div className="min-w-0 flex-1">
         <p className="text-sm">
-          <span className="font-semibold">{row.fullName}</span>{" "}
-          <span className="text-ink/50 text-xs">— {row.email}</span>
+          <span className="font-semibold">{row.fullName}</span>
         </p>
-        <p className="text-ink/50 text-xs">
-          {row.eventName} · {row.divisionName}
-          {row.teamName ? ` · ${row.teamName}` : ""}
-        </p>
+        {editingEmail ? (
+          <form onSubmit={saveEmail} className="mt-1 flex items-center gap-2">
+            <input
+              type="email"
+              value={emailDraft}
+              onChange={(e) => setEmailDraft(e.target.value)}
+              autoFocus
+              className="bg-white border border-ink/20 rounded px-2 py-1 text-xs w-64 focus:outline-none focus:border-accent"
+              placeholder="new@email.com"
+            />
+            <button
+              type="submit"
+              disabled={savingEmail}
+              className="bg-ink text-white rounded px-2 py-1 text-xs font-semibold disabled:opacity-50"
+            >
+              {savingEmail ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingEmail(false);
+                setEmailDraft(email);
+                setEmailError(null);
+              }}
+              className="text-xs text-ink/50 hover:text-ink"
+            >
+              Cancel
+            </button>
+            {emailError && <span className="text-red-700 text-xs">{emailError}</span>}
+          </form>
+        ) : (
+          <p className="text-ink/50 text-xs">
+            <button
+              type="button"
+              onClick={() => setEditingEmail(true)}
+              className={`underline decoration-dotted hover:text-ink ${emailLooksValid ? "" : "text-red-700 font-semibold"}`}
+              title="Click to edit email"
+            >
+              {email || "(no email)"}
+            </button>{" "}
+            · {row.eventName} · {row.divisionName}
+            {row.teamName ? ` · ${row.teamName}` : ""}
+          </p>
+        )}
       </div>
       <form
         action={(fd) => {
@@ -114,7 +188,8 @@ function MissingRow({
         <input type="hidden" name="athleteId" value={row.athleteId} />
         <button
           type="submit"
-          disabled={pending || status === "sent"}
+          disabled={pending || status === "sent" || !emailLooksValid || editingEmail}
+          title={!emailLooksValid ? "Fix the email first" : undefined}
           className="bg-accent text-white rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
         >
           {status === "sent"

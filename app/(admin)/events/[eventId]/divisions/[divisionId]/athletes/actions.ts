@@ -206,6 +206,35 @@ export async function moveRegistrationDivision(formData: FormData): Promise<{ su
   return { success: true };
 }
 
+// Corrects a wrong or missing email address on a registration_athletes
+// row — the address the captain typed at signup is sometimes garbage
+// ("nel" instead of a full email) and the invite/waiver-invite emails
+// can't go anywhere until it's fixed. Also syncs team_invites.email_or_phone
+// so the invite record shows the same address in reports.
+export async function updateAthleteEmail(formData: FormData): Promise<{ success: boolean; error?: string }> {
+  const { supabase } = await requireOrganizer();
+  const athleteId = String(formData.get("athleteId") ?? "");
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!athleteId) return { success: false, error: "Missing athlete." };
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { success: false, error: "That doesn't look like a valid email." };
+  }
+
+  const { error } = await supabase
+    .from("registration_athletes")
+    .update({ email })
+    .eq("id", athleteId);
+  if (error) return { success: false, error: "Could not save." };
+
+  await supabase
+    .from("team_invites")
+    .update({ email_or_phone: email })
+    .eq("registration_athlete_id", athleteId);
+
+  revalidatePath("/athletes");
+  return { success: true };
+}
+
 // Emails a specific teammate their invite link so they can sign their own
 // waiver — the initial registration confirmation email already carries this
 // link, but is easy to lose weeks after signup. Used from the "missing
