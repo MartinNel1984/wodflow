@@ -90,18 +90,33 @@ export default async function AthletesDirectoryPage() {
     : { data: [] };
   const tokenByAthleteId = new Map((invites ?? []).map((i) => [i.registration_athlete_id, i.token]));
 
-  const unsigned: MissingWaiverRow[] = unsignedRaw.map((a) => ({
-    athleteId: a.id,
-    fullName: a.fullName,
-    email: a.email,
-    teamName: a.teamName,
-    eventName: a.eventName,
-    divisionName: a.divisionName,
-    isCaptain: a.isCaptain,
-    inviteUrl: tokenByAthleteId.get(a.id)
-      ? `https://wodflow.co.za/invite/${tokenByAthleteId.get(a.id)}`
-      : null,
-  }));
+  // Captain lookup by registrationId so each Missing waivers row can
+  // show who the organizer should contact when the athlete's own email
+  // is unreachable — the captain gave a real email at signup.
+  const captainByRegId = new Map<string, { name: string; email: string }>();
+  for (const a of enriched) {
+    if (a.isCaptain && a.registrationId && a.email) {
+      captainByRegId.set(a.registrationId, { name: a.fullName, email: a.email });
+    }
+  }
+
+  const unsigned: MissingWaiverRow[] = unsignedRaw.map((a) => {
+    const captain = a.registrationId ? captainByRegId.get(a.registrationId) : undefined;
+    return {
+      athleteId: a.id,
+      fullName: a.fullName,
+      email: a.email,
+      teamName: a.teamName,
+      eventName: a.eventName,
+      divisionName: a.divisionName,
+      isCaptain: a.isCaptain,
+      inviteUrl: tokenByAthleteId.get(a.id)
+        ? `https://wodflow.co.za/invite/${tokenByAthleteId.get(a.id)}`
+        : null,
+      captainName: captain?.name ?? null,
+      captainEmail: captain?.email ?? null,
+    };
+  });
 
   // Captain rows where the signature name doesn't share any word with the
   // captain's listed full name — surfaced for review, not auto-cleared.
@@ -124,6 +139,8 @@ export default async function AthletesDirectoryPage() {
       divisionName: a.divisionName,
       isCaptain: a.isCaptain,
       inviteUrl: null,
+      captainName: null,
+      captainEmail: null,
       signedName: a.waiverSignedName ?? "",
     }));
 

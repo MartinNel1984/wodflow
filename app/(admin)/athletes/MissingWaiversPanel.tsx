@@ -11,6 +11,8 @@ export type MissingWaiverRow = {
   divisionName: string;
   isCaptain: boolean;
   inviteUrl: string | null;
+  captainName: string | null;
+  captainEmail: string | null;
 };
 
 // Compact "who still needs a waiver" list at the top of the Athletes
@@ -164,18 +166,31 @@ function MissingRow({
             {emailError && <span className="text-red-700 text-xs">{emailError}</span>}
           </form>
         ) : (
-          <p className="text-ink/50 text-xs">
-            <button
-              type="button"
-              onClick={() => setEditingEmail(true)}
-              className={`underline decoration-dotted hover:text-ink ${emailLooksValid ? "" : "text-red-700 font-semibold"}`}
-              title="Click to edit email"
-            >
-              {email || "(no email)"}
-            </button>{" "}
-            · {row.eventName} · {row.divisionName}
-            {row.teamName ? ` · ${row.teamName}` : ""}
-          </p>
+          <>
+            <p className="text-ink/50 text-xs">
+              <button
+                type="button"
+                onClick={() => setEditingEmail(true)}
+                className={`underline decoration-dotted hover:text-ink ${emailLooksValid ? "" : "text-red-700 font-semibold"}`}
+                title="Click to edit email"
+              >
+                {email || "(no email)"}
+              </button>{" "}
+              · {row.eventName} · {row.divisionName}
+              {row.teamName ? ` · ${row.teamName}` : ""}
+            </p>
+            {row.captainName && row.captainEmail && !row.isCaptain && (
+              <p className="text-ink/60 text-xs mt-0.5">
+                Captain: <span className="font-semibold">{row.captainName}</span> ·{" "}
+                <a
+                  href={`mailto:${row.captainEmail}`}
+                  className="underline decoration-dotted hover:text-ink"
+                >
+                  {row.captainEmail}
+                </a>
+              </p>
+            )}
+          </>
         )}
       </div>
       <div className="flex items-center gap-2 shrink-0">
