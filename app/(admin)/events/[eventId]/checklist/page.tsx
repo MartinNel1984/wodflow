@@ -15,7 +15,7 @@ export default async function ChecklistPage({
   const { division: selectedDivisionId } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: event }, { data: divisions }, { data: registrations }] = await Promise.all([
+  const [{ data: event }, { data: divisions }, { data: registrations }, { data: tickets }] = await Promise.all([
     supabase
       .from("events")
       .select(
@@ -34,7 +34,36 @@ export default async function ChecklistPage({
       )
       .eq("event_id", eventId)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("event_tickets")
+      .select("ticket_type, quantity, price_paid, payment_status, checked_in_count")
+      .eq("event_id", eventId),
   ]);
+
+  // Sales snapshot. Paid = revenue-recognised & spot-reserved; pending = in
+  // PayFast limbo (buyer opened the checkout but hasn't confirmed) — worth
+  // seeing separately so a spike in pending doesn't get counted as sales.
+  type TicketRow = {
+    ticket_type: "spectator" | "weekend_pass";
+    quantity: number;
+    price_paid: number;
+    payment_status: "pending" | "paid" | "refunded";
+    checked_in_count: number;
+  };
+  const sales = { spectator: emptyBucket(), weekend_pass: emptyBucket() };
+  for (const t of (tickets ?? []) as TicketRow[]) {
+    const bucket = sales[t.ticket_type];
+    if (!bucket) continue;
+    if (t.payment_status === "paid") {
+      bucket.paidOrders += 1;
+      bucket.paidUnits += t.quantity;
+      bucket.revenue += Number(t.price_paid);
+      bucket.checkedIn += t.checked_in_count;
+    } else if (t.payment_status === "pending") {
+      bucket.pendingOrders += 1;
+      bucket.pendingUnits += t.quantity;
+    }
+  }
 
   const eventChecks = computeEventChecks(event, divisions ?? []);
   const divisionChecks = computeDivisionChecks(divisions ?? []);
@@ -138,6 +167,15 @@ export default async function ChecklistPage({
           </table>
         </div>
       </div>
+
+      <TicketSalesPanel
+        spectator={sales.spectator}
+        weekendPass={sales.weekend_pass}
+        spectatorEnabled={event?.spectator_price != null}
+        weekendPassEnabled={event?.weekend_pass_price != null}
+        spectatorCapacity={event?.spectator_capacity ?? null}
+        weekendPassCapacity={event?.weekend_pass_capacity ?? null}
+      />
 
       <form
         action={updateEventContactInfo}
@@ -335,6 +373,110 @@ function TextField({
         className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
       />
     </div>
+  );
+}
+
+type SalesBucket = {
+  paidOrders: number;
+  paidUnits: number;
+  revenue: number;
+  checkedIn: number;
+  pendingOrders: number;
+  pendingUnits: number;
+};
+
+function emptyBucket(): SalesBucket {
+  return {
+    paidOrders: 0,
+    paidUnits: 0,
+    revenue: 0,
+    checkedIn: 0,
+    pendingOrders: 0,
+    pendingUnits: 0,
+  };
+}
+
+function TicketSalesPanel({
+  spectator,
+  weekendPass,
+  spectatorEnabled,
+  weekendPassEnabled,
+  spectatorCapacity,
+  weekendPassCapacity,
+}: {
+  spectator: SalesBucket;
+  weekendPass: SalesBucket;
+  spectatorEnabled: boolean;
+  weekendPassEnabled: boolean;
+  spectatorCapacity: number | null;
+  weekendPassCapacity: number | null;
+}) {
+  const totalRevenue = spectator.revenue + weekendPass.revenue;
+  const anyEnabled = spectatorEnabled || weekendPassEnabled;
+  return (
+    <div className="bg-white border border-ink/10 rounded-xl p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold text-sm uppercase tracking-wider text-ink/50">
+          Spectator ticket sales
+        </h2>
+        <span className="text-sm font-semibold">R{totalRevenue.toFixed(2)}</span>
+      </div>
+      {!anyEnabled ? (
+        <p className="text-ink/60 text-sm">
+          Ticket sales are off for this event — set a price below to open the public tickets page.
+        </p>
+      ) : (
+        <div className="border border-ink/10 rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-ink/5 text-left">
+                <th className="px-4 py-2">Type</th>
+                <th className="px-4 py-2">Paid</th>
+                <th className="px-4 py-2">Revenue</th>
+                <th className="px-4 py-2">Checked-in</th>
+                <th className="px-4 py-2">Pending</th>
+              </tr>
+            </thead>
+            <tbody>
+              {spectatorEnabled && (
+                <SalesRow label="Day pass" bucket={spectator} capacity={spectatorCapacity} />
+              )}
+              {weekendPassEnabled && (
+                <SalesRow label="Weekend pass" bucket={weekendPass} capacity={weekendPassCapacity} />
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SalesRow({
+  label,
+  bucket,
+  capacity,
+}: {
+  label: string;
+  bucket: SalesBucket;
+  capacity: number | null;
+}) {
+  return (
+    <tr className="border-t border-ink/10">
+      <td className="px-4 py-2 font-semibold">{label}</td>
+      <td className="px-4 py-2">
+        {bucket.paidUnits}
+        {capacity != null && <span className="text-ink/50"> / {capacity}</span>}
+        <span className="text-ink/50 text-xs"> ({bucket.paidOrders} orders)</span>
+      </td>
+      <td className="px-4 py-2">R{bucket.revenue.toFixed(2)}</td>
+      <td className="px-4 py-2">{bucket.checkedIn}</td>
+      <td className="px-4 py-2 text-ink/60">
+        {bucket.pendingUnits === 0
+          ? "—"
+          : `${bucket.pendingUnits} (${bucket.pendingOrders} orders)`}
+      </td>
+    </tr>
   );
 }
 
