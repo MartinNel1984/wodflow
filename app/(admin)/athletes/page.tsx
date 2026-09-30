@@ -2,11 +2,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireOrganizer } from "@/lib/auth";
 import AthletesTable, { type AthleteRow } from "./AthletesTable";
+import MissingWaiversPanel, { type MissingWaiverRow } from "./MissingWaiversPanel";
 import {
   addAthleteManually,
   removeAthlete,
   resendPaymentLink,
   markPaidAndSendConfirmation,
+  resendWaiverInvite,
 } from "../events/[eventId]/divisions/[divisionId]/athletes/actions";
 
 export default async function AthletesDirectoryPage() {
@@ -17,7 +19,7 @@ export default async function AthletesDirectoryPage() {
     supabase
       .from("registration_athletes")
       .select(
-        "id, full_name, id_number, gym_name, is_minor, waiver_signed_at, is_captain, registrations(id, payment_status, division_id, team_name, divisions(id, name, event_id, events(name)))"
+        "id, full_name, email, id_number, gym_name, is_minor, waiver_signed_at, waiver_signed_name, is_captain, registrations(id, payment_status, division_id, team_name, divisions(id, name, event_id, events(name)))"
       )
       .order("waiver_signed_at", { ascending: false }),
     supabase
@@ -32,7 +34,12 @@ export default async function AthletesDirectoryPage() {
       .order("start_date", { ascending: false }),
   ]);
 
-  const rows: AthleteRow[] = (data ?? [])
+  type AthleteWithContext = AthleteRow & {
+    email: string;
+    waiverSignedName: string | null;
+  };
+
+  const enriched: AthleteWithContext[] = (data ?? [])
     .map((a) => {
       const reg = Array.isArray(a.registrations) ? a.registrations[0] : a.registrations;
       const division = Array.isArray(reg?.divisions) ? reg.divisions[0] : reg?.divisions;
@@ -41,10 +48,12 @@ export default async function AthletesDirectoryPage() {
       return {
         id: a.id,
         fullName: a.full_name,
+        email: a.email ?? "",
         idNumber: a.id_number,
         teamName: reg?.team_name ?? null,
         isMinor: a.is_minor,
         waiverSignedAt: a.waiver_signed_at,
+        waiverSignedName: a.waiver_signed_name,
         paymentStatus: reg?.payment_status ?? "pending",
         eventName: event.name,
         divisionName: division.name,
@@ -56,7 +65,52 @@ export default async function AthletesDirectoryPage() {
         gymName: a.gym_name,
       };
     })
-    .filter((r): r is AthleteRow => r !== null);
+    .filter((r): r is AthleteWithContext => r !== null);
+
+  const rows: AthleteRow[] = enriched;
+
+  // Only chase live entries — pending checkouts and refunds haven't reserved
+  // a spot and shouldn't be spammed. Placeholder emails (from organizer-
+  // added walk-ins) can't receive anything, so they're not actionable.
+  const isChasable = (a: AthleteWithContext) =>
+    (a.paymentStatus === "paid" || a.paymentStatus === "waived") &&
+    !!a.email &&
+    !a.email.endsWith("@wodflow.local");
+
+  const unsigned: MissingWaiverRow[] = enriched
+    .filter((a) => !a.waiverSignedAt && !a.isCaptain && isChasable(a))
+    .map((a) => ({
+      athleteId: a.id,
+      fullName: a.fullName,
+      email: a.email,
+      teamName: a.teamName,
+      eventName: a.eventName,
+      divisionName: a.divisionName,
+      isCaptain: a.isCaptain,
+    }));
+
+  // Captain rows where the signature name doesn't share any word with the
+  // captain's listed full name — surfaced for review, not auto-cleared.
+  const nameTokens = (s: string | null) =>
+    new Set((s ?? "").toLowerCase().replace(/[^a-z ]/g, "").split(/\s+/).filter(Boolean));
+  const captainMismatches = enriched
+    .filter((a) => a.isCaptain && a.waiverSignedAt && isChasable(a))
+    .filter((a) => {
+      const nameSet = nameTokens(a.fullName);
+      const sigSet = nameTokens(a.waiverSignedName);
+      for (const t of sigSet) if (nameSet.has(t)) return false;
+      return sigSet.size > 0;
+    })
+    .map((a) => ({
+      athleteId: a.id,
+      fullName: a.fullName,
+      email: a.email,
+      teamName: a.teamName,
+      eventName: a.eventName,
+      divisionName: a.divisionName,
+      isCaptain: a.isCaptain,
+      signedName: a.waiverSignedName ?? "",
+    }));
 
   const divisions = (divisionOptions ?? []).map((d) => ({
     id: d.id,
@@ -72,6 +126,13 @@ export default async function AthletesDirectoryPage() {
           Every athlete registered across every event — {rows.length} total.
         </p>
       </div>
+
+      <MissingWaiversPanel
+        unsigned={unsigned}
+        captainMismatches={captainMismatches}
+        resendAction={resendWaiverInvite}
+      />
+
 
       {/* Direct jump to a division's own Athletes page — same picker
           pattern as /leaderboards and /workouts — so manually adding a

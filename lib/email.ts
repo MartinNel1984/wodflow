@@ -29,7 +29,8 @@ type EmailType =
   | "payment_reminder"
   | "ticket_confirmation"
   | "ticket_organizer_notification"
-  | "password_reset";
+  | "password_reset"
+  | "waiver_invite";
 
 // One row per send attempt, success or failure — so "did the athlete's
 // confirmation actually send" is a lookup instead of the investigation
@@ -177,6 +178,73 @@ export async function sendRegistrationEmails(registrationId: string) {
   }
 
   await Promise.all(sends);
+}
+
+// Organizer-triggered nudge to a single non-captain teammate whose
+// own waiver hasn't been signed yet. Reuses the same /invite/[token]
+// flow the registration confirmation email links to — but sends only
+// to this one athlete rather than firing every recipient again as
+// sendRegistrationEmails would. Returns false (silently) if the row
+// isn't eligible (captain, missing invite, missing email).
+export async function sendWaiverInviteEmail(athleteId: string): Promise<boolean> {
+  const supabase = createServiceClient();
+
+  const { data: athlete } = await supabase
+    .from("registration_athletes")
+    .select(
+      "id, full_name, email, is_captain, registration_id, registrations(divisions(name, events(name)))"
+    )
+    .eq("id", athleteId)
+    .single();
+  if (!athlete || athlete.is_captain || !athlete.email) return false;
+
+  const { data: invite } = await supabase
+    .from("team_invites")
+    .select("token")
+    .eq("registration_athlete_id", athleteId)
+    .single();
+  if (!invite?.token) return false;
+
+  const registration = Array.isArray(athlete.registrations) ? athlete.registrations[0] : athlete.registrations;
+  const division = Array.isArray(registration?.divisions) ? registration.divisions[0] : registration?.divisions;
+  const event = Array.isArray(division?.events) ? division.events[0] : division?.events;
+  const inviteUrl = `https://wodflow.co.za/invite/${invite.token}`;
+  const firstName = athlete.full_name.split(" ")[0];
+
+  let env;
+  try {
+    ({ env } = getCloudflareContext());
+  } catch (err) {
+    console.error("sendWaiverInviteEmail: could not get Cloudflare context", err);
+    return false;
+  }
+
+  try {
+    await env.EMAIL.send({
+      to: athlete.email,
+      from: FROM,
+      subject: `Sign your waiver — ${event?.name ?? "Wodflow"}`,
+      html: `<p>Hi ${firstName},</p><p>Your team captain has registered you for <strong>${division?.name}</strong> at <strong>${event?.name}</strong>, but we still need YOUR own signed waiver before event day.</p><p><a href="${inviteUrl}">Confirm your details and sign your waiver</a> — this link is just for you.</p>`,
+      text: `Hi ${firstName}, your team captain has registered you for ${division?.name} at ${event?.name}, but we still need your own signed waiver before event day. Confirm your details and sign your waiver: ${inviteUrl}`,
+    });
+    await logEmailAttempt(supabase, {
+      registrationId: athlete.registration_id,
+      recipientEmail: athlete.email,
+      emailType: "waiver_invite",
+      status: "sent",
+    });
+    return true;
+  } catch (err) {
+    console.error("Waiver invite email failed", athlete.email, err);
+    await logEmailAttempt(supabase, {
+      registrationId: athlete.registration_id,
+      recipientEmail: athlete.email,
+      emailType: "waiver_invite",
+      status: "failed",
+      errorMessage: String(err),
+    });
+    return false;
+  }
 }
 
 // Organizer-triggered, not webhook-triggered — for a registration

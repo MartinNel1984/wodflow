@@ -129,13 +129,17 @@ export async function POST(request: Request) {
     is_minor: t.isMinor,
     guardian_name: t.isMinor ? t.guardianName.trim() : null,
     guardian_id_number: t.isMinor ? t.guardianIdNumber.trim() : null,
-    waiver_signed_name: waiverSignedName,
-    waiver_signed_at: waiverTimestamp,
-    waiver_ip: clientIp,
-    // Snapshot the exact text agreed to right now — events.waiver_text
-    // may be edited later, but this athlete's record must keep showing
-    // what they actually signed (see migration-010's rationale).
-    waiver_text_snapshot: event?.waiver_text ?? null,
+    // Only the captain's row records a signature at registration time —
+    // waiverSignedName is what THEY typed, and it's only legally valid
+    // for them. Non-captain teammates sign their own via the invite/
+    // accept flow; leaving these null keeps the admin "not signed"
+    // indicator honest and stops the captain's signature being reused
+    // as if the teammate had agreed. (Pre-fix, every teammate row was
+    // marked signed with the captain's name; see cleanup-055.)
+    waiver_signed_name: t.isCaptain ? waiverSignedName : null,
+    waiver_signed_at: t.isCaptain ? waiverTimestamp : null,
+    waiver_ip: t.isCaptain ? clientIp : null,
+    waiver_text_snapshot: t.isCaptain ? (event?.waiver_text ?? null) : null,
   }));
 
   const { data: insertedAthletes, error: athletesError } = await supabase

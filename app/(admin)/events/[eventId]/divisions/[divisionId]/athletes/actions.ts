@@ -1,7 +1,7 @@
 "use server";
 
 import { requireOrganizer } from "@/lib/auth";
-import { sendPaymentReminderEmail, sendRegistrationEmails } from "@/lib/email";
+import { sendPaymentReminderEmail, sendRegistrationEmails, sendWaiverInviteEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
 
 function path(eventId: string, divisionId: string) {
@@ -204,6 +204,36 @@ export async function moveRegistrationDivision(formData: FormData): Promise<{ su
   revalidatePath(path(eventId, targetDivisionId));
   revalidatePath("/athletes");
   return { success: true };
+}
+
+// Emails a specific teammate their invite link so they can sign their own
+// waiver — the initial registration confirmation email already carries this
+// link, but is easy to lose weeks after signup. Used from the "missing
+// waivers" list surfaced on the Athletes pages. If the invite row was
+// somehow marked accepted without a real claim (data from before the
+// registration route's captain-only signature fix), we flip it back to
+// pending so the recipient can go through the flow properly.
+export async function resendWaiverInvite(formData: FormData): Promise<{ sent: boolean }> {
+  const { supabase } = await requireOrganizer();
+  const athleteId = String(formData.get("athleteId") ?? "");
+  if (!athleteId) return { sent: false };
+
+  const { data: athlete } = await supabase
+    .from("registration_athletes")
+    .select("id, email, registration_id, is_captain")
+    .eq("id", athleteId)
+    .single();
+  if (!athlete || athlete.is_captain || !athlete.email) return { sent: false };
+
+  await supabase
+    .from("team_invites")
+    .update({ status: "pending", accepted_at: null, accepted_profile_id: null })
+    .eq("registration_athlete_id", athleteId)
+    .neq("status", "pending");
+
+  const sent = await sendWaiverInviteEmail(athleteId);
+  revalidatePath("/athletes");
+  return { sent };
 }
 
 // Removes a single athlete row. If they were the last person on their
