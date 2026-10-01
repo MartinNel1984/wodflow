@@ -47,7 +47,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ eve
   const { data: registrations } = await supabase
     .from("registrations")
     .select(
-      "team_name, payment_status, price_paid, divisions(name), registration_athletes(full_name, email, id_number, is_minor, waiver_signed_at)"
+      "team_name, payment_status, price_paid, created_at, divisions(name), registration_athletes(full_name, email, id_number, is_minor, waiver_signed_at)"
     )
     .eq("event_id", eventId)
     .order("created_at", { ascending: true });
@@ -62,6 +62,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ eve
     "Waiver Signed",
     "Payment Status",
     "Price Paid",
+    "Registered At",
   ];
   const lines = [header.join(",")];
 
@@ -79,6 +80,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ eve
           a.waiver_signed_at ? "Yes" : "No",
           r.payment_status ?? "",
           String(r.price_paid ?? ""),
+          r.created_at ?? "",
         ]
           .map(csvEscape)
           .join(",")
