@@ -209,6 +209,9 @@ export default async function ChecklistPage({
         <a href={`/api/events/${eventId}/registrations.csv`} className="text-accent text-sm hover:underline">
           Export registrations CSV
         </a>
+        <a href={`/api/events/${eventId}/athletes.csv`} className="text-accent text-sm hover:underline">
+          Athlete export (name/surname/gym/division)
+        </a>
         <a href={`/events/${eventId}/reports/waivers`} className="text-accent text-sm hover:underline">
           All signed waivers
         </a>
