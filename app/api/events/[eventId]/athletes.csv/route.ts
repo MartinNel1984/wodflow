@@ -45,11 +45,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ eve
 
   const { data: registrations } = await supabase
     .from("registrations")
-    .select("divisions(name), registration_athletes(full_name, gym_name)")
+    .select("team_name, divisions(name), registration_athletes(full_name)")
     .eq("event_id", eventId)
     .order("created_at", { ascending: true });
 
-  const header = ["Name", "Surname", "Gym Name", "Division"];
+  const header = ["Name", "Surname", "Team Name", "Division"];
   const lines = [header.join(",")];
 
   for (const r of registrations ?? []) {
@@ -57,7 +57,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ eve
     for (const a of r.registration_athletes ?? []) {
       const { name, surname } = splitName(a.full_name ?? "");
       lines.push(
-        [name, surname, a.gym_name ?? "", division?.name ?? ""].map(csvEscape).join(",")
+        [name, surname, r.team_name ?? "", division?.name ?? ""].map(csvEscape).join(",")
       );
     }
   }
