@@ -122,12 +122,29 @@ export function assignRosterToHeats(input: HeatAssignInput): AssignmentDraft[] {
   let cursor = 0;
   sortedHeatNumbers.forEach((heatNumber, h) => {
     const size = h === 0 ? firstHeatSize : laneCount;
-    const slice = ordered.slice(cursor, cursor + size);
+    // Reverse so the strongest-seeded athlete in each heat is at index 0
+    // (orderRoster puts worst→best within each heat's slice).
+    const slice = ordered.slice(cursor, cursor + size).reverse();
     cursor += size;
     slice.forEach((entry, i) => {
-      assignments.push({ heatNumber, registrationId: entry.registrationId, laneNumber: i + 1 });
+      assignments.push({
+        heatNumber,
+        registrationId: entry.registrationId,
+        laneNumber: centreOutLane(i, laneCount),
+      });
     });
   });
 
   return assignments;
+}
+
+// Centre-out lane assignment (Tjokkie, 2026-10-02): best teams in the
+// middle of the arena for spectator visibility. Position 0 → middle lane,
+// then alternates right/left: 1st→L5, 2nd→L6, 3rd→L4, 4th→L7, 5th→L3…
+// Even lane counts start on the lower-middle lane (L5 of 10).
+function centreOutLane(positionInHeat: number, laneCount: number): number {
+  const mid = Math.floor((laneCount - 1) / 2);
+  const i = positionInHeat;
+  const offset = i % 2 === 0 ? -(i / 2) : Math.ceil(i / 2);
+  return mid + offset + 1;
 }
