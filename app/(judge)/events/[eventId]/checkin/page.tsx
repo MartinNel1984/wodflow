@@ -43,11 +43,12 @@ export default function CheckinPage() {
       const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
       const r = profile?.role ?? "";
       setRole(r);
-      // Checkin is organizer/head_judge only (requirePrivileged on the
-      // server side already enforces this on every action) — a plain
-      // judge landing here via the shared (judge) route group gets
-      // bounced with a message rather than a confusing blank scanner.
-      setAuthorized(r === "organizer" || r === "head_judge");
+      // Checkin is open to organizer/head_judge/plain judge in the
+      // event's org (migration-086 + requireCheckinAccess on the server
+      // side already enforces this on every action) — anyone else
+      // landing here via the shared (judge) route group gets bounced
+      // with a message rather than a confusing blank scanner.
+      setAuthorized(r === "organizer" || r === "head_judge" || r === "judge");
     }
     loadRole();
   }, []);
@@ -158,7 +159,7 @@ export default function CheckinPage() {
   if (!authorized) {
     return (
       <p className="text-center py-20 text-ink/50">
-        {role ? "Only organizers and head judges can access gate check-in." : "Please sign in."}
+        {role ? "You don't have access to gate check-in for this event." : "Please sign in."}
       </p>
     );
   }

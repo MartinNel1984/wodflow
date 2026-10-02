@@ -56,6 +56,32 @@ export async function requirePrivileged() {
   return { supabase, organizationId: profile.organization_id as string };
 }
 
+// Organizer OR head judge OR plain judge — matches migration-086's
+// is_checkin_authorized_for() DB helper. Used by the gate check-in
+// scanner path only: scanning tickets doesn't need the broader
+// score/heat powers head_judge grants, so promoting event-day gate
+// staff to head_judge would be overkill. Any wider check should keep
+// using requirePrivileged.
+export async function requireCheckinAccess() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in");
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, organization_id, organizations(status)")
+    .eq("id", user.id)
+    .single();
+  if (profile?.role !== "organizer" && profile?.role !== "head_judge" && profile?.role !== "judge") {
+    throw new Error("Not authorised");
+  }
+  if ((profile.organizations as unknown as { status: string } | null)?.status !== "active") {
+    throw new Error("Your organization's access is currently suspended");
+  }
+  return { supabase, organizationId: profile.organization_id as string };
+}
+
 // Non-throwing variant for public pages (leaderboard/heat sheet) that
 // need to show an organizer/head judge a preview of results hidden
 // from everyone else, without crashing for anonymous visitors.

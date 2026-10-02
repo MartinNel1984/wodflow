@@ -1,6 +1,6 @@
 "use server";
 
-import { requirePrivileged } from "@/lib/auth";
+import { requireCheckinAccess } from "@/lib/auth";
 
 type TicketRow = {
   id: string;
@@ -15,7 +15,7 @@ export async function lookupTicket(
   eventId: string,
   scannedValue: string
 ): Promise<{ ticket: TicketRow } | { error: string }> {
-  const { supabase } = await requirePrivileged();
+  const { supabase } = await requireCheckinAccess();
 
   // A scan may yield the raw qr_token or (if someone photographs a
   // printed ticket page URL instead of the code itself) a full URL —
@@ -58,7 +58,7 @@ export async function confirmCheckin(
   ticketId: string,
   ticketType: TicketRow["ticket_type"]
 ): Promise<{ checkedInCount: number; quantity: number } | { error: string }> {
-  const { supabase } = await requirePrivileged();
+  const { supabase } = await requireCheckinAccess();
 
   // Single atomic RPC (migration-044) — increments checked_in_count
   // only if there's still room, in one statement, so two staff
