@@ -60,10 +60,19 @@ function generate(params: {
     ["2026-08-01T08:00:00.000Z", "2026-08-01T08:08:00.000Z"],
     "even split: heat start times back-to-back (6+2 min slots)"
   );
+  // Centre-out lanes (Tjokkie, 2026-10-02): within each heat the slice is
+  // reversed and then placed middle-outward. For 6 lanes that is
+  // positions 0..5 -> lanes 3,4,2,5,1,6. The six-athlete slice [r0..r5]
+  // reversed is [r5..r0], giving (array order) r5,r4,r3,r2,r1,r0.
   assertEqual(
     result.assignments.filter((a) => a.heatNumber === 1).map((a) => a.registrationId),
-    ["r0", "r1", "r2", "r3", "r4", "r5"],
-    "even split: heat 1 gets first 6 in registration order"
+    ["r5", "r4", "r3", "r2", "r1", "r0"],
+    "even split: heat 1 has the first 6 regs under centre-out lane order"
+  );
+  assertEqual(
+    result.assignments.filter((a) => a.heatNumber === 1).map((a) => a.laneNumber),
+    [3, 4, 2, 5, 1, 6],
+    "even split: heat 1 lanes follow centre-out pattern 3,4,2,5,1,6"
   );
 }
 
@@ -157,14 +166,40 @@ function generate(params: {
   });
   assertEqual(
     result.assignments.filter((a) => a.heatNumber === 1).map((a) => a.registrationId),
-    ["unseeded-a", "unseeded-b"],
-    "mixed: unseeded athletes fill heat 1"
+    ["unseeded-b", "unseeded-a"],
+    "mixed: unseeded athletes fill heat 1 (reversed for centre-out)"
   );
+  // Centre-out puts best-seeded at the middle lane. For 2 lanes mid=0,
+  // so best gets lane 1 and worst gets lane 2 — array order reflects
+  // that reversal.
   assertEqual(
     result.assignments.filter((a) => a.heatNumber === 2).map((a) => a.registrationId),
-    ["seeded-worst", "seeded-best"],
-    "mixed: seeded athletes fill heat 2, worst-seed-first within it"
+    ["seeded-best", "seeded-worst"],
+    "mixed: seeded athletes fill heat 2, best-seed at centre lane"
   );
+}
+
+// --- Case 7: centre-out lane assignment (Tjokkie, 2026-10-02) ---
+{
+  const roster: RosterEntry[] = Array.from({ length: 10 }, (_, i) => ({
+    registrationId: `rank${i + 1}`,
+    registrationOrder: i,
+    seedRank: i + 1,
+  }));
+  const result = generate({
+    laneCount: 10,
+    heatDurationMinutes: 6,
+    transitionMinutes: 2,
+    startTime: start,
+    roster,
+  });
+  const laneByRank: Record<string, number> = {};
+  for (const a of result.assignments) laneByRank[a.registrationId] = a.laneNumber;
+  assertEqual(laneByRank["rank1"], 5, "centre-out: best seed goes to lane 5 of 10");
+  assertEqual(laneByRank["rank2"], 6, "centre-out: 2nd goes to lane 6");
+  assertEqual(laneByRank["rank3"], 4, "centre-out: 3rd goes to lane 4");
+  assertEqual(laneByRank["rank9"], 1, "centre-out: 9th goes to lane 1");
+  assertEqual(laneByRank["rank10"], 10, "centre-out: 10th (worst) goes to lane 10");
 }
 
 // --- Case 6: assignRosterToHeats rejects a roster too big for the schedule ---
