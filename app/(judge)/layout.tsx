@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import JudgeRouteGuard from "@/components/JudgeRouteGuard";
 import AdminNav from "@/components/AdminNav";
+import HeadJudgeNav from "@/components/HeadJudgeNav";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -37,6 +38,7 @@ export default async function JudgeLayout({ children }: { children: React.ReactN
           back except the browser back button. Judges/head_judges don't
           need it, they only ever have this one screen. */}
       {role === "organizer" && <AdminNav />}
+      {role === "head_judge" && <HeadJudgeNav />}
       <main className="p-4">{children}</main>
     </div>
   );

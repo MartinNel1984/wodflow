@@ -4,37 +4,26 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
 
+// Minimal top bar for head_judge — the (judge) layout previously rendered
+// nothing above the page body, so a head judge on /score had no way to
+// jump to the gate check-in scanner without a raw link (Tjokkie,
+// 2026-10-03). Only two destinations they need: scoring and check-in.
 const links = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/events", label: "Events" },
-  { href: "/athletes", label: "Athletes" },
   { href: "/score", label: "Score Entry" },
   { href: "/checkin", label: "Check-in" },
-  { href: "/leaderboards", label: "Leaderboard" },
-  { href: "/heats", label: "Heats" },
-  { href: "/workouts", label: "Workouts" },
-  { href: "/series", label: "Series" },
-  { href: "/historical-results", label: "Historical Results" },
-  { href: "/brand-kits", label: "Brand Kits" },
-  { href: "/hub-photos", label: "Hub Photos" },
-  { href: "/hub-news", label: "Hub News" },
-  { href: "/pb-board", label: "PB Board" },
-  { href: "/judges", label: "Judges" },
-  { href: "/judge-applications", label: "Judge Signups" },
-  { href: "/settings", label: "Settings" },
 ];
 
-export default function AdminNav() {
+export default function HeadJudgeNav() {
   const pathname = usePathname();
   const router = useRouter();
 
   async function signOut() {
     await fetch("/api/auth/signout", { method: "POST" });
-    router.replace("/login");
+    router.replace("/judge-login");
   }
 
   return (
-    <nav className="flex items-center justify-between border-b border-ink/10 px-4 sm:px-6 lg:px-8 py-4 mb-4">
+    <nav className="flex items-center justify-between border-b border-ink/10 px-4 sm:px-6 py-4 mb-4">
       <div className="text-lg font-semibold">
         <Logo />
       </div>
