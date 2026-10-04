@@ -92,9 +92,19 @@ export async function computeSeriesStandingsForEvents(
             .select("registration_id, profile_id")
             .in("registration_id", allRegistrationIds)
         : { data: [] as { registration_id: string; profile_id: string | null }[] };
+    // Dedupe by profile_id per registration — if a roster row ever
+    // gets a wrong profile_id stamped on it (e.g. captain's id leaks
+    // onto a teammate row during signup, found 2026-10-04 at Big One),
+    // we must not credit the same profile twice for the same team
+    // placement.
     const profileIdsByRegistration = new Map<string, string[]>();
+    const seenPerReg = new Map<string, Set<string>>();
     for (const r of roster ?? []) {
       if (!r.profile_id) continue;
+      const seen = seenPerReg.get(r.registration_id) ?? new Set<string>();
+      if (seen.has(r.profile_id)) continue;
+      seen.add(r.profile_id);
+      seenPerReg.set(r.registration_id, seen);
       const arr = profileIdsByRegistration.get(r.registration_id) ?? [];
       arr.push(r.profile_id);
       profileIdsByRegistration.set(r.registration_id, arr);
