@@ -263,6 +263,23 @@ export function computeStandings(
     }
   }
 
+  // Overall tiebreak when totals are equal: whichever team has the better
+  // single-workout finish across the weekend wins (Tjokkie, 2026-10-04 —
+  // Rumble final-workout call). If that's still equal, compare their 2nd
+  // best, 3rd best, etc. — this is the standard "count-back" rule and
+  // mirrors how CrossFit Games break Open ties. Only teams on the exact
+  // same total points get reordered; the shared place still collapses
+  // afterwards if their count-back is also identical.
+  function bestFinishesAsc(registrationId: string): number[] {
+    const scores = workoutScoresByRegistration.get(registrationId) ?? {};
+    return Object.values(scores)
+      .map((s) => s?.position ?? Infinity)
+      .sort((a, b) => a - b);
+  }
+  const bestFinishesByRegistration = new Map(
+    registrationIds.map((id) => [id, bestFinishesAsc(id)])
+  );
+
   const sorted = registrationIds
     .map((registrationId) => ({
       registrationId,
@@ -270,19 +287,39 @@ export function computeStandings(
       totalPoints: pointsByRegistration.get(registrationId) ?? 0,
       workoutScores: workoutScoresByRegistration.get(registrationId) ?? {},
     }))
-    .sort((a, b) => b.totalPoints - a.totalPoints);
+    .sort((a, b) => {
+      if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+      const aFinishes = bestFinishesByRegistration.get(a.registrationId) ?? [];
+      const bFinishes = bestFinishesByRegistration.get(b.registrationId) ?? [];
+      const len = Math.max(aFinishes.length, bFinishes.length);
+      for (let i = 0; i < len; i++) {
+        const av = aFinishes[i] ?? Infinity;
+        const bv = bFinishes[i] ?? Infinity;
+        if (av !== bv) return av - bv;
+      }
+      return 0;
+    });
 
-  // Standard competition ranking (1, 1, 3 — not 1, 1, 2): athletes tied
-  // on total points share the same place, and the next distinct total
-  // resumes at "how many finished ahead of it + 1", not the next
-  // sequential number. Tjokkie flagged this on Rumble Indy's re-scored
-  // leaderboard — two 150-point ties were showing as 11th/12th instead
-  // of both 11th.
+  // Standard competition ranking (1, 1, 3 — not 1, 1, 2): teams whose
+  // total AND count-back are both identical share a place; the next
+  // distinct team resumes at "how many finished ahead of it + 1". Teams
+  // tied on points but split by the count-back get sequential places.
   const standings: Standing[] = sorted.map((s, i) => ({ ...s, place: i + 1 }));
   for (let i = 1; i < standings.length; i++) {
-    if (standings[i].totalPoints === standings[i - 1].totalPoints) {
-      standings[i].place = standings[i - 1].place;
+    const prev = standings[i - 1];
+    const curr = standings[i];
+    if (curr.totalPoints !== prev.totalPoints) continue;
+    const prevFinishes = bestFinishesByRegistration.get(prev.registrationId) ?? [];
+    const currFinishes = bestFinishesByRegistration.get(curr.registrationId) ?? [];
+    const len = Math.max(prevFinishes.length, currFinishes.length);
+    let identical = true;
+    for (let j = 0; j < len; j++) {
+      if ((prevFinishes[j] ?? Infinity) !== (currFinishes[j] ?? Infinity)) {
+        identical = false;
+        break;
+      }
     }
+    if (identical) curr.place = prev.place;
   }
 
   const workouts = workoutIds.map((id) => ({

@@ -62,8 +62,13 @@ console.log("\n--- points sum across workouts ---\n");
     standings.map((s) => `${s.registrationId}=${s.totalPoints}`).join(" "));
   check("each athlete has a per-workout score entry for both workouts",
     standings.every((s) => Object.keys(s.workoutScores).length === 2));
-  check("a full-field tie all share place 1 (not 1,2,3)",
-    standings.every((s) => s.place === 1),
+  // After the count-back rule (Tjokkie, 2026-10-04): all three tie on
+  // 4 points, but A's finishes are [1,3], C's are [1,3], B's are [2,2].
+  // A and C both have a 1st-place win and B doesn't, so they share place
+  // 1 on count-back and B drops to place 3.
+  const byId = Object.fromEntries(standings.map((s) => [s.registrationId, s]));
+  check("count-back: teams with a 1st-place win share place 1 over the one without",
+    byId.A.place === 1 && byId.C.place === 1 && byId.B.place === 3,
     standings.map((s) => `${s.registrationId}=${s.place}`).join(" "));
 }
 
@@ -207,6 +212,76 @@ console.log("\n--- tiebreak resolution feeds through to standings ---\n");
     workouts[0].results[0].registrationId === "B",
     workouts[0].results.map((r) => r.registrationId).join(">"));
   check("the tiebreak winner leads the standings", standings[0].registrationId === "B");
+}
+
+// ---------------------------------------------------------------
+console.log("\n--- overall count-back tiebreak (Tjokkie, 2026-10-04) ---\n");
+{
+  // 3-WOD weekend, 3 teams. A and B both finish on 6 total points but
+  // A's best finish is 1st (vs B's best of 2nd), so A gets the higher place.
+  // Using gap_formula with winner=3, gap=1 → 1st=3pts, 2nd=2pts, 3rd=1pt.
+  const G: ScoringConfig = { method: "gap_formula", winner_points: 3, gap_points: 1 };
+  const rows = [
+    // w1: A 1st, B 2nd, C 3rd
+    row("A", "Alpha", "w1", { time_seconds: 100 }, { workoutConfig: G, workoutName: "w1" }),
+    row("B", "Bravo", "w1", { time_seconds: 110 }, { workoutConfig: G, workoutName: "w1" }),
+    row("C", "Charlie", "w1", { time_seconds: 120 }, { workoutConfig: G, workoutName: "w1" }),
+    // w2: B 1st, A 2nd, C 3rd — now A=1+2=3? no with gap_formula A=3+2=5, B=2+3=5
+    row("B", "Bravo", "w2", { time_seconds: 100 }, { workoutConfig: G, workoutName: "w2" }),
+    row("A", "Alpha", "w2", { time_seconds: 110 }, { workoutConfig: G, workoutName: "w2" }),
+    row("C", "Charlie", "w2", { time_seconds: 120 }, { workoutConfig: G, workoutName: "w2" }),
+    // w3: B 2nd, A 3rd, C 1st — totals: A=3+2+1=6, B=2+3+2=7, C=1+1+3=5
+    row("C", "Charlie", "w3", { time_seconds: 100 }, { workoutConfig: G, workoutName: "w3" }),
+    row("B", "Bravo", "w3", { time_seconds: 110 }, { workoutConfig: G, workoutName: "w3" }),
+    row("A", "Alpha", "w3", { time_seconds: 120 }, { workoutConfig: G, workoutName: "w3" }),
+  ];
+  const { standings } = computeStandings(rows, G);
+  // Make it a real tie: force A and B to the same total by picking a
+  // simpler case — construct directly below instead of relying on points math.
+  // (Keep this sanity check so the test file still runs if math changes.)
+  check("basic 3-team run produces 3 ranked rows", standings.length === 3);
+}
+{
+  // Proper tie scenario: 2 WODs, 4 teams, only A and B tie on points.
+  // rank_sum with 4 entrants: 1st=4, 2nd=3, 3rd=2, 4th=1.
+  //   w1 finish order: A, B, C, D   -> A=4, B=3, C=2, D=1
+  //   w2 finish order: C, D, B, A   -> C=4, D=3, B=2, A=1
+  // Totals: A=5, B=5, C=6, D=4. A finishes=[1,4], B finishes=[2,3].
+  // Count-back: A's best is 1st vs B's best 2nd → A ranks above B.
+  const rows = [
+    row("A", "Alpha", "w1", { time_seconds: 100 }),
+    row("B", "Bravo", "w1", { time_seconds: 110 }),
+    row("C", "Charlie", "w1", { time_seconds: 120 }),
+    row("D", "Delta", "w1", { time_seconds: 130 }),
+    row("C", "Charlie", "w2", { time_seconds: 100 }),
+    row("D", "Delta", "w2", { time_seconds: 110 }),
+    row("B", "Bravo", "w2", { time_seconds: 120 }),
+    row("A", "Alpha", "w2", { time_seconds: 130 }),
+  ];
+  const { standings } = computeStandings(rows, RANK_SUM);
+  const a = standings.find((s) => s.registrationId === "A")!;
+  const b = standings.find((s) => s.registrationId === "B")!;
+  const c = standings.find((s) => s.registrationId === "C")!;
+  check("count-back ranks tied team with better single finish higher",
+    a.place < b.place && a.totalPoints === b.totalPoints,
+    standings.map((s) => `${s.registrationId}@${s.place}=${s.totalPoints}`).join(","));
+  check("count-back assigns sequential places, not a shared tie",
+    c.place === 1 && a.place === 2 && b.place === 3);
+}
+{
+  // Identical count-back → genuine tie, share place.
+  // 2 WODs, 2 teams. A: 1st then 2nd. B: 2nd then 1st. Both totals = 3,
+  // both sorted finishes = [1, 2]. They should share place 1.
+  const rows = [
+    row("A", "Alpha", "w1", { time_seconds: 100 }),
+    row("B", "Bravo", "w1", { time_seconds: 110 }),
+    row("B", "Bravo", "w2", { time_seconds: 100 }),
+    row("A", "Alpha", "w2", { time_seconds: 110 }),
+  ];
+  const { standings } = computeStandings(rows, RANK_SUM);
+  check("identical count-back still shares the tied place",
+    standings[0].place === 1 && standings[1].place === 1,
+    standings.map((s) => `${s.registrationId}@${s.place}`).join(","));
 }
 
 // ---------------------------------------------------------------
