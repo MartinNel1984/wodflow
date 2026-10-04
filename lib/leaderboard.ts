@@ -131,13 +131,34 @@ export function computeWorkoutResults(
   const finishedIds = new Set(finishers.map((f) => f.registrationId));
   const secondary = rows
     .filter((r) => !r.value_raw.no_rep && (r.value_raw.reps != null || r.value_raw.load_kg != null) && !finishedIds.has(r.registration_id))
-    .map((r) => ({
-      registrationId: r.registration_id,
-      value: (r.value_raw.reps ?? r.value_raw.load_kg)!,
-      unit: r.value_raw.reps != null ? "reps" : "kg",
-      tiebreak: tiebreakOf(r, r.value_raw.reps != null ? "reps" : "load_kg"),
-    }))
-    .sort((a, b) => b.value - a.value || (b.tiebreak ?? -Infinity) - (a.tiebreak ?? -Infinity));
+    .map((r) => {
+      // Capped-out athletes almost always break ties by TIME — the clock-time
+      // they reached their last rep. Judges enter it in the tiebreak field as
+      // time_seconds, so prefer that; lower time wins. Fall back to the
+      // matching unit (reps/load, higher wins) when no time was recorded, so
+      // reps-only workouts without a time dimension still tiebreak correctly.
+      // Before this, we read the tiebreak with key "reps"/"load_kg" and got
+      // undefined for time-based tiebreaks, silently dropping them (Tjokkie,
+      // 2026-10-04 — Rumble capped workouts showed identical reps as a tie
+      // even though the judges had entered different tiebreak times).
+      const unit: "reps" | "kg" = r.value_raw.reps != null ? "reps" : "kg";
+      const tiebreakTime = tiebreakOf(r, "time_seconds");
+      const tiebreakSameUnit = tiebreakOf(r, unit === "reps" ? "reps" : "load_kg");
+      return {
+        registrationId: r.registration_id,
+        value: (r.value_raw.reps ?? r.value_raw.load_kg)!,
+        unit,
+        tiebreakTime,
+        tiebreakSameUnit,
+      };
+    })
+    .sort((a, b) => {
+      if (a.value !== b.value) return b.value - a.value;
+      if (a.tiebreakTime != null || b.tiebreakTime != null) {
+        return (a.tiebreakTime ?? Infinity) - (b.tiebreakTime ?? Infinity);
+      }
+      return (b.tiebreakSameUnit ?? -Infinity) - (a.tiebreakSameUnit ?? -Infinity);
+    });
 
   const ordered = [
     ...finishers.map((f) => ({
@@ -150,7 +171,7 @@ export function computeWorkoutResults(
       registrationId: s.registrationId,
       display: `${s.value} ${s.unit}`,
       capped: true,
-      tieKey: `${s.value}|${s.tiebreak ?? ""}`,
+      tieKey: `${s.value}|${s.tiebreakTime ?? ""}|${s.tiebreakSameUnit ?? ""}`,
     })),
   ];
 

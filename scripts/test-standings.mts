@@ -210,6 +210,36 @@ console.log("\n--- tiebreak resolution feeds through to standings ---\n");
 }
 
 // ---------------------------------------------------------------
+console.log("\n--- capped-score tiebreaks (Tjokkie, 2026-10-04) ---\n");
+{
+  // Both capped at 214 reps; A got there at 12:59, B at 12:30 — B wins.
+  // Before the fix, tiebreakOf was called with key "reps" so time_seconds
+  // tiebreaks silently vanished and the two tied at position 1.
+  const rows = [
+    row("A", "Alice", "w1", { reps: 214 }, { tiebreak: { time_seconds: 779 } }),
+    row("B", "Bob", "w1", { reps: 214 }, { tiebreak: { time_seconds: 750 } }),
+  ];
+  const { workouts } = computeStandings(rows, RANK_SUM);
+  check("equal capped reps split by lower tiebreak TIME",
+    workouts[0].results[0].registrationId === "B",
+    workouts[0].results.map((r) => `${r.registrationId}@${r.position}`).join(","));
+  check("the loser moves to position 2, not a stacked tie",
+    workouts[0].results[1].position === 2,
+    JSON.stringify(workouts[0].results.map((r) => r.position)));
+
+  // Fallback: no time recorded, same reps — same reps + same (missing)
+  // tiebreak IS a genuine tie and should share position 1.
+  const noTbRows = [
+    row("A", "Alice", "w1", { reps: 100 }),
+    row("B", "Bob", "w1", { reps: 100 }),
+  ];
+  const noTb = computeStandings(noTbRows, RANK_SUM);
+  check("truly identical capped scores still share position",
+    noTb.workouts[0].results[0].position === 1 &&
+    noTb.workouts[0].results[1].position === 1);
+}
+
+// ---------------------------------------------------------------
 console.log("\n--- degenerate inputs must not crash ---\n");
 {
   const empty = computeStandings([], RANK_SUM);
