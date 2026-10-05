@@ -20,6 +20,11 @@ export default function DisplayView({
 }) {
   const [gender, setGender] = useState<"male" | "female">("male");
   const [pageIndex, setPageIndex] = useState(0);
+  const [prevGender, setPrevGender] = useState(gender);
+  if (prevGender !== gender) {
+    setPrevGender(gender);
+    setPageIndex(0);
+  }
 
   const rows = gender === "male" ? male : female;
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -37,10 +42,6 @@ export default function DisplayView({
     }, PAGE_INTERVAL_MS);
     return () => clearInterval(id);
   }, [pageCount]);
-
-  useEffect(() => {
-    setPageIndex(0);
-  }, [gender]);
 
   const start = pageIndex * PAGE_SIZE;
   const slice = rows.slice(start, start + PAGE_SIZE);
