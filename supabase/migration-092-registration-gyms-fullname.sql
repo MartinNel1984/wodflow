@@ -7,7 +7,12 @@
 -- query (and without needing registration_athletes read access, which
 -- is RLS-closed for anon).
 
-create or replace view public.public_registration_gyms
+-- `create or replace view` can't reorder columns (Postgres 42P16), so
+-- drop + recreate. No dependents on this view yet beyond app-level
+-- readers, which just re-run the next request.
+drop view if exists public.public_registration_gyms;
+
+create view public.public_registration_gyms
 with (security_invoker = false) as
 select
   ra.registration_id,
