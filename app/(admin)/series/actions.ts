@@ -49,3 +49,24 @@ export async function removeSeriesEvent(formData: FormData) {
   await supabase.from("series_events").delete().eq("id", seriesEventId);
   revalidatePath(`/series/${seriesId}`);
 }
+
+// Community Cup config lives on the series row itself (migration-091).
+// Flipping enabled=true publishes the /rumble-series/[id]/community-cup
+// page; the min-athletes threshold controls when a gym becomes visible
+// on that public page (admin page always shows all gyms).
+export async function updateCommunityCupConfig(formData: FormData) {
+  const { supabase } = await requireOrganizer();
+  const seriesId = String(formData.get("seriesId") ?? "");
+  if (!seriesId) return;
+  const enabled = formData.get("enabled") === "on";
+  const rawMin = Number(formData.get("minAthletes"));
+  const minAthletes = Number.isFinite(rawMin) && rawMin > 0 ? Math.floor(rawMin) : 5;
+
+  await supabase
+    .from("series")
+    .update({ community_cup_enabled: enabled, community_cup_min_athletes: minAthletes })
+    .eq("id", seriesId);
+  revalidatePath(`/series/${seriesId}`);
+  revalidatePath(`/series/${seriesId}/community-cup`);
+  revalidatePath(`/rumble-series/${seriesId}/community-cup`);
+}

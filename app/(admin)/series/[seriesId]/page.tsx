@@ -38,9 +38,14 @@ export default async function SeriesDetailPage({
         <h1 className="text-2xl font-semibold mt-1">
           {series?.name} <span className="text-ink/40 font-normal">({series?.year})</span>
         </h1>
-        <Link href={`/series/${seriesId}/leaderboard`} className="text-accent text-sm hover:underline">
-          View season leaderboard →
-        </Link>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <Link href={`/series/${seriesId}/leaderboard`} className="text-accent hover:underline">
+            View season leaderboard →
+          </Link>
+          <Link href={`/series/${seriesId}/community-cup`} className="text-accent hover:underline">
+            Community Cup →
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white border border-ink/10 rounded-xl p-4 space-y-2">
