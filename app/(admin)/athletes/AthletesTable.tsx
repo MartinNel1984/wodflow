@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SendPaymentLinkButton } from "@/components/SendPaymentLinkButton";
@@ -43,7 +43,13 @@ export default function AthletesTable({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
-  const [gymFilter, setGymFilter] = useState("");
+  // Seed the gym filter from `?gym=…` so the Gyms admin page can deep-
+  // link into the roster for a specific gym. Case-insensitive match
+  // against stored gym names.
+  const [gymFilter, setGymFilter] = useState(() => {
+    const g = searchParams.get("gym");
+    return g ? g.trim().toLowerCase() : "";
+  });
   const [selectedDivisionId, setSelectedDivisionId] = useState("");
   const [editingGymId, setEditingGymId] = useState<string | null>(null);
   const [gymDraft, setGymDraft] = useState("");
@@ -51,14 +57,6 @@ export default function AthletesTable({
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [savingName, setSavingName] = useState(false);
-
-  // Seed the gym filter from `?gym=…` so the Gyms admin page can deep-
-  // link into the roster for a specific gym. Case-insensitive match
-  // against stored gym names.
-  useEffect(() => {
-    const g = searchParams.get("gym");
-    if (g) setGymFilter(g.trim().toLowerCase());
-  }, [searchParams]);
 
   async function saveName(athleteId: string) {
     const value = nameDraft.trim();
