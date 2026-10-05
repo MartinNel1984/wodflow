@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { pointsForPosition, type ScoringConfig } from "@/lib/leaderboard";
 import { fetchSeriesTeamPlacements, type TeamPlacement } from "@/lib/eventTeamPlacements";
+import { computeSeriesStandingsForEvents } from "@/lib/seriesStandings";
+import { createServiceClient } from "@/lib/supabase/service";
 
 // A single gym's rank across the full series. The admin page needs
 // to see below-threshold gyms too (hence the eligible flag), the
@@ -178,7 +180,7 @@ export async function computeCommunityCupForSeries(
 ): Promise<CommunityCupResult & { minAthletes: number; enabled: boolean; eventIds: string[] }> {
   const { data: series } = await supabase
     .from("series")
-    .select("points_config, community_cup_enabled, community_cup_min_athletes, series_events(event_id)")
+    .select("year, points_config, community_cup_enabled, community_cup_min_athletes, series_events(event_id)")
     .eq("id", seriesId)
     .single();
   if (!series) {
@@ -192,14 +194,200 @@ export async function computeCommunityCupForSeries(
   }
   const eventIds = (series.series_events ?? []).map((se: { event_id: string }) => se.event_id);
   const pointsConfig = (series.points_config ?? { method: "gap_formula", winner_points: 100 }) as ScoringConfig;
+  const minAthletes = series.community_cup_min_athletes ?? 5;
   const result = await computeCommunityCup(supabase, {
     eventIds,
     pointsConfig,
-    minAthletes: series.community_cup_min_athletes ?? 5,
+    minAthletes,
   });
+
+  // --- Historical contribution. Live wodflow events have team rosters
+  //     so Community Cup splits points by gym per teammate (above). But
+  //     a Rumble season may also include historical events run before
+  //     Wodflow — e.g. Indy 2026 and Remix 2026, stored in
+  //     historical_results. Those don't carry team-or-gym info, so we
+  //     attribute them to each athlete's *current* gym on their
+  //     Wodflow profile. Athletes who haven't claimed a profile yet
+  //     stay in "unallocated" so Tjokkie can see how much weight that
+  //     bucket carries.
+  const seasonYear = series.year ?? null;
+  const seriesStandings = await computeSeriesStandingsForEvents(
+    supabase,
+    eventIds,
+    pointsConfig,
+    seasonYear
+  );
+
+  // Which event names came from live wodflow events? Those are already
+  // allocated above — only the OTHER names in pointsByEvent (historical)
+  // are new contribution.
+  const liveEventNames = new Set<string>();
+  if (eventIds.length > 0) {
+    const { data: liveEvents } = await supabase
+      .from("events")
+      .select("name")
+      .in("id", eventIds);
+    for (const e of liveEvents ?? []) liveEventNames.add(e.name);
+  }
+
+  // Collect every historical (profileId, eventName, points) tuple that
+  // needs attributing. profileId === null for identity-hash-keyed rows
+  // (athlete hasn't signed up on Wodflow yet) → unallocated.
+  type HistoricalContribution = { profileId: string | null; eventName: string; points: number };
+  const historicalContribs: HistoricalContribution[] = [];
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  for (const s of seriesStandings) {
+    const claimedProfileId = uuidPattern.test(s.profileId) ? s.profileId : null;
+    for (const [eventName, points] of Object.entries(s.pointsByEvent)) {
+      if (liveEventNames.has(eventName)) continue;
+      if (!points) continue;
+      historicalContribs.push({ profileId: claimedProfileId, eventName, points });
+    }
+  }
+
+  if (historicalContribs.length === 0) {
+    return {
+      ...result,
+      minAthletes,
+      enabled: series.community_cup_enabled ?? false,
+      eventIds,
+    };
+  }
+
+  // Resolve each claimed profile → current gym_name. Service client
+  // (profiles is auth-RLS and only owners can read their own row;
+  // Community Cup needs cross-athlete visibility). Server-side only —
+  // this helper is only ever invoked from the admin + public page
+  // server components.
+  const claimedProfileIds = [...new Set(
+    historicalContribs
+      .map((c) => c.profileId)
+      .filter((id): id is string => !!id)
+  )];
+  const gymByProfile = new Map<string, string | null>();
+  if (claimedProfileIds.length > 0) {
+    const svc = createServiceClient();
+    const { data: profiles } = await svc
+      .from("profiles")
+      .select("id, gym_name")
+      .in("id", claimedProfileIds);
+    for (const p of profiles ?? []) {
+      gymByProfile.set(p.id, p.gym_name);
+    }
+  }
+
+  // Rebuild the gyms map so we can merge in historical contribution
+  // without losing live-event allocations.
+  const canonicalByKey = new Map<string, { id: string; name: string; approved: boolean }>();
+  const { data: gymRows } = await supabase.from("gyms").select("id, name, approved");
+  for (const g of gymRows ?? []) {
+    const key = g.name.trim().toLowerCase();
+    if (key) canonicalByKey.set(key, g);
+  }
+
+  type MutableStanding = {
+    gymId: string | null;
+    gymName: string;
+    approved: boolean;
+    totalPoints: number;
+    pointsByEvent: Record<string, number>;
+    profileIds: Set<string>;
+  };
+  const standingByKey = new Map<string, MutableStanding>();
+  for (const g of result.gyms) {
+    const key = g.gymName.trim().toLowerCase();
+    standingByKey.set(key, {
+      gymId: g.gymId,
+      gymName: g.gymName,
+      approved: g.approved,
+      totalPoints: g.totalPoints,
+      pointsByEvent: { ...g.pointsByEvent },
+      // profileIds set is lossy on round-trip but historical contrib adds
+      // fresh ids we track separately below; eligible-flag recomputes.
+      profileIds: new Set<string>(),
+    });
+  }
+  // Seed historical-only gyms (never saw a wodflow team roster entry)
+  // from the canonical list on first touch below.
+
+  const unallocatedByEvent: Record<string, number> = { ...result.unallocatedPointsByEvent };
+
+  // Also carry the live-event distinct athlete count forward so a gym
+  // that qualifies on wodflow alone stays eligible.
+  const liveDistinctByKey = new Map<string, number>();
+  for (const g of result.gyms) {
+    liveDistinctByKey.set(g.gymName.trim().toLowerCase(), g.distinctAthleteCount);
+  }
+
+  // Historical distinct-athlete tracking per gym (profile_ids seen for
+  // the historical half; merged with live counts below).
+  const historicalProfileIdsByKey = new Map<string, Set<string>>();
+
+  for (const c of historicalContribs) {
+    const gymName = c.profileId ? gymByProfile.get(c.profileId) ?? null : null;
+    if (!gymName) {
+      unallocatedByEvent[c.eventName] = (unallocatedByEvent[c.eventName] ?? 0) + c.points;
+      continue;
+    }
+    const key = gymName.trim().toLowerCase();
+    let standing = standingByKey.get(key);
+    if (!standing) {
+      const canonical = canonicalByKey.get(key);
+      standing = {
+        gymId: canonical?.id ?? null,
+        gymName: canonical?.name ?? gymName.trim(),
+        approved: canonical?.approved ?? false,
+        totalPoints: 0,
+        pointsByEvent: {},
+        profileIds: new Set<string>(),
+      };
+      standingByKey.set(key, standing);
+    }
+    standing.totalPoints += c.points;
+    standing.pointsByEvent[c.eventName] = (standing.pointsByEvent[c.eventName] ?? 0) + c.points;
+    if (c.profileId) {
+      const seen = historicalProfileIdsByKey.get(key) ?? new Set<string>();
+      seen.add(c.profileId);
+      historicalProfileIdsByKey.set(key, seen);
+    }
+  }
+
+  function round2(n: number): number {
+    return Math.round(n * 100) / 100;
+  }
+
+  const mergedGyms: GymStanding[] = [...standingByKey.entries()]
+    .map(([key, s]) => {
+      const roundedByEvent: Record<string, number> = {};
+      for (const [k, v] of Object.entries(s.pointsByEvent)) roundedByEvent[k] = round2(v);
+      // distinctAthleteCount: live-event roster count + historical
+      // profiles that appeared only in historical. Simple sum is fine
+      // because historical half is only ever claimed profile ids and
+      // the live half counts registration-time profile_ids; an athlete
+      // appearing in both is a strict upgrade (not a duplicate) for
+      // eligibility purposes.
+      const historicalCount = historicalProfileIdsByKey.get(key)?.size ?? 0;
+      const liveCount = liveDistinctByKey.get(key) ?? 0;
+      const distinct = liveCount + historicalCount;
+      return {
+        gymId: s.gymId,
+        gymName: s.gymName,
+        approved: s.approved,
+        totalPoints: round2(s.totalPoints),
+        pointsByEvent: roundedByEvent,
+        distinctAthleteCount: distinct,
+        eligible: s.approved && distinct >= minAthletes,
+      };
+    })
+    .sort((a, b) => b.totalPoints - a.totalPoints || a.gymName.localeCompare(b.gymName));
+
+  const unallocatedPointsByEvent: Record<string, number> = {};
+  for (const [k, v] of Object.entries(unallocatedByEvent)) unallocatedPointsByEvent[k] = round2(v);
+
   return {
-    ...result,
-    minAthletes: series.community_cup_min_athletes ?? 5,
+    gyms: mergedGyms,
+    unallocatedPointsByEvent,
+    minAthletes,
     enabled: series.community_cup_enabled ?? false,
     eventIds,
   };
