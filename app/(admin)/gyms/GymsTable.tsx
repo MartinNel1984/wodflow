@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export type GymRow = {
   id: string;
@@ -197,7 +198,19 @@ function GymTableRow({
           <span className="font-semibold">{r.name}</span>
         )}
       </td>
-      <td className="px-4 py-2 text-ink/60 whitespace-nowrap">{r.athleteCount}</td>
+      <td className="px-4 py-2 text-ink/60 whitespace-nowrap">
+        {r.athleteCount > 0 ? (
+          <Link
+            href={`/athletes?gym=${encodeURIComponent(r.name)}`}
+            className="text-accent hover:underline"
+            title="View athletes at this gym"
+          >
+            {r.athleteCount}
+          </Link>
+        ) : (
+          r.athleteCount
+        )}
+      </td>
       <td className="px-4 py-2 text-ink/50 whitespace-nowrap">{r.createdAt.slice(0, 10)}</td>
       <td className="px-4 py-2 text-right whitespace-nowrap space-x-3">
         {editing ? (

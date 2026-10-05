@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SendPaymentLinkButton } from "@/components/SendPaymentLinkButton";
 import { MarkPaidButton } from "@/components/MarkPaidButton";
@@ -41,12 +41,49 @@ export default function AthletesTable({
   markPaidAction: (formData: FormData) => Promise<{ sent: boolean }>;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [gymFilter, setGymFilter] = useState("");
   const [selectedDivisionId, setSelectedDivisionId] = useState("");
   const [editingGymId, setEditingGymId] = useState<string | null>(null);
   const [gymDraft, setGymDraft] = useState("");
   const [savingGym, setSavingGym] = useState(false);
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [nameDraft, setNameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
+
+  // Seed the gym filter from `?gym=…` so the Gyms admin page can deep-
+  // link into the roster for a specific gym. Case-insensitive match
+  // against stored gym names.
+  useEffect(() => {
+    const g = searchParams.get("gym");
+    if (g) setGymFilter(g.trim().toLowerCase());
+  }, [searchParams]);
+
+  async function saveName(athleteId: string) {
+    const value = nameDraft.trim();
+    if (!value) {
+      alert("Name can't be blank.");
+      return;
+    }
+    setSavingName(true);
+    try {
+      const res = await fetch(`/api/athletes/${athleteId}/name`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName: value }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        alert(j?.error ?? "Save failed.");
+        return;
+      }
+      setEditingNameId(null);
+      router.refresh();
+    } finally {
+      setSavingName(false);
+    }
+  }
 
   async function saveGym(athleteId: string) {
     const value = gymDraft.trim();
@@ -142,7 +179,43 @@ export default function AthletesTable({
             {filtered.map((r) => (
               <tr key={r.id} className="border-t border-ink/10">
                 <td className="px-4 py-2 whitespace-nowrap">
-                  {r.fullName}
+                  {editingNameId === r.id ? (
+                    <div className="flex items-center gap-2 min-w-[240px]">
+                      <input
+                        type="text"
+                        value={nameDraft}
+                        onChange={(e) => setNameDraft(e.target.value)}
+                        className="flex-1 bg-paper rounded-lg px-3 py-2 text-sm border border-ink/10 focus:outline-none focus:border-accent"
+                      />
+                      <button
+                        type="button"
+                        disabled={savingName || !nameDraft.trim()}
+                        onClick={() => saveName(r.id)}
+                        className="text-xs font-semibold text-accent hover:underline disabled:opacity-50"
+                      >
+                        {savingName ? "…" : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingNameId(null)}
+                        className="text-xs text-ink/50 hover:text-ink"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingNameId(r.id);
+                        setNameDraft(r.fullName);
+                      }}
+                      className="text-left hover:text-accent"
+                      title="Click to edit"
+                    >
+                      {r.fullName}
+                    </button>
+                  )}
                   {r.isMinor && (
                     <span className="ml-2 text-xs font-semibold uppercase tracking-wider text-accent">
                       Minor
