@@ -47,3 +47,5 @@ supabase/.temp/
 
 # Agent worktrees / local session state — never part of the repo.
 .claude/
+
+.tmp/
