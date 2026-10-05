@@ -15,10 +15,10 @@ export async function generateMetadata({
   const supabase = createPublicClient();
   const { data: series } = await supabase
     .from("series")
-    .select("name, year, community_cup_enabled")
+    .select("name, year")
     .eq("id", seriesId)
     .single();
-  if (!series || !series.community_cup_enabled) return {};
+  if (!series) return {};
   return { title: `${series.name} ${series.year} — Community Cup Display` };
 }
 
@@ -34,7 +34,6 @@ export default async function CommunityCupDisplayPage({
   if (!series) notFound();
 
   const result = await computeCommunityCupForSeries(supabase, seriesId);
-  if (!result.enabled) notFound();
 
   const eligible = result.gyms
     .filter((g) => g.eligible)

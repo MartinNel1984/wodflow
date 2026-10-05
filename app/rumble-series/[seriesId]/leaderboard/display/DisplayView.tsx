@@ -52,7 +52,8 @@ export default function DisplayView({
         <div>
           <p className="text-sm uppercase tracking-[0.35em] text-paper/50">Rumble Series</p>
           <h1 className="text-5xl md:text-7xl font-bold leading-none mt-2">
-            {seriesName} <span className="text-accent">{seriesYear}</span>
+            {seriesName.replace(new RegExp(`\\s*${seriesYear}$`), "")}{" "}
+            <span className="text-accent">{seriesYear}</span>
           </h1>
           <p className="text-xl md:text-2xl text-paper/70 mt-3">
             {gender === "male" ? "Men" : "Women"} · Top {Math.min(rows.length, PAGE_SIZE * pageCount)}
