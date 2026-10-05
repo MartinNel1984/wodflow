@@ -28,6 +28,12 @@ export type SeriesPlacementDetail = {
   position: number;
   entrants: number;
   points: number;
+  // Carried per-placement because the standing's own displayName locks
+  // in on the first placement seen — for an athlete who also competed
+  // on a live Wodflow team, that first displayName is the TEAM name,
+  // which then wrongly re-labelled every historical row for the same
+  // profile. The per-placement name is right for both halves.
+  displayName: string;
 };
 
 export type SeriesStanding = {
@@ -71,6 +77,7 @@ export function computeSeriesStandings(
         position: p.position,
         entrants: p.entrants,
         points,
+        displayName: p.displayName,
       });
       if (!existing.gender && p.gender) existing.gender = p.gender;
     } else {
@@ -81,7 +88,13 @@ export function computeSeriesStandings(
         gender: p.gender,
         pointsByEvent: { [p.eventName]: points },
         placements: [
-          { eventName: p.eventName, position: p.position, entrants: p.entrants, points },
+          {
+            eventName: p.eventName,
+            position: p.position,
+            entrants: p.entrants,
+            points,
+            displayName: p.displayName,
+          },
         ],
       });
     }

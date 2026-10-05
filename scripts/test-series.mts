@@ -35,8 +35,8 @@ function assertEqual(actual: unknown, expected: unknown, label: string) {
         gender: "male",
         pointsByEvent: { "Event A": 89, "Event B": 100 },
         placements: [
-          { eventName: "Event A", position: 2, entrants: 10, points: 89 },
-          { eventName: "Event B", position: 1, entrants: 5, points: 100 },
+          { eventName: "Event A", position: 2, entrants: 10, points: 89, displayName: "Bob" },
+          { eventName: "Event B", position: 1, entrants: 5, points: 100, displayName: "Bob" },
         ],
       },
       {
@@ -47,8 +47,8 @@ function assertEqual(actual: unknown, expected: unknown, label: string) {
         gender: "female",
         pointsByEvent: { "Event A": 100, "Event B": 50 },
         placements: [
-          { eventName: "Event A", position: 1, entrants: 10, points: 100 },
-          { eventName: "Event B", position: 3, entrants: 5, points: 50 },
+          { eventName: "Event A", position: 1, entrants: 10, points: 100, displayName: "Alice" },
+          { eventName: "Event B", position: 3, entrants: 5, points: 50, displayName: "Alice" },
         ],
       },
     ],

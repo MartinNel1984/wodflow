@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { pointsForPosition, type ScoringConfig } from "@/lib/leaderboard";
 import { fetchSeriesTeamPlacements, type TeamPlacement } from "@/lib/eventTeamPlacements";
@@ -306,6 +307,7 @@ export async function computeCommunityCupForSeries(
   // just a lump per event.
   type HistoricalContribution = {
     profileId: string | null;
+    unclaimedIdentityHash: string | null;
     displayName: string;
     eventName: string;
     position: number;
@@ -316,12 +318,20 @@ export async function computeCommunityCupForSeries(
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   for (const s of seriesStandings) {
     const claimedProfileId = uuidPattern.test(s.profileId) ? s.profileId : null;
+    const unclaimedHash = !claimedProfileId && s.profileId.startsWith("identity:")
+      ? s.profileId.slice("identity:".length)
+      : null;
     for (const placement of s.placements ?? []) {
       if (liveEventNames.has(placement.eventName)) continue;
       if (!placement.points) continue;
       historicalContribs.push({
         profileId: claimedProfileId,
-        displayName: s.displayName,
+        unclaimedIdentityHash: unclaimedHash,
+        // Per-placement name — SeriesStanding's own displayName locks
+        // in on the first placement, which for an athlete who also ran
+        // a live Big One team was the TEAM name. The historical row's
+        // own display_name is the right label for a historical line.
+        displayName: placement.displayName,
         eventName: placement.eventName,
         position: placement.position,
         entrants: placement.entrants,
@@ -350,15 +360,39 @@ export async function computeCommunityCupForSeries(
       .filter((id): id is string => !!id)
   )];
   const gymByProfile = new Map<string, string | null>();
+  const emailByProfile = new Map<string, string | null>();
   if (claimedProfileIds.length > 0) {
     const svc = createServiceClient();
     const { data: profiles } = await svc
       .from("profiles")
-      .select("id, gym_name")
+      .select("id, gym_name, email")
       .in("id", claimedProfileIds);
     for (const p of profiles ?? []) {
       gymByProfile.set(p.id, p.gym_name);
+      if (p.email) emailByProfile.set(p.id, p.email.toLowerCase());
     }
+  }
+
+  // Per-row gym override from historical_results.gym_name. If Tjokkie
+  // sets a gym on a historical row, that wins over the profile gym —
+  // lets him manually fix attribution on a per-row basis (e.g. an
+  // athlete whose Wodflow profile has moved gyms since Indy was run,
+  // but whose Indy result still belongs to the old gym). Keyed by
+  // (event_name, identity_hash) — identity_hash is md5(lower(email)),
+  // matching public_historical_placements, so it works for both
+  // claimed and unclaimed finishers.
+  const svc = createServiceClient();
+  const { data: historicalRows } = await svc
+    .from("historical_results")
+    .select("event_name, athlete_email, gym_name, season_year")
+    .not("gym_name", "is", null);
+  const overrideByEventIdentity = new Map<string, string>();
+  for (const r of historicalRows ?? []) {
+    if (seasonYear !== null && r.season_year !== seasonYear) continue;
+    if (!r.gym_name || !r.athlete_email) continue;
+    const hash = createHash("md5").update(r.athlete_email.toLowerCase()).digest("hex");
+    const key = `${r.event_name}::${hash}`;
+    overrideByEventIdentity.set(key, r.gym_name);
   }
 
   // Rebuild the gyms map so we can merge in historical contribution
@@ -405,7 +439,18 @@ export async function computeCommunityCupForSeries(
   const historicalProfileIdsByKey = new Map<string, Set<string>>();
 
   for (const c of historicalContribs) {
-    const gymName = c.profileId ? gymByProfile.get(c.profileId) ?? null : null;
+    // Row-level override wins (claimed OR unclaimed) — Tjokkie's edits
+    // to a historical row's gym must actually move points. Fall back
+    // to the claimed profile's current gym, then to unallocated.
+    let identityHash: string | null = c.unclaimedIdentityHash;
+    if (!identityHash && c.profileId) {
+      const email = emailByProfile.get(c.profileId);
+      if (email) identityHash = createHash("md5").update(email).digest("hex");
+    }
+    const overrideKey = identityHash ? `${c.eventName}::${identityHash}` : null;
+    const overrideGym = overrideKey ? overrideByEventIdentity.get(overrideKey) ?? null : null;
+    const profileGym = c.profileId ? gymByProfile.get(c.profileId) ?? null : null;
+    const gymName = overrideGym ?? profileGym;
     if (!gymName) {
       unallocatedByEvent[c.eventName] = (unallocatedByEvent[c.eventName] ?? 0) + c.points;
       continue;
