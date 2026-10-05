@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SendPaymentLinkButton } from "@/components/SendPaymentLinkButton";
 import { MarkPaidButton } from "@/components/MarkPaidButton";
+import { GymPicker } from "@/components/GymPicker";
 
 export type AthleteRow = {
   id: string;
@@ -38,9 +40,34 @@ export default function AthletesTable({
   resendPaymentLinkAction: (formData: FormData) => Promise<{ sent: boolean }>;
   markPaidAction: (formData: FormData) => Promise<{ sent: boolean }>;
 }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [gymFilter, setGymFilter] = useState("");
   const [selectedDivisionId, setSelectedDivisionId] = useState("");
+  const [editingGymId, setEditingGymId] = useState<string | null>(null);
+  const [gymDraft, setGymDraft] = useState("");
+  const [savingGym, setSavingGym] = useState(false);
+
+  async function saveGym(athleteId: string) {
+    const value = gymDraft.trim();
+    setSavingGym(true);
+    try {
+      const res = await fetch(`/api/athletes/${athleteId}/gym`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gymName: value || null }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        alert(j?.error ?? "Save failed.");
+        return;
+      }
+      setEditingGymId(null);
+      router.refresh();
+    } finally {
+      setSavingGym(false);
+    }
+  }
   const selectedDivision = divisions.find((d) => d.id === selectedDivisionId);
   const teamSize = selectedDivision?.teamSize ?? 1;
 
@@ -126,7 +153,45 @@ export default function AthletesTable({
                   {r.eventName} · {r.divisionName}
                 </td>
                 <td className="px-4 py-2 font-semibold">{r.teamName || "—"}</td>
-                <td className="px-4 py-2 text-ink/60 whitespace-nowrap">{r.gymName || "—"}</td>
+                <td className="px-4 py-2 text-ink/60 whitespace-nowrap">
+                  {editingGymId === r.id ? (
+                    <div className="flex items-center gap-2 min-w-[260px]">
+                      <GymPicker
+                        value={gymDraft}
+                        onChange={setGymDraft}
+                        approvedOnly
+                        className="flex-1"
+                      />
+                      <button
+                        type="button"
+                        disabled={savingGym}
+                        onClick={() => saveGym(r.id)}
+                        className="text-xs font-semibold text-accent hover:underline disabled:opacity-50"
+                      >
+                        {savingGym ? "…" : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingGymId(null)}
+                        className="text-xs text-ink/50 hover:text-ink"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingGymId(r.id);
+                        setGymDraft(r.gymName ?? "");
+                      }}
+                      className="text-left hover:text-accent"
+                      title="Click to edit"
+                    >
+                      {r.gymName || <span className="text-ink/30">— set gym</span>}
+                    </button>
+                  )}
+                </td>
                 <td className="px-4 py-2 font-data text-ink/50">{r.idNumber || "—"}</td>
                 <td className="px-4 py-2">
                   <span

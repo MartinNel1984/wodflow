@@ -8,6 +8,7 @@ const links = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/events", label: "Events" },
   { href: "/athletes", label: "Athletes" },
+  { href: "/gyms", label: "Gyms" },
   { href: "/score", label: "Score Entry" },
   { href: "/checkin", label: "Check-in" },
   { href: "/leaderboards", label: "Leaderboard" },

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { GymPicker } from "@/components/GymPicker";
 
 // Column-level grant for self-updates (full_name, email, phone,
 // id_number, gym_name, gender, updated_at) already exists — migration-035
@@ -111,13 +112,11 @@ export default function EditProfile({
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-1">Gym name</label>
-          <input
-            type="text"
-            value={gymName}
-            onChange={(e) => setGymName(e.target.value)}
-            className="w-full bg-paper rounded-lg px-3 py-2 text-sm border border-ink/10 focus:outline-none focus:border-accent"
-          />
+          <label className="block text-xs font-semibold uppercase tracking-wider mb-1">Gym</label>
+          <GymPicker value={gymName} onChange={setGymName} required name="gymName" />
+          <p className="text-ink/50 text-xs mt-1">
+            Can&apos;t find yours? Add it and the organiser will verify.
+          </p>
         </div>
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider mb-1">Gender</label>

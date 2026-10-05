@@ -8,6 +8,7 @@ import { RumbleBackdrop } from "@/components/RumbleBackdrop";
 import { BackLink } from "@/components/BackLink";
 import { brandKitStyle, type BrandKit } from "@/lib/brandKit";
 import { currentPrice } from "@/lib/pricing";
+import { GymPicker } from "@/components/GymPicker";
 
 type Division = {
   id: string;
@@ -149,6 +150,7 @@ export default function RegisterContent() {
         t.fullName.trim() &&
         t.email.trim().includes("@") &&
         t.idNumber.trim() &&
+        t.gymName.trim() &&
         (!t.isMinor || (t.guardianName.trim() && t.guardianIdNumber.trim()))
     );
     if (!allFieldsFilled) return "";
@@ -352,11 +354,15 @@ export default function RegisterContent() {
                 value={t.idNumber}
                 onChange={(v) => updateTeammate(i, "idNumber", v)}
               />
-              <Field
-                label="Gym name (optional)"
-                value={t.gymName}
-                onChange={(v) => updateTeammate(i, "gymName", v)}
-              />
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Gym</label>
+                <GymPicker
+                  value={t.gymName}
+                  onChange={(v) => updateTeammate(i, "gymName", v)}
+                  required
+                  name={`gymName-${i}`}
+                />
+              </div>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
