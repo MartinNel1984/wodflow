@@ -32,6 +32,7 @@ export async function addAthleteManually(formData: FormData) {
   if (!division) return;
 
   const teamName = String(formData.get("teamName") ?? "").trim();
+  const gymName = String(formData.get("gymName") ?? "").trim() || null;
 
   if (teamName) {
     const athleteNames = formData
@@ -58,6 +59,7 @@ export async function addAthleteManually(formData: FormData) {
         full_name: fullName,
         email: `manual+${registration.id}+${i}@wodflow.local`,
         is_captain: i === 0,
+        gym_name: gymName,
       }))
     );
   } else {
@@ -83,6 +85,7 @@ export async function addAthleteManually(formData: FormData) {
       email: email || `manual+${registration.id}@wodflow.local`,
       id_number: idNumber || null,
       is_captain: true,
+      gym_name: gymName,
     });
   }
 

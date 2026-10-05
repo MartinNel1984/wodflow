@@ -1,5 +1,6 @@
 import { requireOrganizer } from "@/lib/auth";
 import { addHistoricalResult, removeHistoricalResult, updateHistoricalResult } from "./actions";
+import { HistoricalAddGymField, HistoricalRowForm } from "./HistoricalRowForm";
 
 export default async function HistoricalResultsPage() {
   const { supabase, organizationId } = await requireOrganizer();
@@ -94,11 +95,7 @@ export default async function HistoricalResultsPage() {
           <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
             Gym (optional)
           </label>
-          <input
-            type="text"
-            name="gymName"
-            className="w-full bg-paper rounded-lg px-4 py-3 text-sm border border-ink/10 focus:outline-none focus:border-accent"
-          />
+          <HistoricalAddGymField />
         </div>
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
@@ -187,31 +184,13 @@ export default async function HistoricalResultsPage() {
                   {r.gender && r.season_tier ? ` · ${r.gender} tier ${r.season_tier}` : ""}
                 </td>
                 <td className="px-4 py-2">
-                  <form action={updateHistoricalResult} className="flex items-center gap-2">
-                    <input type="hidden" name="id" value={r.id} />
-                    <input
-                      type="text"
-                      name="athleteName"
-                      defaultValue={r.athlete_name}
-                      className="w-32 bg-paper rounded px-2 py-1 text-xs border border-ink/10 focus:outline-none focus:border-accent"
-                    />
-                    <input
-                      type="email"
-                      name="athleteEmail"
-                      defaultValue={r.athlete_email}
-                      className="w-40 bg-paper rounded px-2 py-1 text-xs font-data border border-ink/10 focus:outline-none focus:border-accent"
-                    />
-                    <input
-                      type="text"
-                      name="gymName"
-                      defaultValue={r.gym_name ?? ""}
-                      placeholder="Gym"
-                      className="w-32 bg-paper rounded px-2 py-1 text-xs border border-ink/10 focus:outline-none focus:border-accent"
-                    />
-                    <button type="submit" className="text-xs text-accent hover:underline whitespace-nowrap">
-                      Save
-                    </button>
-                  </form>
+                  <HistoricalRowForm
+                    id={r.id}
+                    initialAthleteName={r.athlete_name}
+                    initialAthleteEmail={r.athlete_email}
+                    initialGymName={r.gym_name}
+                    action={updateHistoricalResult}
+                  />
                 </td>
                 <td className="px-4 py-2 font-data">
                   {r.position} / {r.entrants}

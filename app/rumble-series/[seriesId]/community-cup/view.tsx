@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import type { GymStanding } from "@/lib/communityCup";
+import type { GymEventContribution, GymStanding } from "@/lib/communityCup";
 
 const EVENT_COLUMN_ORDER = ["Indy 2026", "Remix 2026", "Rumble In house 2025", "Rumble Indy 2025", "Rumble Teams 2025"];
 
@@ -14,6 +14,49 @@ function orderEventNames(names: string[]): string[] {
     if (bi !== -1) return 1;
     return a.localeCompare(b);
   });
+}
+
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
+function ContributionLine({ c }: { c: GymEventContribution }) {
+  if (c.kind === "team") {
+    const rosterLabel = c.athleteNames.length
+      ? c.athleteNames.join(", ")
+      : `${c.slotsFromThisGym} teammate${c.slotsFromThisGym === 1 ? "" : "s"}`;
+    return (
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-4 border-t border-ink/5 py-2 first:border-t-0">
+        <div className="min-w-0">
+          <div className="font-semibold text-ink truncate">{c.teamName}</div>
+          <div className="text-ink/60 text-xs">
+            {ordinal(c.position)} / {c.entrants} teams
+            <span className="text-ink/40"> · </span>
+            {rosterLabel}
+          </div>
+        </div>
+        <div className="shrink-0 font-data text-xs text-ink/70 sm:text-right">
+          {c.seriesPointsForTeam} pts × {c.slotsFromThisGym}/{c.teamSize}
+          <span className="font-bold text-ink ml-2">= {c.pointsCredited}</span>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-4 border-t border-ink/5 py-2 first:border-t-0">
+      <div className="min-w-0">
+        <div className="font-semibold text-ink truncate">{c.athleteName}</div>
+        <div className="text-ink/60 text-xs">
+          {ordinal(c.position)} / {c.entrants}
+        </div>
+      </div>
+      <div className="shrink-0 font-data text-xs font-bold text-ink sm:text-right">
+        {c.pointsCredited} pts
+      </div>
+    </div>
+  );
 }
 
 export default function CommunityCupView({
@@ -40,8 +83,10 @@ export default function CommunityCupView({
         <h1 className="text-3xl sm:text-4xl font-semibold">{seriesName} {seriesYear} — Community Cup</h1>
         <p className="text-sm text-ink/70 max-w-xl">
           Each team&apos;s event points are split across its athletes&apos; gyms. A pure-gym team sends 100% to that
-          gym; a mixed team splits proportionally. Your gym appears here once {minAthletes} athletes
-          have signed up for the series.
+          gym; a mixed team splits proportionally. Tap any gym to see the math.
+        </p>
+        <p className="text-xs text-ink/50">
+          A gym appears here once {minAthletes} athletes have signed up for the series.
         </p>
       </header>
 
@@ -82,19 +127,31 @@ export default function CommunityCupView({
                     </tr>
                     {isOpen && (
                       <tr className="border-t border-ink/10 bg-ink/[0.02]">
-                        <td colSpan={5} className="px-3 py-4">
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {eventNames.map((eventName) => (
-                              <div key={eventName} className="rounded-md bg-white border border-ink/10 px-3 py-2">
-                                <div className="text-[10px] uppercase tracking-wider text-ink/50 leading-tight">{eventName}</div>
-                                <div className="font-data font-bold text-ink">{g.pointsByEvent[eventName]}</div>
+                        <td colSpan={5} className="px-3 py-4 space-y-4">
+                          {eventNames.map((eventName) => {
+                            const contributions = g.contributionsByEvent[eventName] ?? [];
+                            return (
+                              <div key={eventName} className="rounded-md bg-white border border-ink/10 px-3 py-3">
+                                <div className="flex items-baseline justify-between gap-3 mb-1">
+                                  <div className="text-[11px] uppercase tracking-wider text-ink/50 font-semibold">
+                                    {eventName}
+                                  </div>
+                                  <div className="font-data font-bold text-ink text-sm">
+                                    {g.pointsByEvent[eventName]} pts
+                                  </div>
+                                </div>
+                                {contributions.length === 0 ? (
+                                  <p className="text-xs text-ink/50 italic">No per-finish detail recorded.</p>
+                                ) : (
+                                  <div>
+                                    {contributions.map((c, idx) => (
+                                      <ContributionLine key={idx} c={c} />
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-                            ))}
-                            <div className="rounded-md bg-accent/10 border border-accent/30 px-3 py-2">
-                              <div className="text-[10px] uppercase tracking-wider text-accent leading-tight">Total</div>
-                              <div className="font-data font-bold text-accent">{g.totalPoints}</div>
-                            </div>
-                          </div>
+                            );
+                          })}
                         </td>
                       </tr>
                     )}

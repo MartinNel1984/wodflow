@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { computeCommunityCupForSeries } from "@/lib/communityCup";
 import { updateCommunityCupConfig } from "../../actions";
+import AdminCommunityCupTable from "./AdminCommunityCupTable";
 
 export default async function AdminCommunityCupPage({
   params,
@@ -27,8 +28,6 @@ export default async function AdminCommunityCupPage({
     .filter((g) => !g.approved)
     .reduce((sum, g) => sum + g.totalPoints, 0);
   const unallocatedTotal = Object.values(result.unallocatedPointsByEvent).reduce((a, b) => a + b, 0);
-
-  const eventColumnOrder = Object.keys(result.unallocatedPointsByEvent).sort();
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -84,40 +83,7 @@ export default async function AdminCommunityCupPage({
           No gym allocations yet — events in this series haven&apos;t produced any scored results.
         </div>
       ) : (
-        <div className="bg-white border border-ink/10 rounded-xl overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-ink/5 text-left text-xs uppercase tracking-wider text-ink/60 align-bottom">
-                <th className="px-3 py-3">Gym</th>
-                <th className="px-3 py-3 text-right">Athletes</th>
-                {eventColumnOrder.map((n) => (
-                  <th key={n} className="px-2 py-3 text-right whitespace-normal break-words text-[10px] leading-tight">
-                    {n}
-                  </th>
-                ))}
-                <th className="px-3 py-3 text-right">Total</th>
-                <th className="px-3 py-3 text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {result.gyms.map((g) => (
-                <tr key={g.gymId ?? g.gymName} className="border-t border-ink/10">
-                  <td className="px-3 py-2">{g.gymName}</td>
-                  <td className="px-3 py-2 text-right font-data">{g.distinctAthleteCount}</td>
-                  {eventColumnOrder.map((n) => (
-                    <td key={n} className="px-2 py-2 text-right font-data text-ink/70 text-xs">
-                      {g.pointsByEvent[n] ?? "—"}
-                    </td>
-                  ))}
-                  <td className="px-3 py-2 text-right font-data font-bold">{g.totalPoints}</td>
-                  <td className="px-3 py-2 text-right">
-                    <StatusBadge gym={g} minAthletes={result.minAthletes} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <AdminCommunityCupTable gyms={result.gyms} minAthletes={result.minAthletes} />
       )}
 
       {unallocatedTotal > 0 && (
@@ -141,18 +107,4 @@ function SummaryTile({ label, value, suffix }: { label: string; value: number | 
       </div>
     </div>
   );
-}
-
-function StatusBadge({ gym, minAthletes }: { gym: { approved: boolean; eligible: boolean; distinctAthleteCount: number }; minAthletes: number }) {
-  if (!gym.approved) {
-    return <span className="text-xs rounded-full bg-ink/10 text-ink/60 px-2 py-0.5">Pending</span>;
-  }
-  if (!gym.eligible) {
-    return (
-      <span className="text-xs rounded-full bg-amber-100 text-amber-800 px-2 py-0.5">
-        {gym.distinctAthleteCount}/{minAthletes}
-      </span>
-    );
-  }
-  return <span className="text-xs rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5">Public</span>;
 }

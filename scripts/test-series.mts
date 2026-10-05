@@ -34,6 +34,10 @@ function assertEqual(actual: unknown, expected: unknown, label: string) {
         eventsCounted: 2,
         gender: "male",
         pointsByEvent: { "Event A": 89, "Event B": 100 },
+        placements: [
+          { eventName: "Event A", position: 2, entrants: 10, points: 89 },
+          { eventName: "Event B", position: 1, entrants: 5, points: 100 },
+        ],
       },
       {
         profileId: "alice",
@@ -42,6 +46,10 @@ function assertEqual(actual: unknown, expected: unknown, label: string) {
         eventsCounted: 2,
         gender: "female",
         pointsByEvent: { "Event A": 100, "Event B": 50 },
+        placements: [
+          { eventName: "Event A", position: 1, entrants: 10, points: 100 },
+          { eventName: "Event B", position: 3, entrants: 5, points: 50 },
+        ],
       },
     ],
     "points accumulate per profileId across events, ranked by total"

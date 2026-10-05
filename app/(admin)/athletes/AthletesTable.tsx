@@ -57,6 +57,10 @@ export default function AthletesTable({
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [savingName, setSavingName] = useState(false);
+  // Gym for the "Add athlete manually" form at the bottom — one gym for
+  // all teammates in team mode, or the solo athlete in solo mode. Admin
+  // can retune per-row via the gym picker on each row afterwards.
+  const [newAthleteGym, setNewAthleteGym] = useState("");
 
   async function saveName(athleteId: string) {
     const value = nameDraft.trim();
@@ -416,6 +420,23 @@ export default function AthletesTable({
             </div>
           </div>
         )}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+            Gym (optional)
+          </label>
+          <GymPicker
+            value={newAthleteGym}
+            onChange={setNewAthleteGym}
+            approvedOnly
+            placeholder="Pick a gym…"
+            name="gymName"
+          />
+          {teamSize > 1 && (
+            <p className="text-[11px] text-ink/50 mt-1">
+              Applies to every teammate in this manual add. Tweak per-athlete later via the row&apos;s gym cell.
+            </p>
+          )}
+        </div>
         <button type="submit" className="bg-accent text-white rounded-lg px-5 py-2.5 text-sm font-semibold">
           {teamSize > 1 ? "Add team" : "Add athlete"}
         </button>

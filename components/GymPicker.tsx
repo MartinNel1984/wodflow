@@ -19,6 +19,12 @@ export function GymPicker({
   // Admin picker: restricts to approved gyms only — hides the
   // "add new gym" affordance so admin picks from the canonical list.
   approvedOnly = false,
+  // Admin flows (e.g. editing a historical row's gym) want free-text
+  // typing to commit immediately — picking from the dropdown is a
+  // convenience, not a requirement. Default stays false so the public
+  // signup flow still forces an explicit pick (or an explicit "add
+  // pending" click) and never silently commits an unverified spelling.
+  commitTypedValue = false,
   name = "gymName",
   className = "",
   disabled = false,
@@ -28,6 +34,7 @@ export function GymPicker({
   required?: boolean;
   placeholder?: string;
   approvedOnly?: boolean;
+  commitTypedValue?: boolean;
   name?: string;
   className?: string;
   disabled?: boolean;
@@ -118,8 +125,12 @@ export function GymPicker({
         placeholder={placeholder}
         disabled={disabled}
         onChange={(e) => {
-          setQuery(e.target.value);
-          onChange("");
+          const next = e.target.value;
+          setQuery(next);
+          // commitTypedValue: free-text commits as-you-type (admin
+          // flows). Otherwise force an explicit pick/add by clearing
+          // the committed value — matches the public-signup contract.
+          onChange(commitTypedValue ? next : "");
           setOpen(true);
           setAddError("");
         }}

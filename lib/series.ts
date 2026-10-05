@@ -20,6 +20,16 @@ export type SeriesEventPlacement = {
   gender: string | null;
 };
 
+// Per-event detail for the Community Cup drill-down (and anywhere else
+// that needs "how did this total get built?"). position/entrants are
+// post-tier-chain so they match what the ranked view shows.
+export type SeriesPlacementDetail = {
+  eventName: string;
+  position: number;
+  entrants: number;
+  points: number;
+};
+
 export type SeriesStanding = {
   profileId: string;
   displayName: string;
@@ -30,6 +40,7 @@ export type SeriesStanding = {
   // — lets an organizer spot-check a total against what each individual
   // comp actually contributed, not just trust the sum.
   pointsByEvent: Record<string, number>;
+  placements: SeriesPlacementDetail[];
 };
 
 export function computeSeriesStandings(
@@ -38,7 +49,14 @@ export function computeSeriesStandings(
 ): SeriesStanding[] {
   const byProfile = new Map<
     string,
-    { displayName: string; totalPoints: number; eventsCounted: number; gender: string | null; pointsByEvent: Record<string, number> }
+    {
+      displayName: string;
+      totalPoints: number;
+      eventsCounted: number;
+      gender: string | null;
+      pointsByEvent: Record<string, number>;
+      placements: SeriesPlacementDetail[];
+    }
   >();
 
   for (const p of placements) {
@@ -48,9 +66,12 @@ export function computeSeriesStandings(
       existing.totalPoints += points;
       existing.eventsCounted += 1;
       existing.pointsByEvent[p.eventName] = (existing.pointsByEvent[p.eventName] ?? 0) + points;
-      // A profile's gender should be consistent across every placement
-      // they earn — fill it in if an earlier placement happened not to
-      // carry one (untagged standalone division).
+      existing.placements.push({
+        eventName: p.eventName,
+        position: p.position,
+        entrants: p.entrants,
+        points,
+      });
       if (!existing.gender && p.gender) existing.gender = p.gender;
     } else {
       byProfile.set(p.profileId, {
@@ -59,6 +80,9 @@ export function computeSeriesStandings(
         eventsCounted: 1,
         gender: p.gender,
         pointsByEvent: { [p.eventName]: points },
+        placements: [
+          { eventName: p.eventName, position: p.position, entrants: p.entrants, points },
+        ],
       });
     }
   }
