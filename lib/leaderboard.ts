@@ -50,30 +50,30 @@ export type Standing = {
 //   rank_sum    — points = entrants - position + 1 (today's default,
 //                 unchanged behavior for every division that hasn't
 //                 opted into the other one).
-//   gap_formula — Tjokkie's proposed model: winner scores winner_points
-//                 (100 by default), each place down loses a fixed gap
-//                 of round(winner_points / (entrants - 1)), floored at
-//                 0. Dividing by (entrants - 1) — the number of GAPS
-//                 between 1st and last, not the number of entrants —
-//                 anchors last place at ~0 regardless of field size.
-//                 Dividing by entrants instead (the original version)
-//                 overshoots for large fields: e.g. 60 entrants ->
-//                 100/60=1.667 rounds UP to a gap of 2, hitting 0 at
-//                 position 51 and leaving ~10 athletes flatlined at
-//                 zero instead of just the last one. Found 2026-08-03
-//                 from a real Rumble in Randburg leaderboard screenshot
-//                 showing that exact cluster of zeros.
+//   gap_formula — Tjokkie's model: winner scores winner_points (100 by
+//                 default), last place lands at exactly 1, everyone in
+//                 between linearly interpolated and rounded. Prior
+//                 version pre-rounded the per-position gap, which for
+//                 ~40-entrant fields rounded 100/(N-1) up and
+//                 flat-lined the tail at 0 — Tjokkie flagged this
+//                 2026-10-05: Paul Raath scored 1 in Indy 2026 but
+//                 wasn't last. Linear round-at-the-end puts every
+//                 entrant on at least 1 point regardless of field
+//                 size. A manual gap_points override still short-
+//                 circuits the formula for the "spread is 5 because we
+//                 have 20 teams" case.
 // Exported for reuse by lib/series.ts — season points (Milestone 18)
 // are the same pluggable formula applied to an athlete's OVERALL
 // event placement instead of a per-workout one.
 export function pointsForPosition(position: number, entrants: number, config: ScoringConfig): number {
   if (config.method === "gap_formula") {
     const winnerPoints = config.winner_points ?? 100;
-    // gap_points is a deliberate manual override (Tjokkie: "spread is 5
-    // points because we have 20 teams", his own number, not necessarily
-    // 100/20) — only auto-derive from entrant count when he hasn't set one.
-    const gap = config.gap_points ?? Math.round(winnerPoints / Math.max(1, entrants - 1));
-    return Math.max(0, winnerPoints - (position - 1) * gap);
+    if (config.gap_points != null) {
+      return Math.max(0, winnerPoints - (position - 1) * config.gap_points);
+    }
+    if (entrants <= 1) return winnerPoints;
+    const raw = winnerPoints - ((position - 1) * (winnerPoints - 1)) / (entrants - 1);
+    return Math.max(1, Math.round(raw));
   }
   return entrants - position + 1;
 }

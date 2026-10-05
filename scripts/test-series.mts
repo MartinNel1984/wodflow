@@ -20,7 +20,7 @@ function assertEqual(actual: unknown, expected: unknown, label: string) {
     // gap = round(winner_points / (entrants - 1)).
     { profileId: "alice", displayName: "Alice", position: 1, entrants: 10, eventName: "Event A", gender: "female" }, // gap round(100/9)=11 -> 100
     { profileId: "bob", displayName: "Bob", position: 2, entrants: 10, eventName: "Event A", gender: "male" }, // -> 89
-    { profileId: "alice", displayName: "Alice", position: 3, entrants: 5, eventName: "Event B", gender: "female" }, // gap round(100/4)=25 -> 50
+    { profileId: "alice", displayName: "Alice", position: 3, entrants: 5, eventName: "Event B", gender: "female" }, // linear 100->1 across 5 entrants: 100 - 2*99/4 = 50.5 -> 51
     { profileId: "bob", displayName: "Bob", position: 1, entrants: 5, eventName: "Event B", gender: "male" }, // -> 100
   ];
   const standings = computeSeriesStandings(placements, { method: "gap_formula", winner_points: 100 });
@@ -42,13 +42,13 @@ function assertEqual(actual: unknown, expected: unknown, label: string) {
       {
         profileId: "alice",
         displayName: "Alice",
-        totalPoints: 150,
+        totalPoints: 151,
         eventsCounted: 2,
         gender: "female",
-        pointsByEvent: { "Event A": 100, "Event B": 50 },
+        pointsByEvent: { "Event A": 100, "Event B": 51 },
         placements: [
           { eventName: "Event A", position: 1, entrants: 10, points: 100, displayName: "Alice" },
-          { eventName: "Event B", position: 3, entrants: 5, points: 50, displayName: "Alice" },
+          { eventName: "Event B", position: 3, entrants: 5, points: 51, displayName: "Alice" },
         ],
       },
     ],

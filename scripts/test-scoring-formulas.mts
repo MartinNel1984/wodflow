@@ -50,31 +50,30 @@ function row(regId: string, time: number, tiebreak?: number): LeaderboardRow {
   assertEqual(results[0].points, 100, "gap_formula: winner gets 100");
   assertEqual(results[1].points, 91, "gap_formula: 2nd loses one gap (9) -> 91");
   assertEqual(results[2].points, 82, "gap_formula: 3rd -> 82");
-  // Gap is derived as round(winner_points / (entrants - 1)) — dividing
-  // by the number of GAPS between 1st and last, not the entrant count —
-  // so last place always lands at (or near) 0 regardless of field size.
-  // Fixed 2026-08-03: dividing by entrants instead used to overshoot on
-  // large fields (round-up on the gap hit 0 many places before last).
-  assertEqual(results[11].points, 1, "gap_formula: 12th (last) place lands at 1 (100 - 11*9)");
+  // Linear 100 -> 1 interpolation (Tjokkie, 2026-10-05): last place
+  // lands at exactly 1 regardless of field size, intermediate points
+  // rounded. For 12 entrants, raw gap of 99/11 is exact (= 9), so the
+  // whole table matches integer-gap arithmetic coincidentally.
+  assertEqual(results[11].points, 1, "gap_formula: 12th (last) lands at 1");
 }
 
-// --- gap_formula: custom winner_points ---
+// --- gap_formula: custom winner_points, last place still = 1 ---
 {
   const rows = [row("a", 100), row("b", 110)];
   const results = computeWorkoutResults(rows, ["a", "b"], { method: "gap_formula", winner_points: 50 });
-  // 2 entrants -> 1 gap -> gap = round(50/1) = 50 -> winner 50, last exactly 0.
-  assertEqual(results.map((r) => r.points), [50, 0], "gap_formula: winner_points=50, 2 entrants -> gap 50 -> 50,0");
+  // 2 entrants with linear 50 -> 1: positions get 50 and 1.
+  assertEqual(results.map((r) => r.points), [50, 1], "gap_formula: winner_points=50, 2 entrants -> 50,1");
 }
 
-// --- gap_formula: points never go negative ---
+// --- gap_formula: small winner_points still bottoms at 1, not 0 ---
 {
   const rows = Array.from({ length: 3 }, (_, i) => row(`r${i}`, 100 + i));
   const results = computeWorkoutResults(rows, rows.map((r) => r.registration_id), {
     method: "gap_formula",
     winner_points: 10,
   });
-  // winner_points=10, 3 entrants -> gap = round(10/2) = 5 -> 10, 5, 0
-  assertEqual(results.map((r) => r.points), [10, 5, 0], "gap_formula: small winner_points still floors correctly");
+  // Linear 10 -> 1 across 3 entrants: 10, round(10 - 9/2)=6, 1
+  assertEqual(results.map((r) => r.points), [10, 6, 1], "gap_formula: 10,6,1 for 3 entrants with winner_points=10");
 }
 
 // --- tiebreak resolution: same primary time, tiebreak breaks it ---
