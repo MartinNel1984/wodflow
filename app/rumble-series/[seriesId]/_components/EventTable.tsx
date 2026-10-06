@@ -63,24 +63,24 @@ export default function EventTable({
           <div className="rounded-xl border border-ink/10 p-8 text-center text-ink/60">{emptyText}</div>
         ) : (
           <div className="rounded-xl border border-ink/10 overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[34rem] table-fixed text-sm">
               <thead>
                 <tr className="bg-ink/5 text-left">
-                  <th className="px-3 py-3 w-10">#</th>
+                  <th className="px-3 py-3 w-12">#</th>
                   <th className="px-3 py-3">{nameHeading}</th>
                   {events.map((e) => (
-                    <th key={e} className="px-3 py-3 text-right font-semibold leading-tight min-w-[5.5rem]">
+                    <th key={e} className="px-3 py-3 text-right font-semibold leading-tight w-28">
                       {headingFor(e)}
                     </th>
                   ))}
-                  <th className="px-3 py-3 text-right font-bold">Total</th>
+                  <th className="px-3 py-3 text-right font-bold w-24">Total</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r, i) => (
                   <tr key={r.key} className={`border-t border-ink/10 ${i < 3 ? "bg-accent/5" : ""}`}>
                     <td className="px-3 py-3 font-data font-bold text-accent">{i + 1}</td>
-                    <td className="px-3 py-3 font-semibold whitespace-nowrap">
+                    <td className="px-3 py-3 font-semibold truncate">
                       {r.name}
                       {r.sub && <span className="block text-xs font-normal text-ink/50">{r.sub}</span>}
                     </td>
