@@ -63,13 +63,13 @@ export default function EventTable({
           <div className="rounded-xl border border-ink/10 p-8 text-center text-ink/60">{emptyText}</div>
         ) : (
           <div className="rounded-xl border border-ink/10 overflow-x-auto">
-            <table className="w-full min-w-[34rem] table-fixed text-sm">
+            <table className="w-full min-w-[38rem] table-fixed text-sm">
               <thead>
                 <tr className="bg-ink/5 text-left">
                   <th className="px-3 py-3 w-12">#</th>
                   <th className="px-3 py-3">{nameHeading}</th>
                   {events.map((e) => (
-                    <th key={e} className="px-3 py-3 text-right font-semibold leading-tight w-28">
+                    <th key={e} className="px-3 py-3 text-right font-semibold leading-tight w-36">
                       {headingFor(e)}
                     </th>
                   ))}
