@@ -17,6 +17,12 @@ export function orderEventNames(names: Iterable<string>): string[] {
   });
 }
 
+// Column heading only (data stays keyed by the real event name). The Big One's
+// full name is much wider than "Indy 2026"/"Remix 2026" and stretched its column.
+function headingFor(event: string): string {
+  return /big one/i.test(event) ? "The Big One 2026" : event;
+}
+
 export type EventTableRow = {
   key: string;
   name: string;
@@ -64,7 +70,7 @@ export default function EventTable({
                   <th className="px-3 py-3">{nameHeading}</th>
                   {events.map((e) => (
                     <th key={e} className="px-3 py-3 text-right font-semibold leading-tight min-w-[5.5rem]">
-                      {e}
+                      {headingFor(e)}
                     </th>
                   ))}
                   <th className="px-3 py-3 text-right font-bold">Total</th>
