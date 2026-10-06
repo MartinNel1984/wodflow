@@ -79,7 +79,7 @@ export default function EventTable({
               <tbody>
                 {rows.map((r, i) => (
                   <tr key={r.key} className={`border-t border-ink/10 ${i < 3 ? "bg-accent/5" : ""}`}>
-                    <td className="px-3 py-3 font-data font-bold text-accent">{i + 1}</td>
+                    <td className="px-3 py-3 font-data font-bold text-accent text-lg">{["🥇", "🥈", "🥉"][i] ?? i + 1}</td>
                     <td className="px-3 py-3 font-semibold truncate">
                       {r.name}
                       {r.sub && <span className="block text-xs font-normal text-ink/50">{r.sub}</span>}
