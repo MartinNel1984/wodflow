@@ -1,3 +1,5 @@
+import { RumbleBackdrop } from "@/components/RumbleBackdrop";
+
 // Wide "one column per event" table for screen-recording walkthroughs.
 // Replaces the carousel/drill-down for cases where Tjokkie wants every
 // event visible at once. Events missing for a row render as 0.
@@ -42,19 +44,19 @@ export default function EventTable({
   const shortName = seriesName.replace(new RegExp(`\\s*${seriesYear}$`), "");
 
   return (
-    <div className="min-h-screen bg-ink text-paper px-3 sm:px-6 py-8">
-      <div className="max-w-5xl mx-auto space-y-6">
+    <RumbleBackdrop logoSrc="/rumble/series-logo-v2.png" logoAlt={seriesName}>
+      <div className="w-full max-w-5xl bg-white text-ink rounded-2xl shadow-xl px-3 sm:px-6 py-8 space-y-6">
         <header className="text-center space-y-1">
-          <p className="text-xs uppercase tracking-[0.3em] text-paper/60">
-            {shortName} <span className="text-accent">{seriesYear}</span>
+          <p className="text-xs uppercase tracking-[0.3em] text-ink/50">
+            {shortName} {seriesYear}
           </p>
           <h1 className="text-4xl sm:text-5xl font-bold uppercase">{title}</h1>
         </header>
 
         {rows.length === 0 ? (
-          <div className="bg-white text-ink rounded-2xl p-8 text-center text-ink/60">{emptyText}</div>
+          <div className="rounded-xl border border-ink/10 p-8 text-center text-ink/60">{emptyText}</div>
         ) : (
-          <div className="bg-white text-ink rounded-2xl overflow-x-auto">
+          <div className="rounded-xl border border-ink/10 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-ink/5 text-left">
@@ -89,6 +91,6 @@ export default function EventTable({
           </div>
         )}
       </div>
-    </div>
+    </RumbleBackdrop>
   );
 }
