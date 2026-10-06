@@ -1,0 +1,94 @@
+// Wide "one column per event" table for screen-recording walkthroughs.
+// Replaces the carousel/drill-down for cases where Tjokkie wants every
+// event visible at once. Events missing for a row render as 0.
+
+const EVENT_COLUMN_ORDER = ["Indy 2026", "Remix 2026", "Rumble In house 2025", "Rumble Indy 2025", "Rumble Teams 2025"];
+
+export function orderEventNames(names: Iterable<string>): string[] {
+  return [...new Set(names)].sort((a, b) => {
+    const ai = EVENT_COLUMN_ORDER.indexOf(a);
+    const bi = EVENT_COLUMN_ORDER.indexOf(b);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return a.localeCompare(b);
+  });
+}
+
+export type EventTableRow = {
+  key: string;
+  name: string;
+  sub?: string;
+  pointsByEvent: Record<string, number>;
+  total: number;
+};
+
+export default function EventTable({
+  seriesName,
+  seriesYear,
+  title,
+  nameHeading,
+  rows,
+  emptyText,
+}: {
+  seriesName: string;
+  seriesYear: number;
+  title: string;
+  nameHeading: string;
+  rows: EventTableRow[];
+  emptyText: string;
+}) {
+  const events = orderEventNames(rows.flatMap((r) => Object.keys(r.pointsByEvent)));
+  const shortName = seriesName.replace(new RegExp(`\\s*${seriesYear}$`), "");
+
+  return (
+    <div className="min-h-screen bg-ink text-paper px-3 sm:px-6 py-8">
+      <div className="max-w-5xl mx-auto space-y-6">
+        <header className="text-center space-y-1">
+          <p className="text-xs uppercase tracking-[0.3em] text-paper/60">
+            {shortName} <span className="text-accent">{seriesYear}</span>
+          </p>
+          <h1 className="text-4xl sm:text-5xl font-bold uppercase">{title}</h1>
+        </header>
+
+        {rows.length === 0 ? (
+          <div className="bg-white text-ink rounded-2xl p-8 text-center text-ink/60">{emptyText}</div>
+        ) : (
+          <div className="bg-white text-ink rounded-2xl overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-ink/5 text-left">
+                  <th className="px-3 py-3 w-10">#</th>
+                  <th className="px-3 py-3">{nameHeading}</th>
+                  {events.map((e) => (
+                    <th key={e} className="px-3 py-3 text-right font-semibold leading-tight min-w-[5.5rem]">
+                      {e}
+                    </th>
+                  ))}
+                  <th className="px-3 py-3 text-right font-bold">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={r.key} className={`border-t border-ink/10 ${i < 3 ? "bg-accent/5" : ""}`}>
+                    <td className="px-3 py-3 font-data font-bold text-accent">{i + 1}</td>
+                    <td className="px-3 py-3 font-semibold whitespace-nowrap">
+                      {r.name}
+                      {r.sub && <span className="block text-xs font-normal text-ink/50">{r.sub}</span>}
+                    </td>
+                    {events.map((e) => (
+                      <td key={e} className="px-3 py-3 text-right font-data tabular-nums">
+                        {r.pointsByEvent[e] ?? 0}
+                      </td>
+                    ))}
+                    <td className="px-3 py-3 text-right font-data font-bold tabular-nums">{r.total}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
