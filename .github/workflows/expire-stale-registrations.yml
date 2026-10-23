@@ -11,8 +11,8 @@ name: Expire Stale Pending Registrations
 # delete cleanly (on delete cascade), freeing the slot.
 
 on:
-  schedule:
-    - cron: "0 */6 * * *" # every 6 hours
+  # Scheduled run moved to cron on Optimus LXC 105 (/root/cron-jobs, job
+  # "wodflow-expire-stale-registrations") because GitHub's schedule drifts and skips runs. Manual only here.
   workflow_dispatch: {}
 
 jobs:

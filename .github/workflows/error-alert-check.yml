@@ -9,8 +9,8 @@ name: Error Alert Check
 # reachable.
 
 on:
-  schedule:
-    - cron: "*/15 * * * *"
+  # Scheduled run moved to cron on Optimus LXC 105 (/root/cron-jobs, job
+  # "error-alert-wodflow") because GitHub's schedule drifts and skips runs. Manual only here.
   workflow_dispatch: {}
 
 jobs:
