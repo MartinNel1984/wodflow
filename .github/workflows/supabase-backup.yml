@@ -1,8 +1,8 @@
 name: Supabase Backup
 
 on:
-  schedule:
-    - cron: "0 2 * * *"
+  # Scheduled run moved to cron on Optimus LXC 105 (/root/wodflow-backup, 05:15, 2026-10-29): Wodflow's
+  # database now lives on the self-hosted Supabase. Manual only here.
   workflow_dispatch: {}
 
 jobs:
