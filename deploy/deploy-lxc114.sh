@@ -22,6 +22,19 @@ ssh "$HOST" "pct exec $CT -- chown -R app:app $APP"
 echo "==> Building (standalone; webpack, because turbopack cannot resolve postcss plugins inside the unprivileged LXC)"
 ssh "$HOST" "pct exec $CT -- su -s /bin/bash app -c 'cd $APP && set -a && . ./.env.production && set +a && npm ci --include=dev --no-audit --no-fund >/dev/null 2>&1 && BUILD_STANDALONE=1 npx next build --webpack 2>&1 | tail -3 && mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/'"
 
+echo "==> Cluster launcher (one Node process only uses 1 of the 4 cores)"
+ssh "$HOST" "pct exec $CT -- bash -c 'cat > $APP/.next/standalone/cluster.js <<JS
+const cluster = require(\"node:cluster\");
+const WORKERS = Number(process.env.WEB_WORKERS || 4);
+if (cluster.isPrimary) {
+  for (let i = 0; i < WORKERS; i++) cluster.fork();
+  cluster.on(\"exit\", () => setTimeout(() => cluster.fork(), 1000));
+} else {
+  require(\"./server.js\");
+}
+JS
+chown app:app $APP/.next/standalone/cluster.js'"
+
 echo "==> Service"
 ssh "$HOST" "pct exec $CT -- bash -c 'cat > /etc/systemd/system/wodflow.service <<UNIT
 [Unit]
@@ -31,7 +44,7 @@ After=network-online.target
 User=app
 WorkingDirectory=$APP/.next/standalone
 EnvironmentFile=$APP/.env.production
-ExecStart=/usr/bin/node server.js
+ExecStart=/usr/bin/node cluster.js
 Restart=always
 RestartSec=3
 [Install]
