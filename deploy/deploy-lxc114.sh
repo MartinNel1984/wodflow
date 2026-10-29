@@ -22,7 +22,7 @@ tar czf - --exclude=node_modules --exclude=.next --exclude=.open-next --exclude=
 ssh "$HOST" "pct exec $CT -- chown -R app:app $APP"
 
 echo "==> Building (standalone; webpack, because turbopack cannot resolve postcss plugins inside the unprivileged LXC)"
-ssh "$HOST" "pct exec $CT -- su -s /bin/bash app -c 'cd $APP && set -a && . ./.env.production && set +a && nice -n 19 npm ci --include=dev --no-audit --no-fund >/dev/null 2>&1 && BUILD_STANDALONE=1 NODE_OPTIONS=--max-old-space-size=2560 nice -n 19 npx next build --webpack 2>&1 | tail -3 && mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/'"
+ssh "$HOST" "pct exec $CT -- su -s /bin/bash app -c 'cd $APP && rm -rf .next/standalone && set -a && . ./.env.production && set +a && nice -n 19 npm ci --include=dev --no-audit --no-fund >/dev/null 2>&1 && BUILD_STANDALONE=1 NODE_OPTIONS=--max-old-space-size=2560 nice -n 19 npx next build --webpack 2>&1 | tail -3 && mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/'"
 
 echo "==> Cluster launcher (one Node process only uses 1 of the 4 cores)"
 ssh "$HOST" "pct exec $CT -- bash -c 'cat > $APP/.next/standalone/cluster.js <<JS
