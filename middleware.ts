@@ -22,6 +22,7 @@ export function middleware(request: NextRequest) {
   if (host.startsWith("www.") && APEX_HOSTS.has(host.slice(4))) {
     url.protocol = "https:";
     url.host = host.slice(4);
+    url.port = ""; // behind the Optimus tunnel the request URL carries the internal :3000
     return NextResponse.redirect(url, 308);
   }
 
