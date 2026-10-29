@@ -15,30 +15,56 @@ export const revalidate = 60;
 
 const RUMBLE_URL = "https://rumbleinrandburg.co.za";
 
-const features = [
+// Real figures from Rumble "The Big One" (Oct 2026), read from the live database.
+const stats = [
+  { n: "76", label: "teams registered and paid online" },
+  { n: "152", label: "athletes on the floor" },
+  { n: "462", label: "scores captured by judges" },
+  { n: "54", label: "heats run across the weekend" },
+  { n: "174", label: "spectator tickets sold online" },
+  { n: "3", label: "days, no crashes" },
+];
+
+const stages = [
   {
-    title: "Live heats and leaderboards",
-    body: "Heat sheets and leaderboards update as scores land. Athletes and spectators follow on their phones, no refresh needed.",
+    tag: "Before",
+    title: "Sign-ups that run themselves",
+    points: [
+      "Team registration with divisions, early-bird pricing and PayFast payment, no EFT chasing",
+      "Digital waivers signed before anyone arrives",
+      "Athletes pick their gym from an approved list, so gym leaderboards stay clean",
+      "A branded event page and poster on your own domain",
+    ],
   },
   {
-    title: "Judging that survives bad signal",
-    body: "A judge's phone can lose connection mid-WOD. Every score saves on the device and syncs the moment signal returns.",
+    tag: "Event day",
+    title: "The floor runs on live data",
+    points: [
+      "Heat sheets and lane assignments generated and published in minutes",
+      "Judges score on their phones. Lose signal mid-WOD and every score saves, then syncs when it's back",
+      "Leaderboards update on their own as scores land, for athletes, coaches and the crowd",
+      "Big-screen display mode for the venue TV",
+    ],
   },
   {
-    title: "Season standings",
-    body: "Points carry across every event in a series, with configurable formulas, tie-breaks and gym-vs-gym leaderboards.",
+    tag: "Spectators",
+    title: "Ticketing with a real gate",
+    points: [
+      "Spectators buy online and get a QR ticket straight away",
+      "Staff scan at the door from any phone: 84 people scanned in at the Big One",
+      "Weekend passes and single-day tickets",
+      "No cash handling at the gate, no oversold hall",
+    ],
   },
   {
-    title: "Registration, waivers and tickets",
-    body: "Team sign-up, PayFast payments, digital waivers and QR-code spectator tickets with gate check-in.",
-  },
-  {
-    title: "An athlete portal",
-    body: "Persistent athlete accounts with registration history and best finishes across every comp they've done.",
-  },
-  {
-    title: "Your brand, your domain",
-    body: "Each gym gets its own branded site on its own address. Wodflow runs quietly underneath.",
+    tag: "After",
+    title: "Results that keep people coming back",
+    points: [
+      "Final results and full history published the moment the last score is in",
+      "Athlete accounts with every comp they've done and their best finishes",
+      "Season standings across a whole series, plus a gym-vs-gym Community Cup",
+      "Event photo galleries, linked to the results",
+    ],
   },
 ];
 
@@ -64,10 +90,12 @@ export default async function WodflowHomePage() {
           <h1 className="text-5xl sm:text-7xl">
             <Logo />
           </h1>
-          <p className="mt-4 text-xl sm:text-2xl uppercase tracking-wide">Run your competition like the Rumble</p>
+          <p className="mt-4 text-2xl sm:text-4xl uppercase tracking-wide">
+            Competition software that doesn&apos;t fall over on the day
+          </p>
           <p className="mt-4 mx-auto max-w-xl text-paper/80">
-            Wodflow is the platform that runs the Rumble Series, from sign-up to the final leaderboard. Built with the
-            organisers who run it, tested on real event days.
+            Wodflow runs the Rumble Series. At Rumble &ldquo;The Big One&rdquo; it handled sign-ups, ticketing, heats,
+            live scoring and results for a full three-day event, with no crashes.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <a
@@ -87,8 +115,21 @@ export default async function WodflowHomePage() {
           </div>
         </section>
 
+        {/* ---------- Proof: real numbers ---------- */}
+        <section className="mt-16" aria-label="Rumble The Big One in numbers">
+          <h2 className="sticker text-sm">Rumble &ldquo;The Big One&rdquo;, by the numbers</h2>
+          <dl className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {stats.map((s) => (
+              <div key={s.label} className="rounded-xl border border-paper/15 bg-black/40 p-5">
+                <dt className="font-[family-name:var(--font-display)] text-5xl text-accent leading-none">{s.n}</dt>
+                <dd className="mt-2 text-sm text-paper/80">{s.label}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
         {/* ---------- Flagship ---------- */}
-        <section className="mt-20">
+        <section className="mt-16">
           <h2 className="sticker text-sm">Flagship</h2>
           <a
             href={RUMBLE_URL}
@@ -109,6 +150,10 @@ export default async function WodflowHomePage() {
             <div className="p-6">
               <h3 className="text-3xl">Rumble Series</h3>
               <p className="mt-1 text-paper/70">Against The Grain Fitness · Randburg</p>
+              <p className="mt-3 text-paper/90">
+                Three events a year, one season leaderboard, a gym-vs-gym Community Cup and a full results archive. All
+                on Wodflow, all on Rumble&apos;s own website.
+              </p>
               {event && (
                 <p className="mt-3 text-paper/90">
                   Next: {event.name}, {formatDate(event.start_date, event.end_date)}
@@ -120,22 +165,37 @@ export default async function WodflowHomePage() {
           </a>
         </section>
 
-        {/* ---------- Why Wodflow ---------- */}
-        <section className="mt-20">
-          <h2 className="sticker text-sm">Why Wodflow</h2>
+        {/* ---------- Whole event, start to finish ---------- */}
+        <section className="mt-16">
+          <h2 className="sticker text-sm">One platform, start to finish</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {features.map((f) => (
-              <div key={f.title} className="rounded-xl border border-paper/15 bg-black/40 p-5">
-                <h3 className="text-xl">{f.title}</h3>
-                <p className="mt-2 text-sm text-paper/75">{f.body}</p>
+            {stages.map((st) => (
+              <div key={st.tag} className="rounded-xl border border-paper/15 bg-black/40 p-6">
+                <p className="text-accent font-semibold uppercase tracking-wider text-sm">{st.tag}</p>
+                <h3 className="mt-1 text-2xl">{st.title}</h3>
+                <ul className="mt-3 space-y-2 text-sm text-paper/80 list-disc pl-5">
+                  {st.points.map((pt) => (
+                    <li key={pt}>{pt}</li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>
         </section>
 
+        {/* ---------- Your brand ---------- */}
+        <section className="mt-16 rounded-xl border border-paper/15 bg-black/40 p-6 sm:p-8">
+          <h2 className="text-3xl">Your gym, your brand, your domain</h2>
+          <p className="mt-3 text-paper/80 max-w-2xl">
+            Your athletes never see &ldquo;Wodflow&rdquo; as the main event. You get your own website address, your own
+            colours and logo, and your own events. Wodflow runs quietly underneath, and every improvement we make for
+            one gym reaches all of them.
+          </p>
+        </section>
+
         {/* ---------- CTA ---------- */}
-        <section className="mt-20 text-center">
-          <h2 className="text-3xl">Host your next comp through us</h2>
+        <section className="mt-16 text-center">
+          <h2 className="text-3xl sm:text-4xl">Host your next comp through us</h2>
           <p className="mt-3 text-paper/75">We set up your event, your branding and your domain. You run the day.</p>
           <a
             href="https://drafttwo.co.za"
