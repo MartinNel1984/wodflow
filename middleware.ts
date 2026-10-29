@@ -25,7 +25,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  const res = NextResponse.next();
+  // wodflow.co.za's home is the platform page; Rumble's own domain keeps
+  // app/page.tsx. /wodflow-home is internal only, never a public address.
+  if (url.pathname === "/wodflow-home") {
+    url.pathname = "/";
+    return NextResponse.redirect(url, 308);
+  }
+  const res =
+    host === "wodflow.co.za" && url.pathname === "/"
+      ? NextResponse.rewrite(new URL("/wodflow-home", request.url))
+      : NextResponse.next();
   if (APEX_HOSTS.has(host)) {
     const path = url.pathname === "/" ? "/" : url.pathname.replace(/\/$/, "");
     res.headers.set("Link", `<https://${host}${path}>; rel="canonical"`);

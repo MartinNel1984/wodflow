@@ -11,6 +11,9 @@ export const dynamic = "force-dynamic";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const host = ((await headers()).get("host") ?? "").split(":")[0].toLowerCase();
   const BASE_URL = host === "rumbleinrandburg.co.za" ? "https://rumbleinrandburg.co.za" : "https://wodflow.co.za";
+  // wodflow.co.za is the platform home; Rumble's pages are advertised on
+  // Rumble's own domain only, so Google doesn't see two copies.
+  if (BASE_URL === "https://wodflow.co.za") return [{ url: `${BASE_URL}/`, priority: 1 }];
   const supabase = createPublicClient();
 
   const [{ data: events }, { data: historicalEvents }] = await Promise.all([
