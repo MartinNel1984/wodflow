@@ -7,7 +7,7 @@ import { Logo } from "@/components/Logo";
 export function WodflowBadge() {
   return (
     <a
-      href="https://drafttwo.co.za"
+      href="https://wodflow.co.za/?utm_source=powered-by&utm_medium=footer"
       target="_blank"
       rel="noopener noreferrer"
       // opacity-50 failed WCAG AA contrast (3.34:1 vs required 4.5:1) — 75%
