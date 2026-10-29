@@ -1,12 +1,16 @@
 import type { MetadataRoute } from "next";
+import { headers } from "next/headers";
 import { createPublicClient } from "@/lib/supabase/public";
 
 // wodflow.co.za and rumbleinrandburg.co.za share this Worker (see
-// wrangler.jsonc routes) — the sitemap always advertises the primary
-// domain since that's what's registered in Search Console.
-const BASE_URL = "https://wodflow.co.za";
+// wrangler.jsonc routes). Each host advertises its own URLs, matching the
+// self-canonical Link header set in middleware.ts. Anything else (workers.dev,
+// previews) falls back to wodflow.co.za.
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const host = ((await headers()).get("host") ?? "").split(":")[0].toLowerCase();
+  const BASE_URL = host === "rumbleinrandburg.co.za" ? "https://rumbleinrandburg.co.za" : "https://wodflow.co.za";
   const supabase = createPublicClient();
 
   const [{ data: events }, { data: historicalEvents }] = await Promise.all([
