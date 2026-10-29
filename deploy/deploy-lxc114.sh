@@ -4,6 +4,8 @@
 # First run copies the env from .env.selfhost; later runs keep the server's own /opt/wodflow/.env.production.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# The build runs inside the live container (8 GB, 4 cores, 4 web workers use ~3.6 GB). It runs at the lowest
+# CPU priority with a capped heap so the live sites keep priority. Do not shrink the container below 8 GB.
 HOST=homeserver; CT=114; APP=/opt/wodflow
 
 ssh "$HOST" "pct status $CT" | grep -q running
@@ -20,7 +22,7 @@ tar czf - --exclude=node_modules --exclude=.next --exclude=.open-next --exclude=
 ssh "$HOST" "pct exec $CT -- chown -R app:app $APP"
 
 echo "==> Building (standalone; webpack, because turbopack cannot resolve postcss plugins inside the unprivileged LXC)"
-ssh "$HOST" "pct exec $CT -- su -s /bin/bash app -c 'cd $APP && set -a && . ./.env.production && set +a && npm ci --include=dev --no-audit --no-fund >/dev/null 2>&1 && BUILD_STANDALONE=1 npx next build --webpack 2>&1 | tail -3 && mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/'"
+ssh "$HOST" "pct exec $CT -- su -s /bin/bash app -c 'cd $APP && set -a && . ./.env.production && set +a && nice -n 19 npm ci --include=dev --no-audit --no-fund >/dev/null 2>&1 && BUILD_STANDALONE=1 NODE_OPTIONS=--max-old-space-size=2560 nice -n 19 npx next build --webpack 2>&1 | tail -3 && mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/'"
 
 echo "==> Cluster launcher (one Node process only uses 1 of the 4 cores)"
 ssh "$HOST" "pct exec $CT -- bash -c 'cat > $APP/.next/standalone/cluster.js <<JS
