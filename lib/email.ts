@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { getCloudflareContext as getWorkersContext } from "@opennextjs/cloudflare";
 import { createServiceClient } from "@/lib/supabase/service";
 
 // Narrow local type for the send_email binding — deliberately not pulling
@@ -19,6 +19,40 @@ declare global {
   interface CloudflareEnv {
     EMAIL: SendEmailBinding;
   }
+}
+
+// Off Cloudflare Workers (self-hosted Node on Optimus) there is no send_email
+// binding, so the same Email Sending service is called over its REST API.
+// Opt-in via CF_EMAIL_API_TOKEN + CF_ACCOUNT_ID; without them the Workers
+// binding is used exactly as before.
+function restEmailBinding(accountId: string, token: string): SendEmailBinding {
+  return {
+    async send(message) {
+      const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/email/sending/send`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: message.to,
+          from: { address: message.from.email, name: message.from.name },
+          subject: message.subject,
+          html: message.html,
+          text: message.text,
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as { success?: boolean; errors?: unknown } | null;
+      if (!res.ok || body?.success === false) {
+        throw new Error(`Cloudflare Email Sending failed (${res.status}): ${JSON.stringify(body?.errors ?? null)}`);
+      }
+      return {};
+    },
+  };
+}
+
+function getCloudflareContext(): { env: { EMAIL: SendEmailBinding } } {
+  const token = process.env.CF_EMAIL_API_TOKEN;
+  const accountId = process.env.CF_ACCOUNT_ID;
+  if (token && accountId) return { env: { EMAIL: restEmailBinding(accountId, token) } };
+  return getWorkersContext();
 }
 
 const FROM = { email: "noreply@wodflow.co.za", name: "Wodflow" };

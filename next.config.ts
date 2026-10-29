@@ -20,6 +20,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Self-hosted Node build (Optimus): BUILD_STANDALONE=1 npm run build. Unset for the Cloudflare build.
+  ...(process.env.BUILD_STANDALONE ? { output: "standalone" as const } : {}),
   poweredByHeader: false,
   images: {
     // Cloudflare Workers runtime has no sharp/image-optimization loader configured.
