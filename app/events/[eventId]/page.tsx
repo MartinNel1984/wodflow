@@ -48,6 +48,37 @@ export default async function EventDetailPage({
 
   const isBigOne = brandKit?.name === "Rumble Big One";
 
+  // Event structured data for Google. Rumble's pages are advertised on
+  // rumbleinrandburg.co.za only (see app/sitemap.ts), so the URL is built on that host.
+  const eventLd = {
+    "@context": "https://schema.org",
+    "@type": "SportsEvent",
+    name: event.name,
+    startDate: event.start_date,
+    ...(event.end_date ? { endDate: event.end_date } : {}),
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    url: `https://rumbleinrandburg.co.za/events/${event.id}`,
+    ...(event.description ? { description: event.description.replace(/[#*_>`]/g, "").slice(0, 300).trim() } : {}),
+    ...(event.poster_url ? { image: [event.poster_url] } : {}),
+    ...(event.venue_name || event.venue_address
+      ? {
+          location: {
+            "@type": "Place",
+            name: event.venue_name ?? event.venue_address,
+            address: event.venue_address ?? event.venue_name,
+          },
+        }
+      : {}),
+    organizer: { "@type": "Organization", name: "Rumble in Randburg", url: "https://rumbleinrandburg.co.za" },
+  };
+  const eventLdScript = (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(eventLd).replace(/</g, "\\u003c") }}
+    />
+  );
+
   const content = (
     <div className="max-w-xl mx-auto px-4 py-10 space-y-8" style={brandKitStyle(brandKit)}>
       {event.poster_url && !isBigOne && (
@@ -132,6 +163,7 @@ export default async function EventDetailPage({
   if (isBigOne) {
     return (
       <RumbleBackdrop logoSrc={brandKit?.logo_url || "/rumble/series-logo-v2.png"} logoAlt={brandKit?.name || "Rumble Big One"} backHref="/all-events">
+        {eventLdScript}
         <div className="w-full max-w-xl bg-white text-ink rounded-2xl shadow-xl">{content}</div>
       </RumbleBackdrop>
     );
@@ -139,6 +171,7 @@ export default async function EventDetailPage({
 
   return (
     <>
+      {eventLdScript}
       <BackLink href="/all-events" />
       {content}
     </>
