@@ -1,8 +1,10 @@
 name: Deploy to Cloudflare Workers
 
+# Manual only since 2026-10-29: wodflow.co.za and rumbleinrandburg.co.za now run on
+# Optimus (LXC 114, deploy/deploy-lxc114.sh). Running this workflow redeploys the
+# old Cloudflare Worker, whose wrangler.jsonc routes would take the domains back.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   # Gate the deploy on type-check, lint, and the pure test suites.
